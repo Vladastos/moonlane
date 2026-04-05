@@ -30,6 +30,9 @@ pub enum YolangError {
 
     #[error("Panic at {filename} {start}..{end}: {message}")]
     RuntimePanic { message: String, start: usize, end: usize, filename: String },
+    
+    #[error("No match found. Todo: refactor out this error type.")]
+    NoMatch,
 }
 
 impl YolangError {
