@@ -11,7 +11,7 @@
        │
        ▼
   ┌─────────┐
-  │  Parser  │  pest PEG grammar → concrete syntax tree (CST)
+  │  Parser │  pest PEG grammar → concrete syntax tree (CST)
   └─────────┘
        │
        ▼
