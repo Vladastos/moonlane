@@ -10,6 +10,7 @@ Open design questions and deferred features. When an item is resolved, it is rem
 
 | Item | Status | Notes |
 |------|--------|-------|
+| Let-polymorphism (implicit generalization) | ~~`open`~~ **DECIDED** | Let-bound closures can be used polymorphically without explicit `<T>` params via Hindley-Milner style generalization (on binding) + instantiation (on use). Implement in Epic 003 task 0010. |
 | `UInt` type (64-bit unsigned) | `deferred` | Adds casting/arithmetic complexity; `Int` is sufficient for v0.1. Literal suffix TBD (`42u`?). Will need casting rules with `Int`. |
 | `Int` ↔ `UInt` casting via `as` | `deferred` | Blocked on `UInt` being added. |
 | `TryFrom` / `Into` traits | `deferred` | Complement to `From`/`as`; useful for fallible casts. Deferred until needed. |

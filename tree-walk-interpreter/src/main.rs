@@ -8,6 +8,7 @@ mod evaluator;
 mod parser;
 mod typed_ast;
 mod typechecker;
+mod typeinference;
 mod types;
 
 use error::YolangError;
