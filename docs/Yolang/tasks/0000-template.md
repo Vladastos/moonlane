@@ -1,41 +1,23 @@
-# Task NNNN: [Brief Title]
+# Task NNNN: Brief Title
 
-## Metadata
+**Status:** open
 
-| Field | Value |
-|-------|-------|
-| **Status** | open |
-| **Priority** | medium |
-| **Estimated Effort** | 2 |
-| **Related Feature** | `spec/Language Spec.md#Section-Name` or "none" |
-| **Related Decision** | `decisions/NNNN-slug.md` or "none" |
-| **Blocking** | none |
-| **Blocked By** | none |
-| **Owner** | unassigned |
-| **Created** | YYYY-MM-DD |
-| **Updated** | YYYY-MM-DD |
+**Component:** interpreter | repl | parser | typechecker | evaluator | error-handling | spec
 
-## Summary
+**Spec Link:** `spec/Language Spec.md#Section-Name` or Backlog item reference
 
-One paragraph describing what needs to be done and why. What is the concrete outcome? Why does this work matter to the project?
+**Blocked By:** none
+
+## What
+
+One or two sentences. What needs doing and why. Why does this matter to the project?
 
 ## Acceptance Criteria
 
-What does done look like? Use a checklist format—be specific and measurable.
-
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Code review completed
-- [ ] No test regressions
-
-## Technical Approach
-
-[Optional] Describe how you plan to approach this work if the approach is non-obvious or if you want to document the plan before starting. This section can be expanded with discoveries during implementation.
+- [ ] Specific, testable outcome 1
+- [ ] Specific, testable outcome 2
+- [ ] No regressions in existing tests
 
 ## Notes
 
-[Optional] Use this section to track progress, discoveries, blockers, or decisions made during implementation. Update this as you work.
-
----
-
-**For guidance on using this template, see `docs/Yolang/tasks/CONVENTION.md`**
+(Optional — use this to track progress, discoveries, blockers as you work)
