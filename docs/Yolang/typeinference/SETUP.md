@@ -22,10 +22,13 @@ tree-walk-interpreter/
 │   └── typeinference_tests.rs   ← NEW: Full test suite
 └── ...
 
-Project root/
-├── TYPEINFERENCE_ROADMAP.md     ← Complete phase-by-phase guide
-├── TYPEINFERENCE_SETUP.md       ← This file
-└── TYPE_SCHEMES_DESIGN.md       ← Reference (optional)
+Project docs/
+├── Yolang/typeinference/
+│   ├── README.md                ← Overview
+│   ├── SETUP.md                 ← This file
+│   ├── GUIDE.md                 ← Implementation guide
+│   ├── ROADMAP.md               ← Phase-by-phase specs
+│   └── CONCEPTS.md              ← Deep dives
 ```
 
 ## Current Status
@@ -70,16 +73,17 @@ pub enum InferType {
 - `test_infer_type_display`
 - `test_infer_type_constructors`
 
-## How to Use This Roadmap
+## How to Use This
 
 ### 1. Read the Full Plan
 
-Open `TYPEINFERENCE_ROADMAP.md` to understand all 8 phases and how they fit together.
+- Start with [GUIDE.md](./GUIDE.md) for workflow overview
+- Then read [ROADMAP.md](./ROADMAP.md) to understand all 8 phases
 
 ### 2. Work Phase by Phase
 
 Each phase:
-1. Read the "What" section in the roadmap
+1. Read the "What" section in ROADMAP.md
 2. Look at the test stubs in `typeinference_tests.rs`
 3. Implement in `src/typeinference/mod.rs`
 4. Write real assertions (replace `todo!()`)
@@ -90,9 +94,9 @@ Each phase:
 
 Don't move to Phase 3 until Phase 2 tests pass. Each phase depends on previous ones.
 
-### Example: Implementing Phase 2
+## Example: Implementing Phase 2
 
-**Step 1**: Look at the stubs in `typeinference_tests.rs`:
+**Step 1**: Look at the stubs in `tests/typeinference_tests.rs`:
 
 ```rust
 #[test]
@@ -143,34 +147,7 @@ cargo test --test typeinference_tests phase_2
 
 - **Implementation**: `src/typeinference/mod.rs` - Your main working file
 - **Tests**: `tests/typeinference_tests.rs` - Test structure and stubs
-- **Roadmap**: `TYPEINFERENCE_ROADMAP.md` - Complete breakdown
-- **Reference**: `TYPE_SCHEMES_DESIGN.md` - Deep dive on let-polymorphism (for Phase 6)
-
-## Understanding Each Phase
-
-### What Phase 1 Does
-Type variables are the foundation. They represent unknowns during inference (like `?t0`).
-
-### What Phase 2 Does
-InferType is the actual type representation that can contain type variables (unlike concrete `Type`).
-
-### What Phase 3 Does
-Unification is the algorithm that **solves** equations. If you have `?t0` and see it used with `Int`, unification binds `?t0 = Int`.
-
-### What Phase 4 Does
-Substitution applies the bindings. If `?t0 = Int`, substitution replaces `?t0` with `Int` everywhere.
-
-### What Phase 5 Does
-Constraints collect all the equations discovered while walking the AST. Then solve them all at once.
-
-### What Phase 6 Does
-Type schemes enable let-polymorphism: same binding works with different types (Hindley-Milner style).
-
-### What Phase 7 Does
-InferContext manages state: variables, environment, constraints, and substitution tracking.
-
-### What Phase 8 Does
-Integration connects everything to the actual typechecker that processes real programs.
+- **This folder**: Full documentation
 
 ## Advantages of This Approach
 
@@ -182,12 +159,13 @@ Integration connects everything to the actual typechecker that processes real pr
 
 ## Next Steps
 
-1. Read `TYPEINFERENCE_ROADMAP.md` completely (5-10 minutes)
-2. Look at Phase 2 test stubs in `tests/typeinference_tests.rs`
-3. Implement Phase 2 InferType
-4. Run tests until all pass
-5. Move to Phase 3
+1. Read [GUIDE.md](./GUIDE.md) for implementation workflow
+2. Read [ROADMAP.md](./ROADMAP.md) for complete phase breakdown
+3. Look at Phase 2 test stubs in `tests/typeinference_tests.rs`
+4. Implement Phase 2 InferType
+5. Run tests until all pass
+6. Move to Phase 3
 
 ---
 
-**Ready to start Phase 2?** Open `TYPEINFERENCE_ROADMAP.md` and begin!
+**Ready to start Phase 2?** Open [GUIDE.md](./GUIDE.md) and begin!

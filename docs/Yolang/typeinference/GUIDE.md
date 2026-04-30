@@ -6,33 +6,12 @@ You've chosen to build the type inference system step-by-step with tests. This i
 
 ---
 
-## 📁 What's Been Created
-
-### Minimal Foundation
-- ✅ `src/typeinference/mod.rs` - Phase 1 only (TypeVar & TypeVarGenerator)
-- ✅ `src/lib.rs` - NEW: Makes modules testable
-- ✅ `tests/typeinference_tests.rs` - Complete test structure (618 lines)
-
-### Documentation
-- ✅ `TYPEINFERENCE_ROADMAP.md` - Full 8-phase breakdown with all details
-- ✅ `TYPEINFERENCE_SETUP.md` - Quick start guide
-- ✅ `IMPLEMENTATION_GUIDE.md` - This file
-- 📚 `TYPE_SCHEMES_DESIGN.md` - Reference material (not needed yet)
-
-### Tasks Created
-- ✅ Task #3: Master task "Build Type Inference System Step-by-Step"
-- ✅ Task #4: Phase 2 - InferType enum
-- ✅ Task #5: Phase 3 - Unification algorithm
-- ✅ Task #6: Phase 4 - Substitution
-
----
-
 ## 🚀 Quick Start
 
 ### 1. Understand the Full Picture
 ```bash
-# Read this file (you are here)
-# Then read TYPEINFERENCE_ROADMAP.md (5-10 min)
+# Read README.md (you are here)
+# Then read ROADMAP.md (5-10 min)
 ```
 
 ### 2. Check Phase 1 Tests Pass
@@ -54,7 +33,7 @@ test result: ok. 6 passed
 ```
 
 ### 3. Start Phase 2
-Open `TYPEINFERENCE_ROADMAP.md` and follow Phase 2 section.
+Open [ROADMAP.md](./ROADMAP.md) and follow Phase 2 section.
 
 ---
 
@@ -64,7 +43,7 @@ Open `TYPEINFERENCE_ROADMAP.md` and follow Phase 2 section.
 
 **1. Read the roadmap**
 ```
-→ Open TYPEINFERENCE_ROADMAP.md
+→ Open ROADMAP.md
 → Find "Phase N: ___"
 → Read "What", "Definition", "Tasks"
 ```
@@ -135,7 +114,7 @@ mod phase_6_type_schemes { ... }
 mod phase_7_inference_context { ... }
 
 #[cfg(test)]
-mod phase_6_integration { ... }
+mod phase_8_integration { ... }
 ```
 
 ### Running Tests
@@ -220,7 +199,7 @@ After completing each phase, you should be able to answer:
 ## 💡 Tips for Understanding
 
 ### When You Feel Lost
-1. Re-read the "What" section in TYPEINFERENCE_ROADMAP.md
+1. Re-read the "What" section in ROADMAP.md
 2. Look at the examples in the roadmap
 3. Study the test cases—they show expected behavior
 4. Run tests with `--nocapture` to see error messages
@@ -232,8 +211,8 @@ After completing each phase, you should be able to answer:
 4. Run a single test to focus: `cargo test phase_2::test_x -- --nocapture`
 
 ### When You Have Questions
-- Look for "Key Concept" sections in TYPEINFERENCE_ROADMAP.md
-- Check TYPE_SCHEMES_DESIGN.md for deep explanation of concepts
+- Look for "Key Concept" sections in ROADMAP.md
+- Check CONCEPTS.md for deep explanation of concepts
 - Read test comments—they often explain the intent
 
 ### Building Intuition
@@ -246,17 +225,17 @@ After each phase, think about:
 
 ## 📚 Reference Documents
 
-### Primary
-- **TYPEINFERENCE_ROADMAP.md** - Complete phase-by-phase specification
-- **tests/typeinference_tests.rs** - Executable examples of expected behavior
+### In This Folder
+- **README.md** - Overview and navigation
+- **SETUP.md** - Current status and quick reference
+- **GUIDE.md** - This file (implementation workflow)
+- **ROADMAP.md** - Complete phase-by-phase specification
+- **CONCEPTS.md** - Deep dives (type schemes, etc.)
 
-### Secondary
-- **TYPE_SCHEMES_DESIGN.md** - Deep dive on let-polymorphism (for Phase 6)
-- **TYPEINFERENCE_SETUP.md** - Quick reference guide
-
-### Code
+### In Project
 - **src/typeinference/mod.rs** - Your implementation file
 - **src/lib.rs** - Module exports for tests
+- **tests/typeinference_tests.rs** - Test structure and stubs
 - **src/types/mod.rs** - The concrete `Type` enum (for reference)
 - **src/error/mod.rs** - The `YolangError` type (for error handling)
 
@@ -300,7 +279,7 @@ After completing this, you will understand:
 
 ## What to Do Now
 
-1. **Read** `TYPEINFERENCE_ROADMAP.md` completely (understand all 8 phases)
+1. **Read** [ROADMAP.md](./ROADMAP.md) completely (understand all 8 phases)
 2. **Look at** the Phase 2 test stubs in `tests/typeinference_tests.rs`
 3. **Implement** Phase 2 in `src/typeinference/mod.rs`
 4. **Run** `cargo test --test typeinference_tests phase_2`
