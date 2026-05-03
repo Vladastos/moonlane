@@ -52,7 +52,7 @@ trait_method = { "fun" ~ ident ~ generic_params? ~ "(" ~ param_list? ~ ")" ~ ("-
 // ── Parameters ────────────────────────────────────────────────────────────────
 
 param_list = { param ~ ("," ~ param)* }
-param      = { ("mut" ~ "self") | "self" | (ident ~ ":" ~ type_expr) }
+param      = { ("mut" ~ "self") | "self" | (ident ~ (":" ~ type_expr)?) }
 
 generic_params = { "<" ~ generic_param ~ ("," ~ generic_param)* ~ ">" }
 generic_param  = { ident ~ (":" ~ type_expr)? }
