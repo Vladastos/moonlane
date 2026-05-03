@@ -55,6 +55,7 @@ impl Default for TypeVarGenerator {
 
 // ── Phase 2: Inference Types ──────────────────────────────────────────────────
 
+
 /// A type that may contain unresolved type variables.
 /// Used during inference before all types are known.
 /// Distinct from `Type`, which is fully resolved and contains no variables.
@@ -118,5 +119,69 @@ impl std::fmt::Display for InferType {
                 Ok(())
             }
         }
+    }
+}
+
+// ── Phase 3: Substitution ─────────────────────────────────────────────────────
+
+/// A map from type variables to their resolved `InferType`s.
+/// The right-hand side may still contain variables — `apply` chases them transitively.
+#[derive(Debug, Clone, Default)]
+pub struct Substitution {
+    bindings: HashMap<TypeVar, InferType>,
+}
+
+impl Substitution {
+    pub fn new() -> Self {
+        Substitution { bindings: HashMap::new() }
+    }
+
+    /// Record that `var` maps to `ty`.
+    pub fn bind(&mut self, var: TypeVar, ty: InferType) {
+        self.bindings.insert(var, ty);
+    }
+
+    /// Look up the direct binding for `var`, if any.
+    pub fn lookup(&self, var: TypeVar) -> Option<&InferType> {
+        self.bindings.get(&var)
+    }
+
+    /// Recursively replace all type variables in `ty` using this substitution.
+    pub fn apply(&self, ty: &InferType) -> InferType {
+        match ty {
+            InferType::Concrete(_) => ty.clone(),
+            InferType::Var(v) => match self.bindings.get(v) {
+                Some(resolved) => self.apply(resolved),
+                None => ty.clone(),
+            },
+            InferType::Fun(params, ret) => InferType::Fun(
+                params.iter().map(|p| self.apply(p)).collect(),
+                Box::new(self.apply(ret)),
+            ),
+            InferType::Tuple(ts) => InferType::Tuple(ts.iter().map(|t| self.apply(t)).collect()),
+            InferType::Array(t) => InferType::Array(Box::new(self.apply(t))),
+            InferType::Named(name, args) => {
+                InferType::Named(name.clone(), args.iter().map(|a| self.apply(a)).collect())
+            }
+        }
+    }
+
+    /// Produce a substitution equivalent to applying `self` first, then `other`
+    /// (i.e. `other ∘ self` in mathematical notation).
+    ///
+    /// `self` wins on overlap: if both substitutions bind `?t0`, `other` is applied
+    /// to `self`'s value — not to the variable itself — so a concrete value from
+    /// `self` passes through `other` unchanged. This matches Algorithm W, where a
+    /// variable is unified at most once and later substitutions refine free variables
+    /// in the *values*, not the *keys*.
+    pub fn compose(&self, other: &Substitution) -> Substitution {
+        let mut result = Substitution::new();
+        for (var, ty) in &self.bindings {
+            result.bind(*var, other.apply(ty));
+        }
+        for (var, ty) in &other.bindings {
+            result.bindings.entry(*var).or_insert_with(|| ty.clone());
+        }
+        result
     }
 }

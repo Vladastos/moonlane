@@ -71,41 +71,7 @@ pub enum InferType {
 
 ---
 
-## Phase 3: Unification Algorithm
-
-**What**: Implement the core algorithm that solves type equations.
-
-**Key Concept**: Given two types, make them equal by binding type variables.
-
-**Examples**:
-```
-unify(Int, Int) → Success (already equal)
-unify(?t0, Int) → Success, bind ?t0 = Int
-unify(?t0, ?t1) → Success, bind ?t0 = ?t1
-unify(Int, String) → Error (can't unify)
-unify(fun(?t0) -> ?t0, fun(Int) -> Int) → Success, bind ?t0 = Int
-```
-
-**Tasks**:
-- Implement `unify(ty1: &InferType, ty2: &InferType) -> Result<Substitution, String>`
-- Handle concrete type unification (must be identical)
-- Handle type variable unification (bind if not occurs check violation)
-- Handle function type unification (unify parameter and return types)
-- Implement occurs check to prevent infinite types (`?t0 = List<?t0>`)
-- Handle composite types (tuple, array, named)
-
-**Test Cases**:
-- Unify identical concrete types
-- Reject incompatible concrete types
-- Unify variables with concrete types
-- Unify variables with variables
-- Unify complex function types
-- Occurs check prevention
-- Composite type unification
-
----
-
-## Phase 4: Substitution
+## Phase 3: Substitution
 
 **What**: Represent and apply type variable bindings.
 
@@ -131,6 +97,40 @@ pub struct Substitution {
 - Apply substitutions to nested types
 - Recursive substitution application
 - Substitution composition
+
+---
+
+## Phase 4: Unification Algorithm
+
+**What**: Implement the core algorithm that solves type equations.
+
+**Key Concept**: Given two types, make them equal by binding type variables.
+
+**Examples**:
+```
+unify(Int, Int) → Success (already equal)
+unify(?t0, Int) → Success, bind ?t0 = Int
+unify(?t0, ?t1) → Success, bind ?t0 = ?t1
+unify(Int, String) → Error (can't unify)
+unify(fun(?t0) -> ?t0, fun(Int) -> Int) → Success, bind ?t0 = Int
+```
+
+**Tasks**:
+- Implement `unify(ty1: &InferType, ty2: &InferType) -> Result<Substitution, YolangError>`
+- Handle concrete type unification (must be identical)
+- Handle type variable unification (bind if not occurs check violation)
+- Handle function type unification (unify parameter and return types)
+- Implement occurs check to prevent infinite types (`?t0 = List<?t0>`)
+- Handle composite types (tuple, array, named)
+
+**Test Cases**:
+- Unify identical concrete types
+- Reject incompatible concrete types
+- Unify variables with concrete types
+- Unify variables with variables
+- Unify complex function types
+- Occurs check prevention
+- Composite type unification
 
 ---
 
@@ -284,8 +284,8 @@ Follow this order to build understanding incrementally:
 
 1. **Phase 1** - Type variables (foundation)
 2. **Phase 2** - InferType (what we're inferring)
-3. **Phase 3** - Unification (core algorithm)
-4. **Phase 4** - Substitution (applying solutions)
+3. **Phase 3** - Substitution (applying solutions)
+4. **Phase 4** - Unification (core algorithm, uses Substitution)
 5. **Phase 5** - Constraints (collecting relations)
 6. **Phase 6** - Type Schemes (polymorphism)
 7. **Phase 7** - InferContext (state management)

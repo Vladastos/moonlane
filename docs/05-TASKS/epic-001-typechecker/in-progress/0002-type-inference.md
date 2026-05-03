@@ -25,13 +25,13 @@ Implementation notes and worked examples for each phase live in
 `InferType` enum — types that may contain unresolved type variables, used during
 inference before a final `Type` is known.
 
-### Phase 3 — Unification
-Core algorithm: given two `InferType`s, produce a `Substitution` that makes them
-equal, or error. Includes occurs check to prevent infinite types.
-
-### Phase 4 — Substitution
+### Phase 3 — Substitution ✓
 `Substitution` struct (`HashMap<TypeVar, InferType>`) with `bind`, `lookup`,
 `apply` (recursive replacement), and `compose`.
+
+### Phase 4 — Unification
+Core algorithm: given two `InferType`s, produce a `Substitution` that makes them
+equal, or error. Includes occurs check to prevent infinite types.
 
 ### Phase 5 — Constraints
 `Constraint { lhs, rhs, span }` and `solve_constraints(Vec<Constraint>)`.
@@ -64,19 +64,19 @@ constraints, solve, and produce a `TypedProgram`.
 - [x] Helper constructors: `int()`, `float()`, `bool()`, `str()`, `unit()`, `var(v)`
 - [x] `phase_2_infer_types` tests pass
 
-### Phase 3 — Unification
+### Phase 3 — Substitution ✓
+- [x] `Substitution::new()`, `bind(var, ty)`, `lookup(var)`
+- [x] `apply(ty) -> InferType` replaces all variables recursively
+- [x] `compose(other) -> Substitution`
+- [x] `phase_3_substitution` tests pass
+
+### Phase 4 — Unification
 - [ ] `unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError>`
 - [ ] Concrete types must be identical to unify
 - [ ] Variable binds to any type (occurs check first)
 - [ ] Function, tuple, array, named types unify component-wise
 - [ ] Occurs check prevents `?t0 = Array(?t0)`
-- [ ] `phase_3_unification` tests pass
-
-### Phase 4 — Substitution
-- [ ] `Substitution::new()`, `bind(var, ty)`, `lookup(var)`
-- [ ] `apply(ty) -> InferType` replaces all variables recursively
-- [ ] `compose(other) -> Substitution`
-- [ ] `phase_4_substitution` tests pass
+- [ ] `phase_4_unification` tests pass
 
 ### Phase 5 — Constraints
 - [ ] `Constraint { lhs: InferType, rhs: InferType, span: Span }`
