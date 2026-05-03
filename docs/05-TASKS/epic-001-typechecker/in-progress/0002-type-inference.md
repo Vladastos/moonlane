@@ -21,7 +21,7 @@ Implementation notes and worked examples for each phase live in
 **Files:** `src/typeinference/mod.rs`  
 **Tests:** `tests/typeinference_tests.rs` → `phase_1_type_variables`
 
-### Phase 2 — Inference Types
+### Phase 2 — Inference Types ✓
 `InferType` enum — types that may contain unresolved type variables, used during
 inference before a final `Type` is known.
 
@@ -58,11 +58,11 @@ constraints, solve, and produce a `TypedProgram`.
 - [x] Ordering and hashing derived
 - [x] All `phase_1_type_variables` tests pass
 
-### Phase 2 — InferType
-- [ ] `InferType` enum: `Concrete(Type)`, `Var(TypeVar)`, `Fun`, `Tuple`, `Array`, `Named`
-- [ ] `Display` implemented
-- [ ] Helper constructors: `int()`, `float()`, `bool()`, `str()`, `unit()`, `var(v)`
-- [ ] `phase_2_infer_types` tests pass
+### Phase 2 — InferType ✓
+- [x] `InferType` enum: `Concrete(Type)`, `Var(TypeVar)`, `Fun`, `Tuple`, `Array`, `Named`
+- [x] `Display` implemented
+- [x] Helper constructors: `int()`, `float()`, `bool()`, `str()`, `unit()`, `var(v)`
+- [x] `phase_2_infer_types` tests pass
 
 ### Phase 3 — Unification
 - [ ] `unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError>`

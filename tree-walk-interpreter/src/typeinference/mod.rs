@@ -53,9 +53,70 @@ impl Default for TypeVarGenerator {
     }
 }
 
-// TODO: Add remaining components in subsequent tasks:
-// - Phase 2: Unification algorithm
-// - Phase 3: Constraints
-// - Phase 4: Substitution
-// - Phase 5: Type schemes
-// - Phase 6: Inference context
+// ── Phase 2: Inference Types ──────────────────────────────────────────────────
+
+/// A type that may contain unresolved type variables.
+/// Used during inference before all types are known.
+/// Distinct from `Type`, which is fully resolved and contains no variables.
+#[derive(Debug, Clone, PartialEq)]
+pub enum InferType {
+    /// A fully resolved concrete type.
+    Concrete(Type),
+    /// An unknown type represented by a type variable.
+    Var(TypeVar),
+    /// A function type with parameter types and a return type.
+    Fun(Vec<InferType>, Box<InferType>),
+    /// A tuple type.
+    Tuple(Vec<InferType>),
+    /// A homogeneous array type.
+    Array(Box<InferType>),
+    /// A named type (struct, enum) with type arguments.
+    Named(String, Vec<InferType>),
+}
+
+impl InferType {
+    pub fn int() -> Self { InferType::Concrete(Type::Int) }
+    pub fn float() -> Self { InferType::Concrete(Type::Float) }
+    pub fn bool() -> Self { InferType::Concrete(Type::Bool) }
+    pub fn str() -> Self { InferType::Concrete(Type::Str) }
+    pub fn unit() -> Self { InferType::Concrete(Type::Unit) }
+    pub fn var(v: TypeVar) -> Self { InferType::Var(v) }
+}
+
+impl std::fmt::Display for InferType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InferType::Concrete(t) => write!(f, "{}", t),
+            InferType::Var(v) => write!(f, "{}", v),
+            InferType::Fun(params, ret) => {
+                write!(f, "fun(")?;
+                for (i, p) in params.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", p)?;
+                }
+                write!(f, ") -> {}", ret)
+            }
+            InferType::Tuple(ts) => {
+                write!(f, "(")?;
+                for (i, t) in ts.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", t)?;
+                }
+                write!(f, ")")
+            }
+            InferType::Array(t) => write!(f, "{}[]", t),
+            InferType::Named(name, args) => {
+                write!(f, "{}", name)?;
+                if !args.is_empty() {
+                    write!(f, "<")?;
+                    for (i, a) in args.iter().enumerate() {
+                        if i > 0 { write!(f, ", ")?; }
+                        write!(f, "{}", a)?;
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
