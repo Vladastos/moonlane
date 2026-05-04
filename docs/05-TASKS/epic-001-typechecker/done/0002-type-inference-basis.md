@@ -1,6 +1,6 @@
-# Task 0002: Implement Type Inference Engine
+# Task 0002: Implement Type Inference Engine — Basis (Phases 1–7)
 
-**Status:** in-progress  
+**Status:** done  
 **Epic:** epic-001-typechecker  
 **Component:** typechecker  
 **Spec Link:** docs/01-SPEC/LANGUAGE-SPEC.md#32-type-inference  
@@ -8,8 +8,10 @@
 
 ## What
 
-Implement the Hindley-Milner type inference engine in `src/typeinference/`.
-Built across 8 incremental phases — each phase fully tested before the next begins.
+Implement the foundational Hindley-Milner type inference engine in `src/typeinference/`.
+Built across 7 incremental phases — each phase fully tested before the next begins.
+
+Integration with the typechecker pipeline is handled in task 0005.
 
 Implementation notes and worked examples for each phase live in
 `docs/03-COMPONENTS/typeinference/ROADMAP.md`.
@@ -43,11 +45,7 @@ quantify) and `instantiate` (fresh variables per use site).
 
 ### Phase 7 — Inference Context ✓
 `InferContext` — the state threaded through inference: `TypeVarGenerator`, mono
-and poly environments, constraint accumulator, current substitution.
-
-### Phase 8 — Integration with Typechecker
-Wire `InferContext` into `typechecker::check()`. Walk the untyped AST, emit
-constraints, solve, and produce a `TypedProgram`.
+and poly environments, constraint accumulator.
 
 ## Acceptance Criteria
 
@@ -100,15 +98,8 @@ constraints, solve, and produce a `TypedProgram`.
 - [x] `solve() -> Result<Substitution, YolangError>`
 - [x] `phase_7_infer_context` tests pass
 
-### Phase 8 — Integration
-- [ ] `typechecker::check()` uses `InferContext` for a full inference pass
-- [ ] Literals, variables, binary ops, function calls, let-bindings all infer correctly
-- [ ] Type errors produce `YolangError::TypeError` with source span
-- [ ] All `programs_tests` still pass
-- [ ] No regressions in `typeinference_tests`
-
 ## Notes
 
 - Run phase tests with: `cargo test --test typeinference_tests phase_N`
-- Complete all tests for each phase before starting the next
-- Phase 8 connects to task 0003 (type checker validation pass)
+- All 80 tests across phases 1–7 pass
+- Phase 8 (integration) is tracked in task 0005
