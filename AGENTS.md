@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Quick entry point for AI agents (Claude, etc.) contributing to Yolang.
+Quick entry point for AI agents (Claude, etc.) contributing to Yoloscript.
 
 ## Essential Rules
 
@@ -30,6 +30,8 @@ Follow the same process as human contributors:
 - **Spec** - `docs/01-SPEC/LANGUAGE-SPEC.md` (source of truth)
 - **Process** - `docs/00-PROCESS/`
 - **Tasks** - `docs/05-TASKS/`
+- **Decisions** - `docs/06-DECISIONS/` (ADRs — why non-obvious choices were made)
+- **Architecture** - `docs/02-ARCHITECTURE/`
 - **Code** - `tree-walk-interpreter/src/`
 - **Tests** - `tree-walk-interpreter/tests/`
 

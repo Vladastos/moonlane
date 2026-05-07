@@ -25,7 +25,7 @@ This epic completes the core interpreter pipeline: Parse → Type Check → **Ev
 The evaluator is the final piece of the core interpreter:
 - **Validates the design** — TypedAST and type system are proven correct
 - **Enables full testing** — Test parsing, type checking, AND execution together
-- **Provides user value** — Can actually run Yolang programs
+- **Provides user value** — Can actually run Yoloscript programs
 - **Foundation for optimization** — Type info enables runtime optimizations
 - **Sets up generics** — Monomorphization (Epic 003) feeds specialized code to the evaluator
 
@@ -71,7 +71,7 @@ When this epic is done:
 - [ ] Error messages report type-related issues clearly
 - [ ] All Epic 001 type checking still works
 - [ ] Comprehensive test suite (parse + type + eval)
-- [ ] Can run non-generic Yolang programs end-to-end
+- [ ] Can run non-generic Yoloscript programs end-to-end
 
 ## Related Issues/Tasks
 

@@ -1,6 +1,6 @@
-# Yolang Documentation
+# Yoloscript Documentation
 
-Welcome to the Yolang language project documentation.
+Welcome to the Yoloscript language project documentation.
 
 ## 📋 Documentation Sections
 
@@ -14,6 +14,6 @@ Welcome to the Yolang language project documentation.
 ## Quick Navigation
 
 - Starting a new feature? → 00-PROCESS/PROCESS.md
-- Understanding Yolang syntax? → 01-SPEC/Language-Spec.md
+- Understanding Yoloscript syntax? → 01-SPEC/Language-Spec.md
 - Building type inference? → 03-COMPONENTS/typeinference/
 - What are we doing? → 05-TASKS/

@@ -87,7 +87,7 @@ Current rules:
 
 ### Unsupported Node Handling
 
-AST nodes not yet implemented return `YolangError::Internal` with a clear
+AST nodes not yet implemented return `YoloscriptError::Internal` with a clear
 "not yet supported" message, so unimplemented features fail loudly rather than
 silently producing wrong types.
 
@@ -149,7 +149,7 @@ return "not yet supported" regardless of stage:
 - [ ] `Decl::Let` / `Decl::Mut`: annotation (if present) is unified with inferred value type
 - [ ] `Decl::Fun`: parameters and return type unified, body inferred, scheme generalized
 - [ ] Stage 1 `.yolo` test programs pass through `check()` without error
-- [ ] Type mismatches produce `YolangError::TypeError` with source span
+- [ ] Type mismatches produce `YoloscriptError::TypeError` with source span
 
 ### Stage 2–4
 - [ ] (to be filled in as stages begin)
@@ -199,7 +199,7 @@ defined when the test harness is extended for Stage 1.
 ## Open Questions
 
 ### `Nope` literal type
-`Literal::Nope` is Yolang's null/None equivalent. Its type should be
+`Literal::Nope` is Yoloscript's null/None equivalent. Its type should be
 `Perhaps(?t0)` for a fresh `?t0` — making it polymorphic. But this means a bare
 `let x = Nope` leaves `?t0` unresolved, which under the current rules would be
 an error. Do we special-case it, require an annotation, or introduce a default?
@@ -236,7 +236,7 @@ architecture should not be finalised until both ADRs are accepted.
 `solve_constraints` currently stops at the first unification failure. A better
 user experience would collect all errors and report them together. This requires
 a different solving strategy (continue past errors, collect them, return
-`Vec<YolangError>` instead of `Result`). Decide when to tackle this — it is a
+`Vec<YoloscriptError>` instead of `Result`). Decide when to tackle this — it is a
 cross-cutting change that affects the error type and all call sites.
 
 ## Notes

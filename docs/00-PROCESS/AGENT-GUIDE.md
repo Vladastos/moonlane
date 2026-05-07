@@ -1,12 +1,12 @@
-# Agent Guide: Working on Yolang
+# Agent Guide: Working on Yoloscript
 
-This document explains how to work on the Yolang project as an AI agent (Claude, etc.).
+This document explains how to work on the Yoloscript project as an AI agent (Claude, etc.).
 
 ## Quick Summary
 
 1. **Always check the spec first** - `docs/01-SPEC/LANGUAGE-SPEC.md` is the source of truth
 2. **Follow task conventions** - See `TASK-CONVENTION.md` for how to organize work
-3. **Use the documentation structure** - Everything is in `docs/Yolang/`
+3. **Use the documentation structure** - Everything is in `docs/Yoloscript/`
 4. **Write tests first** - All implementation has tests
 5. **Update references** - When moving/creating files, update cross-references
 6. **Link to documentation** - Changes should link to relevant spec sections
@@ -33,13 +33,14 @@ tree-walk-interpreter/          # Rust implementation
 │   └── typeinference_tests.rs  # Type inference test suite
 └── Cargo.toml
 
-docs/Yolang/                     # All documentation
+docs/                                # All documentation
 ├── 00-PROCESS/                 # How to work (this folder)
-├── 01-SPEC/                    # What is Yolang
-├── 02-ARCHITECTURE/            # How we're building it
+├── 01-SPEC/                    # What is Yoloscript
+├── 02-ARCHITECTURE/            # Architecture & design
 ├── 03-COMPONENTS/              # Implementation guides
 ├── 04-PLANNING/                # Roadmaps
-└── 05-TASKS/                   # Current work
+├── 05-TASKS/                   # Current work
+└── 06-DECISIONS/               # ADRs — why non-obvious choices were made
 ```
 
 ---
@@ -354,7 +355,7 @@ Example test structure:
 ```rust
 #[cfg(test)]
 mod phase_3_unification {
-    use yolang::typeinference::*;
+    use yoloscript::typeinference::*;
 
     #[test]
     fn test_unify_concrete_same() {
@@ -385,7 +386,7 @@ For complex logic:
 ```rust
 // Implements constraint solving using unification.
 // See Language Spec §3.2 for the algorithm.
-pub fn solve_constraints(constraints: Vec<Constraint>) -> Result<Substitution, YolangError> {
+pub fn solve_constraints(constraints: Vec<Constraint>) -> Result<Substitution, YoloscriptError> {
     // ...
 }
 ```
@@ -432,7 +433,7 @@ Update the task file with progress:
 
 ### If Spec is Unclear
 1. Check `BACKLOG.md` for open questions
-2. Look at decision records in `docs/02-ARCHITECTURE/decisions/`
+2. Look at decision records in `docs/06-DECISIONS/`
 3. If still unclear, mark it in task notes
 
 ### If Tests Keep Failing

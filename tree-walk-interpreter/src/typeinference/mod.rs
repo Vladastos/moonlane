@@ -1,13 +1,13 @@
-/// Type inference module for Yolang.
+/// Type inference module for Yoloscript.
 ///
 /// This module is being built incrementally with comprehensive tests.
-/// See tasks in docs/Yolang/tasks/epic-001-typechecker/ for the step-by-step breakdown.
+/// See tasks in docs/Yoloscript/tasks/epic-001-typechecker/ for the step-by-step breakdown.
 ///
 /// Current status: Foundation phase (type variables)
 
 use crate::ast::Span;
 use crate::types::Type;
-use crate::error::YolangError;
+use crate::error::YoloscriptError;
 use std::collections::{HashMap, HashSet};
 
 // ── Phase 1: Type Variables ───────────────────────────────────────────────────
@@ -209,14 +209,14 @@ fn occurs_in(var: TypeVar, ty: &InferType) -> bool {
 }
 
 /// Bind `var` to `ty`, failing if the occurs check would create an infinite type.
-fn bind_var(var: TypeVar, ty: &InferType) -> Result<Substitution, YolangError> {
+fn bind_var(var: TypeVar, ty: &InferType) -> Result<Substitution, YoloscriptError> {
     if let InferType::Var(v) = ty {
         if *v == var {
             return Ok(Substitution::new());
         }
     }
     if occurs_in(var, ty) {
-        return Err(YolangError::internal(format!(
+        return Err(YoloscriptError::internal(format!(
             "occurs check failed: {} occurs in {}",
             var, ty
         )));
@@ -230,7 +230,7 @@ fn bind_var(var: TypeVar, ty: &InferType) -> Result<Substitution, YolangError> {
 ///
 /// Returns an error if the types are structurally incompatible or if the occurs
 /// check detects an infinite type.
-pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError> {
+pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YoloscriptError> {
     match (a, b) {
         // Never is the bottom type — it coerces to any type.
         (InferType::Never, _) | (_, InferType::Never) => Ok(Substitution::new()),
@@ -238,14 +238,14 @@ pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError> 
             if t1 == t2 {
                 Ok(Substitution::new())
             } else {
-                Err(YolangError::internal(format!("cannot unify {} with {}", a, b)))
+                Err(YoloscriptError::internal(format!("cannot unify {} with {}", a, b)))
             }
         }
         (InferType::Var(v), _) => bind_var(*v, b),
         (_, InferType::Var(v)) => bind_var(*v, a),
         (InferType::Fun(params1, ret1), InferType::Fun(params2, ret2)) => {
             if params1.len() != params2.len() {
-                return Err(YolangError::internal(format!("cannot unify {} with {}", a, b)));
+                return Err(YoloscriptError::internal(format!("cannot unify {} with {}", a, b)));
             }
             let mut subst = Substitution::new();
             for (p1, p2) in params1.iter().zip(params2.iter()) {
@@ -257,7 +257,7 @@ pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError> 
         }
         (InferType::Tuple(ts1), InferType::Tuple(ts2)) => {
             if ts1.len() != ts2.len() {
-                return Err(YolangError::internal(format!("cannot unify {} with {}", a, b)));
+                return Err(YoloscriptError::internal(format!("cannot unify {} with {}", a, b)));
             }
             let mut subst = Substitution::new();
             for (t1, t2) in ts1.iter().zip(ts2.iter()) {
@@ -269,7 +269,7 @@ pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError> 
         (InferType::Array(t1), InferType::Array(t2)) => unify(t1, t2),
         (InferType::Named(n1, args1), InferType::Named(n2, args2)) => {
             if n1 != n2 || args1.len() != args2.len() {
-                return Err(YolangError::internal(format!("cannot unify {} with {}", a, b)));
+                return Err(YoloscriptError::internal(format!("cannot unify {} with {}", a, b)));
             }
             let mut subst = Substitution::new();
             for (a1, a2) in args1.iter().zip(args2.iter()) {
@@ -278,7 +278,7 @@ pub fn unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError> 
             }
             Ok(subst)
         }
-        _ => Err(YolangError::internal(format!("cannot unify {} with {}", a, b))),
+        _ => Err(YoloscriptError::internal(format!("cannot unify {} with {}", a, b))),
     }
 }
 
@@ -304,13 +304,13 @@ impl Constraint {
 /// The running substitution is applied to both sides before each unification
 /// so that earlier bindings propagate into later constraints. Errors are
 /// reported with the source span of the offending constraint.
-pub fn solve_constraints(constraints: Vec<Constraint>) -> Result<Substitution, YolangError> {
+pub fn solve_constraints(constraints: Vec<Constraint>) -> Result<Substitution, YoloscriptError> {
     let mut subst = Substitution::new();
     for c in constraints {
         let lhs = subst.apply(&c.lhs);
         let rhs = subst.apply(&c.rhs);
         let s = unify(&lhs, &rhs).map_err(|_| {
-            YolangError::type_error(format!("cannot unify {} with {}", lhs, rhs), &c.span)
+            YoloscriptError::type_error(format!("cannot unify {} with {}", lhs, rhs), &c.span)
         })?;
         subst = subst.compose(&s);
     }
@@ -474,7 +474,7 @@ impl InferContext {
     }
 
     /// Solve all accumulated constraints and return the resulting substitution.
-    pub fn solve(self) -> Result<Substitution, YolangError> {
+    pub fn solve(self) -> Result<Substitution, YoloscriptError> {
         solve_constraints(self.constraints)
     }
 }

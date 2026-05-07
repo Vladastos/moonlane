@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides the step-by-step workflow for implementing Yolang's type inference system incrementally through 8 phases.
+This guide provides the step-by-step workflow for implementing Yoloscript's type inference system incrementally through 8 phases.
 
 ## Implementation Workflow
 

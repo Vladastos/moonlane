@@ -1,10 +1,10 @@
 [package]
-name = "yolang"
+name = "yoloscript"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "yolang"
+name = "yoloscript"
 path = "src/main.rs"
 
 [dependencies]

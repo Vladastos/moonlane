@@ -1,5 +1,5 @@
 use crate::ast::Program;
-use crate::error::YolangError;
+use crate::error::YoloscriptError;
 use crate::typed_ast::TypedProgram;
 
 /// Run the type checker over an untyped AST, producing a fully typed AST.
@@ -32,7 +32,7 @@ use crate::typed_ast::TypedProgram;
 /// - **Constraint collection**: Recording type relationships found during analysis
 /// - **Unification**: Solving constraints to assign concrete types to variables
 /// - **Occurs check**: Preventing infinite types
-pub fn check(program: Program) -> Result<TypedProgram, YolangError> {
+pub fn check(program: Program) -> Result<TypedProgram, YoloscriptError> {
     // TODO: implement type checker phases
     // For now, create an inference context to show integration
     // let mut _ctx = InferContext::new();

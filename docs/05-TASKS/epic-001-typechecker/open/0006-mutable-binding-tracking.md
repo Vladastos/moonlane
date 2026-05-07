@@ -26,7 +26,7 @@ A new method `lookup_for_write` handles the write path:
 
 ```
 fn lookup_for_write(&self, name: &str, span: &Span)
-    -> Result<InferType, YolangError>
+    -> Result<InferType, YoloscriptError>
 ```
 
 It performs three checks in sequence:
@@ -51,7 +51,7 @@ It performs three checks in sequence:
 - [ ] `lookup_for_write` is implemented and returns the three errors above
 - [ ] `Stmt::Assign` with plain `=` type-checks correctly
 - [ ] `Stmt::Assign` with compound operators (`+=`, `-=`, `*=`, `/=`, `%=`) type-checks correctly
-- [ ] Assigning to a `let` binding produces a `YolangError::TypeError`
-- [ ] Assigning to an undeclared name produces a `YolangError::TypeError`
-- [ ] Type mismatch on the right-hand side produces a `YolangError::TypeError`
+- [ ] Assigning to a `let` binding produces a `YoloscriptError::TypeError`
+- [ ] Assigning to an undeclared name produces a `YoloscriptError::TypeError`
+- [ ] Type mismatch on the right-hand side produces a `YoloscriptError::TypeError`
 - [ ] All Stage 1 test programs still pass

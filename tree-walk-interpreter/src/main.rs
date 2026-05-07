@@ -11,13 +11,13 @@ mod typechecker;
 mod typeinference;
 mod types;
 
-use error::YolangError;
+use error::YoloscriptError;
 
 #[derive(Parser)]
-#[command(name = "yolang")]
+#[command(name = "yoloscript")]
 #[command(version = "0.1.0")]
-#[command(about = "Yolang interpreter")]
-#[command(long_about = "A tree-walk interpreter for the Yolang programming language")]
+#[command(about = "Yoloscript interpreter")]
+#[command(long_about = "A tree-walk interpreter for the Yoloscript programming language")]
 struct Args {
     /// Path to the .yolo file to execute
     #[arg(value_name = "FILE")]
@@ -45,7 +45,7 @@ fn main() {
     }
 }
 
-fn run(source: &str, filename: &str, debug_ast: bool) -> Result<(), YolangError> {
+fn run(source: &str, filename: &str, debug_ast: bool) -> Result<(), YoloscriptError> {
     // 1. Parse source → untyped AST
     let ast = parser::parse(source, filename)?;
 

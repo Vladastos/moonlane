@@ -1,6 +1,6 @@
-# Yolang Interpreter Design
+# Yoloscript Interpreter Design
 
-> See `decisions/0002-interpreter-architecture.md` for the rationale behind the architectural choices made here.
+> See [ADR-0004 — Interpreter Architecture](../06-DECISIONS/ADR-0004-interpreter-architecture.md) for the rationale behind the architectural choices made here.
 
 ---
 
@@ -37,7 +37,7 @@ Each stage is a separate Rust module. They communicate through well-defined data
 ## Crate structure
 
 ```
-yolang/
+yoloscript/
 ├── Cargo.toml
 └── src/
     ├── main.rs          — CLI entry point: reads a .yolo file, runs the pipeline
@@ -239,10 +239,10 @@ Built-ins are registered in the root environment before evaluation begins, imple
 
 ## Error handling
 
-All errors (parse errors, type errors, runtime panics) use a unified `YolangError` type:
+All errors (parse errors, type errors, runtime panics) use a unified `YoloscriptError` type:
 
 ```rust
-enum YolangError {
+enum YoloscriptError {
     ParseError { message: String, span: Span },
     TypeError { message: String, span: Span },
     RuntimePanic { message: String, span: Span },

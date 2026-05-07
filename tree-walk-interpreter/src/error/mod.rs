@@ -4,7 +4,7 @@ use crate::ast::Span;
 
 /// All errors that can be produced at any stage of the pipeline.
 #[derive(Debug, Error)]
-pub enum YolangError {
+pub enum YoloscriptError {
     #[error("Parse error in {filename} at {start}..{end}: {message}")]
     ParseError { message: String, start: usize, end: usize, filename: String },
 
@@ -23,7 +23,7 @@ pub enum YolangError {
     Internal { message: String },
 }
 
-impl YolangError {
+impl YoloscriptError {
     pub fn parse(msg: impl Into<String>, span: &Span) -> Self {
         Self::ParseError {
             message: msg.into(),

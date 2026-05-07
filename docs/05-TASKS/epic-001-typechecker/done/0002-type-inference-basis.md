@@ -69,7 +69,7 @@ and poly environments, constraint accumulator.
 - [x] `phase_3_substitution` tests pass
 
 ### Phase 4 — Unification ✓
-- [x] `unify(a: &InferType, b: &InferType) -> Result<Substitution, YolangError>`
+- [x] `unify(a: &InferType, b: &InferType) -> Result<Substitution, YoloscriptError>`
 - [x] Concrete types must be identical to unify
 - [x] Variable binds to any type (occurs check first)
 - [x] Function, tuple, array, named types unify component-wise
@@ -78,7 +78,7 @@ and poly environments, constraint accumulator.
 
 ### Phase 5 — Constraints ✓
 - [x] `Constraint { lhs: InferType, rhs: InferType, span: Span }`
-- [x] `solve_constraints(constraints) -> Result<Substitution, YolangError>`
+- [x] `solve_constraints(constraints) -> Result<Substitution, YoloscriptError>`
 - [x] Type errors include source location from `span`
 - [x] `phase_5_constraints` tests pass
 
@@ -95,7 +95,7 @@ and poly environments, constraint accumulator.
 - [x] `bind_mono(name, ty)` and `lookup(name) -> Option<InferType>`
 - [x] `bind_poly(name, scheme)` — auto-instantiates on lookup
 - [x] `add_constraint(lhs, rhs, span)`
-- [x] `solve() -> Result<Substitution, YolangError>`
+- [x] `solve() -> Result<Substitution, YoloscriptError>`
 - [x] `phase_7_infer_context` tests pass
 
 ## Notes

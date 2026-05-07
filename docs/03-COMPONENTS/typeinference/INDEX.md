@@ -1,6 +1,6 @@
 # Type Inference System Documentation Index
 
-All documentation for the Yolang type inference system is organized in this folder.
+All documentation for the Yoloscript type inference system is organized in this folder.
 
 ## 📋 Files in This Directory
 

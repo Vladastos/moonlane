@@ -1,6 +1,6 @@
 # Process Documentation
 
-How to work on the Yolang project.
+How to work on the Yoloscript project.
 
 - TASK-CONVENTION.md - Task organization and naming
 - PROCESS.md - Development workflow

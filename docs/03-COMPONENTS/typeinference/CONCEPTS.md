@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the theoretical concepts underlying Yolang's type inference system, which implements the Hindley-Milner algorithm with let-polymorphism.
+This document explains the theoretical concepts underlying Yoloscript's type inference system, which implements the Hindley-Milner algorithm with let-polymorphism.
 
 ## Core Concepts
 
@@ -97,7 +97,7 @@ pub struct TypeScheme {
 
 When you bind a polymorphic closure to `let`, its inferred type is **generalized** into a type scheme:
 
-```yolang
+```yoloscript
 let id = fun(x) { x };
 ```
 
@@ -113,7 +113,7 @@ let id = fun(x) { x };
 
 When you **use** a polymorphic binding, the scheme is instantiated with fresh type variables:
 
-```yolang
+```yoloscript
 let id = fun(x) { x };  // Scheme: ∀α. α → α
 id(42);                 // First use: instantiate to ?t_fresh1 → ?t_fresh1
                         //   Unify: ?t_fresh1 = Int
@@ -123,7 +123,7 @@ id("hello");            // Second use: instantiate to ?t_fresh2 → ?t_fresh2
 
 ### Complete Example: Polymorphic Identity Function
 
-```yolang
+```yoloscript
 let id = fun(x) { x };
 let y = id(42);
 let z = id("hello");
@@ -172,7 +172,7 @@ The key insight: the **same binding** can be used with **different types** becau
 
 Explicit type annotations constrain polymorphism:
 
-```yolang
+```yoloscript
 let id: fun(Int) -> Int = fun(x) { x };  // Monomorphic
 let id2 = fun(x) { x };                  // Polymorphic
 ```
@@ -193,7 +193,7 @@ let id2 = fun(x) { x };                  // Polymorphic
 
 The type environment tracks variable bindings and their types. Free variable analysis is crucial for correct generalization in nested scopes:
 
-```yolang
+```yoloscript
 let make_adder = fun(x) {
     fun(y) { x + y }
 };
@@ -303,7 +303,7 @@ unify(?t0, List(?t0)) → Error
 
 The Hindley-Milner algorithm guarantees **principal types** - the most general type that captures all possible uses:
 
-```yolang
+```yoloscript
 let f = fun(x) { x };
 // Principal type: ∀α. α → α
 // Not: Int → Int (too specific)
@@ -322,7 +322,7 @@ let f = fun(x) { x };
 ### Limitations and Extensions
 
 **Rank-1 Restriction**: Standard HM cannot infer higher-rank polymorphism:
-```yolang
+```yoloscript
 // This requires rank-2 types (not supported)
 let apply_twice = fun(f, x) { f(f(x)) };
 let poly_id = fun(g) { g(g) };  // Would need ∀α. (∀β. β → β) → α → α
@@ -413,7 +413,7 @@ Good error messages require:
 
 ## Summary
 
-Yolang's type inference system implements the Hindley-Milner algorithm with:
+Yoloscript's type inference system implements the Hindley-Milner algorithm with:
 
 - **Complete type inference** for rank-1 polymorphism
 - **Let-polymorphism** enabling code reuse without explicit type parameters  

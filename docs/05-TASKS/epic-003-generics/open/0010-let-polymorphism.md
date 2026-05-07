@@ -10,9 +10,9 @@
 
 Enable generic closures bound to `let` to be used polymorphically with different types, without explicit type parameter annotations.
 
-Currently, Yolang supports explicit generics on named functions:
+Currently, Yoloscript supports explicit generics on named functions:
 
-```yolang
+```yoloscript
 fun id<T>(x: T) -> T { x }
 
 let my_id = id;
@@ -22,7 +22,7 @@ my_id("hello");    // Works (different instantiation)
 
 But it's unclear whether implicit polymorphism works for let-bound closures without explicit `<T>` parameters:
 
-```yolang
+```yoloscript
 let id = fun(x) { x };  // No explicit <T>
 id(42);                 // Should infer T = Int
 id("hello");           // Should infer T = String (polymorphic reuse?)
@@ -37,7 +37,7 @@ This task clarifies the design and implements support for let-bound polymorphic 
 
 ## Design Decision (DECIDED)
 
-✅ **Yes, Yolang supports let-polymorphism.** Implicit generalization is enabled: let-bound closures can be used polymorphically without explicit `<T>` parameters, using Hindley-Milner style generalization + instantiation.
+✅ **Yes, Yoloscript supports let-polymorphism.** Implicit generalization is enabled: let-bound closures can be used polymorphically without explicit `<T>` parameters, using Hindley-Milner style generalization + instantiation.
 
 ## Acceptance Criteria
 

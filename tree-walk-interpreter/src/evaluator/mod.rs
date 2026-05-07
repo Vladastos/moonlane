@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::Span;
-use crate::error::YolangError;
+use crate::error::YoloscriptError;
 use crate::typed_ast::TypedProgram;
 
 // ── Runtime values ────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ pub enum Value {
     Struct { name: String, fields: HashMap<String, Value> },
     Enum { name: String, variant: String, fields: HashMap<String, Value> },
     Closure(Rc<ClosureValue>),
-    Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, YolangError>),
+    Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, YoloscriptError>),
     Perhaps(Option<Box<Value>>),
     YoloResult(Result<Box<Value>, Box<Value>>),
 }
@@ -107,7 +107,7 @@ impl Environment {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-pub fn evaluate(program: TypedProgram) -> Result<(), YolangError> {
+pub fn evaluate(program: TypedProgram) -> Result<(), YoloscriptError> {
     let mut env = Environment::new();
     register_builtins(&mut env);
 
@@ -127,7 +127,7 @@ fn register_builtins(env: &mut Environment) {
             print!("{}", s);
             Ok(Value::Unit)
         } else {
-            Err(YolangError::panic("print: expected String argument", span))
+            Err(YoloscriptError::panic("print: expected String argument", span))
         }
     }));
 
@@ -136,7 +136,7 @@ fn register_builtins(env: &mut Environment) {
             println!("{}", s);
             Ok(Value::Unit)
         } else {
-            Err(YolangError::panic("println: expected String argument", span))
+            Err(YoloscriptError::panic("println: expected String argument", span))
         }
     }));
 
@@ -144,7 +144,7 @@ fn register_builtins(env: &mut Environment) {
         if let Some(Value::Int(n)) = args.first() {
             Ok(Value::Str(n.to_string()))
         } else {
-            Err(YolangError::panic("int_to_string: expected Int argument", span))
+            Err(YoloscriptError::panic("int_to_string: expected Int argument", span))
         }
     }));
 
@@ -152,7 +152,7 @@ fn register_builtins(env: &mut Environment) {
         if let Some(Value::Float(f)) = args.first() {
             Ok(Value::Str(f.to_string()))
         } else {
-            Err(YolangError::panic("float_to_string: expected Float argument", span))
+            Err(YoloscriptError::panic("float_to_string: expected Float argument", span))
         }
     }));
 
@@ -160,7 +160,7 @@ fn register_builtins(env: &mut Environment) {
         if let Some(Value::Bool(b)) = args.first() {
             Ok(Value::Str(if *b { "true" } else { "false" }.to_string()))
         } else {
-            Err(YolangError::panic("bool_to_string: expected Bool argument", span))
+            Err(YoloscriptError::panic("bool_to_string: expected Bool argument", span))
         }
     }));
 
@@ -168,14 +168,14 @@ fn register_builtins(env: &mut Environment) {
         if let Some(Value::Str(s)) = args.first() {
             Ok(Value::Int(s.chars().count() as i64))
         } else {
-            Err(YolangError::panic("string_len: expected String argument", span))
+            Err(YoloscriptError::panic("string_len: expected String argument", span))
         }
     }));
 
     env.define("string_concat", Value::Builtin("string_concat".to_string(), |args, span| {
         match (args.get(0), args.get(1)) {
             (Some(Value::Str(a)), Some(Value::Str(b))) => Ok(Value::Str(a.clone() + b)),
-            _ => Err(YolangError::panic("string_concat: expected two String arguments", span)),
+            _ => Err(YoloscriptError::panic("string_concat: expected two String arguments", span)),
         }
     }));
 
@@ -185,10 +185,10 @@ fn register_builtins(env: &mut Environment) {
                 arr.borrow_mut().push(val.clone());
                 Ok(Value::Unit)
             } else {
-                Err(YolangError::panic("array_push: missing value argument", span))
+                Err(YoloscriptError::panic("array_push: missing value argument", span))
             }
         } else {
-            Err(YolangError::panic("array_push: expected Array as first argument", span))
+            Err(YoloscriptError::panic("array_push: expected Array as first argument", span))
         }
     }));
 
@@ -196,7 +196,7 @@ fn register_builtins(env: &mut Environment) {
         if let Some(Value::Array(arr)) = args.first() {
             Ok(Value::Int(arr.borrow().len() as i64))
         } else {
-            Err(YolangError::panic("array_len: expected Array argument", span))
+            Err(YoloscriptError::panic("array_len: expected Array argument", span))
         }
     }));
 

@@ -1,7 +1,7 @@
 //! Integration tests: each .yolo test program must run through the full
 //! pipeline (parse → typecheck → evaluate) without returning an error.
 
-use yolang::{evaluator, parser, typechecker};
+use yoloscript::{evaluator, parser, typechecker};
 
 fn run(filename: &str) {
     let path = format!("tests/test_programs/parsing/{}", filename);

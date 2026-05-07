@@ -1,6 +1,6 @@
 # Architecture & Design
 
-How we're building the Yolang interpreter.
+How we're building the Yoloscript interpreter.
 
 - Interpreter-Design.md - Overall interpreter design
-- decisions/ - Specific architectural decisions
+- See [docs/06-DECISIONS/](../06-DECISIONS/) for architectural decision records

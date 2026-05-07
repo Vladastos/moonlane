@@ -46,3 +46,5 @@ task's design. Example: `**Decisions:** [ADR-0001](../../06-DECISIONS/ADR-0001-t
 |-----|-------|--------|
 | [ADR-0001](./ADR-0001-type-registry.md) | TypeRegistry Structure and Location | proposed |
 | [ADR-0002](./ADR-0002-inference-pass-structure.md) | Inference Pass Structure | proposed |
+| [ADR-0003](./ADR-0003-v0.1-feature-set.md) | v0.1 Feature Set Scope | accepted |
+| [ADR-0004](./ADR-0004-interpreter-architecture.md) | Interpreter Architecture | accepted |

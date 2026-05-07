@@ -1,4 +1,4 @@
-# Yolang Spec Backlog
+# Yoloscript Spec Backlog
 
 Open design questions and deferred features. When an item is resolved, it is removed from this file and written into `Language Spec.md`. See `PROCESS.md` for the full workflow.
 

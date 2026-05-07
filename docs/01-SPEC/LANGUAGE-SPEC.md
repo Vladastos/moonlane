@@ -1,6 +1,6 @@
-# Yolang Language Specification
+# Yoloscript Language Specification
 
-> **Status:** Active. This document is the single source of truth for the Yolang language.
+> **Status:** Active. This document is the single source of truth for the Yoloscript language.
 > Features not described here are not part of the language.
 > Open design questions and deferred features are tracked in `Backlog.md`.
 
@@ -10,7 +10,7 @@ Source files use the `.yolo` extension.
 
 ## 1. Overview
 
-Yolang is a strongly typed, compiled language with a Rust-inspired type system. Its core design principles are:
+Yoloscript is a strongly typed, compiled language with a Rust-inspired type system. Its core design principles are:
 
 - **Strong static typing** with full Hindley-Milner type inference
 - **No classes** — data and behaviour are defined separately via structs, enums, and traits
@@ -103,7 +103,7 @@ Integer and float are distinct types and do not implicitly coerce.
 
 ## 3. Type System
 
-Yolang is statically and strongly typed. Types are checked at compile time. There are no implicit conversions.
+Yoloscript is statically and strongly typed. Types are checked at compile time. There are no implicit conversions.
 
 ### 3.1 Primitive types
 

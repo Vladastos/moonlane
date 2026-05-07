@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Yolang is a Rust-inspired programming language with a tree-walk interpreter written in Rust. The project implements a statically typed, expression-oriented language with features like type inference, pattern matching, and generics.
+Yoloscript is a Rust-inspired programming language with a tree-walk interpreter written in Rust. The project implements a statically typed, expression-oriented language with features like type inference, pattern matching, and generics.
 
 ## Common Development Commands
 
@@ -14,7 +14,7 @@ Yolang is a Rust-inspired programming language with a tree-walk interpreter writ
 cd tree-walk-interpreter
 cargo build --release
 
-# Run a Yolang program
+# Run a Yoloscript program
 cargo run -- path/to/program.yolo
 
 # Run in debug mode with output
@@ -78,10 +78,11 @@ The project follows a strict documentation hierarchy in `docs/`:
 
 - **00-PROCESS/**: Development workflow and task management conventions
 - **01-SPEC/**: Language specification (authoritative) and feature backlog
-- **02-ARCHITECTURE/**: Design decisions and architectural documentation
+- **02-ARCHITECTURE/**: Architecture and design documentation
 - **03-COMPONENTS/**: Implementation guides for specific components
 - **04-PLANNING/**: Strategic roadmaps and medium-term plans
 - **05-TASKS/**: Epic-based task organization with status tracking
+- **06-DECISIONS/**: Architecture decision records (ADRs) — why non-obvious choices were made
 
 ### Key Files
 
@@ -89,6 +90,7 @@ The project follows a strict documentation hierarchy in `docs/`:
 - `docs/01-SPEC/BACKLOG.md`: Features not yet implemented
 - `docs/02-ARCHITECTURE/INTERPRETER-DESIGN.md`: Overall system design
 - `docs/03-COMPONENTS/typeinference/`: Type inference implementation guide
+- `docs/06-DECISIONS/`: Architecture decision records (ADR-0001 onwards)
 - `docs/00-PROCESS/TASK-CONVENTION.md`: Task management workflow
 
 ## Development Principles

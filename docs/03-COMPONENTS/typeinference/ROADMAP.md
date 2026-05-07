@@ -116,7 +116,7 @@ unify(fun(?t0) -> ?t0, fun(Int) -> Int) → Success, bind ?t0 = Int
 ```
 
 **Tasks**:
-- Implement `unify(ty1: &InferType, ty2: &InferType) -> Result<Substitution, YolangError>`
+- Implement `unify(ty1: &InferType, ty2: &InferType) -> Result<Substitution, YoloscriptError>`
 - Handle concrete type unification (must be identical)
 - Handle type variable unification (bind if not occurs check violation)
 - Handle function type unification (unify parameter and return types)

@@ -1,6 +1,6 @@
 # Type Inference System Documentation
 
-This folder contains the complete documentation for building Yolang's type inference system incrementally.
+This folder contains the complete documentation for building Yoloscript's type inference system incrementally.
 
 ## Quick Navigation
 

@@ -1,4 +1,4 @@
-/// Yolang language interpreter library.
+/// Yoloscript language interpreter library.
 /// Exposes modules for use in tests and external code.
 
 pub mod ast;

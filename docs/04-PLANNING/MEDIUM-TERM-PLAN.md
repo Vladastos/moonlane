@@ -1,7 +1,7 @@
-# Yolang Medium-Term Development Plan
+# Yoloscript Medium-Term Development Plan
 
 ## Overview
-This document outlines the development strategy for the core components of the Yolang language during the proof-of-concept phase. The goal is to build a working interpreter that validates the language specification, not to construct production-quality components. Once the language spec is stable and proven through the PoC interpreter, a production implementation can be built from lessons learned.
+This document outlines the development strategy for the core components of the Yoloscript language during the proof-of-concept phase. The goal is to build a working interpreter that validates the language specification, not to construct production-quality components. Once the language spec is stable and proven through the PoC interpreter, a production implementation can be built from lessons learned.
 
 ---
 

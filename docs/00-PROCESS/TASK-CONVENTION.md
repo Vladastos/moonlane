@@ -1,4 +1,4 @@
-# Task Management for Yolang
+# Task Management for Yoloscript
 
 Two-level task organization: **Epics** (major features/milestones) contain **Tasks** (units of work). Folder structure reflects task state for easy navigation.
 
