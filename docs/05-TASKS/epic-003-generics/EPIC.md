@@ -47,7 +47,10 @@ Monomorphised TypedAST (ready for evaluator)
 
 ## Dependencies
 
-- **Epic 001:** Must have working type checker and basic type system
+- **Epic 001:** Must have working type checker and basic type system. Note: Epic 001
+  (task 0005) intentionally stubs `FunDecl`s that carry `GenericParam`s — they return a
+  `YolangError::Internal` "not yet supported" error. This epic removes that stub and
+  replaces it with full generic inference.
 - **Parser:** Already supports generic syntax (`<T>`, generic params)
 - **Types module:** Already has `Type::Named` for concrete instantiations
 

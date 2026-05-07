@@ -43,6 +43,12 @@ with fresh type variables in the `InferContext`. This allows forward references
 and mutual recursion. Concrete types are unified during the inference pass when
 the bodies are walked.
 
+The pre-pass runs **recursively at every block entry**, not only at the top
+level. When inference enters a block, it first scans the block's `FunDecl`s and
+registers them before visiting any other statement. This ensures that functions
+declared inside a block are mutually visible to each other, consistent with the
+language spec, which places no limit on function visibility based on scope depth.
+
 ### Type Conversion Rules
 
 **`TypeExpr → InferType`** (for explicit annotations):
@@ -84,6 +90,15 @@ Current rules:
 AST nodes not yet implemented return `YolangError::Internal` with a clear
 "not yet supported" message, so unimplemented features fail loudly rather than
 silently producing wrong types.
+
+The following nodes are **permanently unsupported in this epic** and always
+return "not yet supported" regardless of stage:
+
+| Node | Reason | Where it lands |
+|---|---|---|
+| `FunDecl` with `GenericParam`s | Generics are out of scope | Epic 003 |
+| `Expr::Cast` | Cast validation requires trait resolution | Epic 004 |
+| `Expr::Path` | Needs a dedicated name-resolution pass | Module system (future) |
 
 ## Implementation Stages
 
@@ -183,28 +198,11 @@ defined when the test harness is extended for Stage 1.
 
 ## Open Questions
 
-### Mutual recursion in nested scopes
-The pre-pass registers top-level `FunDecl`s before inference begins, covering
-most cases. But functions declared inside blocks (e.g. inside another function's
-body) are not visible to the pre-pass. Two options: (a) do a recursive pre-pass
-at every block entry, or (b) restrict mutual recursion to top-level only for now.
-Decision needed before Stage 2.
-
-### Generic function parameters
-`FunDecl` carries `generics: Vec<GenericParam>`. During inference, do generic
-params become fresh type variables (treated like local unknowns), or do we
-refuse to infer generic functions until a separate generics phase? If we treat
-them as fresh vars, generalization via `TypeScheme` may produce incorrect schemes
-when bounds are involved.
-
 ### `Nope` literal type
 `Literal::Nope` is Yolang's null/None equivalent. Its type should be
 `Perhaps(?t0)` for a fresh `?t0` — making it polymorphic. But this means a bare
 `let x = Nope` leaves `?t0` unresolved, which under the current rules would be
 an error. Do we special-case it, require an annotation, or introduce a default?
-
-### `loop` expression type
-**Resolved.** A `loop { break 42; }` has type `Int`. A loop that never breaks has type `!` (Never). `Type::Never` and `InferType::Never` variants will be added in Stage 4. `!` coerces to any type, so it acts as the bottom of the type lattice during unification.
 
 ### Block return type vs `return` statement
 A block's type is its tail expression, or `Unit` if none. But a block can also
@@ -215,10 +213,9 @@ it on `InferContext`, or pass it as an explicit parameter to block/statement
 inference.
 
 ### Struct and enum type registry
-`Decl::Struct` and `Decl::Enum` define new named types. When we later handle
-`FieldAccess` and `StructLiteral`, we need to resolve field types. Where does the
-struct/enum registry live — on `InferContext`, as a separate `TypeEnv`, or in a
-dedicated pre-pass? This affects the architecture of Stage 4.
+See [ADR-0001](../../../06-DECISIONS/ADR-0001-type-registry.md) — structure and
+location of the `TypeRegistry`. Decision pending; Stage 4 cannot begin until it
+is accepted.
 
 ### Negative test convention
 The task says `.yolo` files with expected errors use a `// ERROR` comment, but
@@ -227,22 +224,13 @@ the exact convention is undefined. Options: (a) a comment on the line that error
 (c) a separate `.error` sidecar file. Needs a decision before negative tests are
 written.
 
-### `Path` expression resolution
-`Expr::Path(["Foo", "Bar"])` could be an enum variant (`Foo::Bar`), a module
-path, or a static method. Type inference for paths requires knowing which it is.
-Do we defer path resolution to a separate name-resolution pass before inference,
-or handle it inside the typechecker?
-
-### Cast expression validity
-`expr as TargetType` — do we validate that the cast is legal (e.g. `Int as Float`
-is fine, `Bool as Int` may not be), or do we trust the programmer and just assign
-the target type unconditionally for now?
-
-### Assign statement type checking
-`x = expr` requires that `expr`'s type unifies with `x`'s current type. For
-compound assignment (`x += 1`), we also need the BinOp rules to apply. Does
-assignment generate a constraint against `x`'s existing `InferType` in the
-environment, or does it require a separate mutable binding tracker?
+### Pass 1 → Pass 2 type transfer — or single-pass?
+See [ADR-0002](../../../06-DECISIONS/ADR-0002-inference-pass-structure.md) —
+pass structure and how per-node types are surfaced between passes. Also depends
+on [ADR-0001](../../../06-DECISIONS/ADR-0001-type-registry.md): if the "inject"
+philosophy is adopted for `TypeRegistry` it extends to the initial var env,
+which affects which pass structure is most natural. Decision pending; Stage 2
+architecture should not be finalised until both ADRs are accepted.
 
 ### Multiple error reporting
 `solve_constraints` currently stops at the first unification failure. A better

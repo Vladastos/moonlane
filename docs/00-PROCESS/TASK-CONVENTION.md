@@ -50,6 +50,7 @@ docs/05-TASKS/
 **Component:**   interpreter | repl | parser | typechecker | evaluator | error-handling | spec
 **Spec Link:**   01-SPEC/LANGUAGE-SPEC.md#Section-Name (or Backlog item)
 **Blocked By:**  task IDs or "none"
+**Decisions:**   none | ADR-NNNN, ADR-NNNN (links to docs/06-DECISIONS/)
 
 ## What
 What needs doing and why.
@@ -62,6 +63,21 @@ What needs doing and why.
 ## Notes
 (Optional) Progress and discoveries
 ```
+
+## Open Questions and Decisions
+
+Open questions in tasks are temporary placeholders for unresolved design choices.
+Once a question is resolved:
+
+1. **If the answer was obvious** (one clear option, no real tradeoff) — absorb it
+   directly into the task's Architecture or Notes section, then remove the question.
+
+2. **If the answer involved real alternatives** (two or more options with genuine
+   tradeoffs, or a choice whose rationale would be non-obvious from the code) —
+   create an ADR in `docs/06-DECISIONS/`, add it to the task's `**Decisions:**`
+   field, then remove the open question.
+
+See `docs/06-DECISIONS/README.md` for the full ADR workflow.
 
 ## Rules
 
@@ -97,3 +113,5 @@ What needs doing and why.
 
 - `docs/05-TASKS/README.md` — More details
 - `docs/05-TASKS/0000-template.md` — Task template
+- `docs/06-DECISIONS/README.md` — ADR process and index
+- `docs/06-DECISIONS/ADR-0000-template.md` — ADR template
