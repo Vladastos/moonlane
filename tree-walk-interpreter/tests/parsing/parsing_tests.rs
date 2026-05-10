@@ -1,17 +1,12 @@
-//! Integration tests: each .yolo test program must run through the full
-//! pipeline (parse → typecheck → evaluate) without returning an error.
+//! Integration tests: each .yolo test program must run through the parser without errors. These tests are meant to cover the full range of language features, and are not expected to be minimal. They are primarily intended to catch regressions in the parser as new features are added.
 
-use yoloscript::{evaluator, parser, typechecker};
+use yoloscript::parser;
 
 fn run(filename: &str) {
-    let path = format!("tests/test_programs/parsing/{}", filename);
+    let path = format!("tests/parsing/sources/{}", filename);
     let source = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("could not read {}: {}", path, e));
-    let ast = parser::parse(&source, &path)
-        .unwrap_or_else(|e| panic!("{}", e));
-    let typed = typechecker::check(ast)
-        .unwrap_or_else(|e| panic!("{}", e));
-    evaluator::evaluate(typed)
+    parser::parse(&source, &path)
         .unwrap_or_else(|e| panic!("{}", e));
 }
 

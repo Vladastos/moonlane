@@ -62,3 +62,4 @@ task's design. Use the path reflecting the ADR's current folder:
 | [ADR-0002](./closed/ADR-0002-inference-pass-structure.md) | Inference Pass Structure | accepted |
 | [ADR-0003](./closed/ADR-0003-v0.1-feature-set.md) | v0.1 Feature Set Scope | accepted |
 | [ADR-0004](./closed/ADR-0004-interpreter-architecture.md) | Interpreter Architecture | accepted |
+| [ADR-0005](./open/ADR-0005-if-expression-vs-statement.md) | if-Statement vs if-Expression — Grammar and AST Unification | proposed |

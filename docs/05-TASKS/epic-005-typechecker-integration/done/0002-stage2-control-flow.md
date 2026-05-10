@@ -5,7 +5,7 @@
 **Component:** typechecker  
 **Spec Link:** docs/01-SPEC/LANGUAGE-SPEC.md (§4 Statements, §5 Expressions)  
 **Blocked By:** 0001  
-**Decisions:** ADR-0002
+**Decisions:** ADR-0002, ADR-0005
 
 ## What
 

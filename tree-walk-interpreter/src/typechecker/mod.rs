@@ -16,26 +16,26 @@ pub fn check(program: Program) -> Result<TypedProgram, YoloscriptError> {
     // Pre-pass: hoist top-level function names so forward references work.
     hoist_fun_decls(&program.decls, &mut ctx);
 
-    // Pass 1: walk AST, emit constraints, collect pending generalisations.
-    let mut pending: Vec<PendingFun> = vec![];
-    infer_program(&program, &mut ctx, &mut pending)?;
+    // Pass 1: walk AST, emit constraints, collect function generalizations.
+    let mut fun_generalizations: Vec<FunGeneralization> = vec![];
+    infer_program(&program, &mut ctx, &mut fun_generalizations)?;
     let subst = ctx.solve()?;
 
     // Build SchemeEnv by applying the substitution and generalising.
     let mut scheme_env: SchemeEnv = HashMap::new();
-    for pf in pending {
-        let resolved = subst.apply(&pf.fun_ty);
-        let scheme = generalize(resolved, &pf.env_fvs);
-        scheme_env.insert(pf.name, scheme);
+    for fg in fun_generalizations {
+        let resolved = subst.apply(&fg.fun_ty);
+        let scheme = generalize(resolved, &fg.env_fvs);
+        scheme_env.insert(fg.name, scheme);
     }
 
     // Pass 2: re-derive concrete types and build TypedAST.
     construct_program(&program, &subst, &scheme_env)
 }
 
-// ── Pending generalisation record ─────────────────────────────────────────────
+// ── Function generalisation record ────────────────────────────────────────────
 
-struct PendingFun {
+struct FunGeneralization {
     name:    String,
     fun_ty:  InferType,
     env_fvs: HashSet<TypeVar>,
@@ -61,10 +61,10 @@ fn hoist_fun_decls(decls: &[Decl], ctx: &mut InferContext) {
 fn infer_program(
     program: &Program,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<(), YoloscriptError> {
     for decl in &program.decls {
-        infer_decl(decl, ctx, pending)?;
+        infer_decl(decl, ctx, fun_generalizations)?;
     }
     Ok(())
 }
@@ -72,11 +72,11 @@ fn infer_program(
 fn infer_decl(
     decl: &Decl,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<(), YoloscriptError> {
     match decl {
         Decl::Let(ld) => {
-            let val_ty = infer_expr(&ld.value, ctx, pending)?;
+            let val_ty = infer_expr(&ld.value, ctx, fun_generalizations)?;
             if let Some(ann) = &ld.type_ann {
                 ctx.add_constraint(val_ty.clone(), type_expr_to_infer(ann), ld.span.clone());
             }
@@ -84,24 +84,24 @@ fn infer_decl(
             Ok(())
         }
         Decl::Mut(md) => {
-            let val_ty = infer_expr(&md.value, ctx, pending)?;
+            let val_ty = infer_expr(&md.value, ctx, fun_generalizations)?;
             if let Some(ann) = &md.type_ann {
                 ctx.add_constraint(val_ty.clone(), type_expr_to_infer(ann), md.span.clone());
             }
             ctx.bind_mono(&md.name, val_ty);
             Ok(())
         }
-        Decl::Fun(fd) => infer_fun_decl(fd, ctx, pending),
+        Decl::Fun(fd) => infer_fun_decl(fd, ctx, fun_generalizations),
         Decl::Struct(_) | Decl::Enum(_) | Decl::Trait(_) => Ok(()),
         Decl::Impl(_) => Err(YoloscriptError::internal("impl blocks not yet supported")),
-        Decl::Stmt(stmt) => infer_stmt(stmt, ctx, pending),
+        Decl::Stmt(stmt) => infer_stmt(stmt, ctx, fun_generalizations),
     }
 }
 
 fn infer_fun_decl(
     fun: &FunDecl,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<(), YoloscriptError> {
     if !fun.generics.is_empty() {
         return Err(YoloscriptError::internal(format!(
@@ -131,7 +131,7 @@ fn infer_fun_decl(
     }
 
     let saved_ret = ctx.push_return_type(ret_ty.clone());
-    let body_ty = infer_block(&fun.body, ctx, pending)?;
+    let body_ty = infer_block(&fun.body, ctx, fun_generalizations)?;
 
     // The block's tail type must unify with the declared return type.
     ctx.add_constraint(body_ty, ret_ty.clone(), fun.body.span.clone());
@@ -146,22 +146,22 @@ fn infer_fun_decl(
         ctx.add_constraint(pre_reg, fun_ty.clone(), fun.span.clone());
     }
 
-    pending.push(PendingFun { name: fun.name.clone(), fun_ty, env_fvs });
+    fun_generalizations.push(FunGeneralization { name: fun.name.clone(), fun_ty, env_fvs });
     Ok(())
 }
 
 fn infer_block(
     block: &Block,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<InferType, YoloscriptError> {
     ctx.push_scope();
     hoist_fun_decls(&block.stmts, ctx);
     for stmt in &block.stmts {
-        infer_decl(stmt, ctx, pending)?;
+        infer_decl(stmt, ctx, fun_generalizations)?;
     }
     let ty = match &block.tail {
-        Some(tail) => infer_expr(tail, ctx, pending)?,
+        Some(tail) => infer_expr(tail, ctx, fun_generalizations)?,
         None       => InferType::unit(),
     };
     ctx.pop_scope();
@@ -171,13 +171,13 @@ fn infer_block(
 fn infer_stmt(
     stmt: &Stmt,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<(), YoloscriptError> {
     match stmt {
-        Stmt::Expr(e) => { infer_expr(e, ctx, pending)?; Ok(()) }
+        Stmt::Expr(e) => { infer_expr(e, ctx, fun_generalizations)?; Ok(()) }
         Stmt::Return(r) => {
             let ret_ty = match &r.value {
-                Some(e) => infer_expr(e, ctx, pending)?,
+                Some(e) => infer_expr(e, ctx, fun_generalizations)?,
                 None    => InferType::unit(),
             };
             if let Some(expected) = ctx.current_return_type().cloned() {
@@ -185,11 +185,11 @@ fn infer_stmt(
             }
             Ok(())
         }
-        Stmt::If(if_stmt) => infer_if_stmt(if_stmt, ctx, pending),
+        Stmt::If(if_stmt) => infer_if_stmt(if_stmt, ctx, fun_generalizations),
         Stmt::While(ws) => {
-            let cond_ty = infer_expr(&ws.condition, ctx, pending)?;
+            let cond_ty = infer_expr(&ws.condition, ctx, fun_generalizations)?;
             ctx.add_constraint(cond_ty, InferType::bool(), ws.span.clone());
-            infer_block(&ws.body, ctx, pending)?;
+            infer_block(&ws.body, ctx, fun_generalizations)?;
             Ok(())
         }
         _ => Err(YoloscriptError::internal("statement not yet supported")),
@@ -199,14 +199,14 @@ fn infer_stmt(
 fn infer_if_stmt(
     if_stmt: &IfStmt,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<(), YoloscriptError> {
-    let cond_ty = infer_expr(&if_stmt.condition, ctx, pending)?;
+    let cond_ty = infer_expr(&if_stmt.condition, ctx, fun_generalizations)?;
     ctx.add_constraint(cond_ty, InferType::bool(), if_stmt.span.clone());
-    infer_block(&if_stmt.then_branch, ctx, pending)?;
+    infer_block(&if_stmt.then_branch, ctx, fun_generalizations)?;
     match &if_stmt.else_branch {
-        Some(ElseBranch::Block(block)) => { infer_block(block, ctx, pending)?; }
-        Some(ElseBranch::If(nested))   => infer_if_stmt(nested, ctx, pending)?,
+        Some(ElseBranch::Block(block)) => { infer_block(block, ctx, fun_generalizations)?; }
+        Some(ElseBranch::If(nested))   => infer_if_stmt(nested, ctx, fun_generalizations)?,
         None => {}
     }
     Ok(())
@@ -215,7 +215,7 @@ fn infer_if_stmt(
 fn infer_expr(
     expr: &Expr,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<InferType, YoloscriptError> {
     match expr {
         Expr::Literal(lit, _)          => Ok(infer_literal(lit, ctx)),
@@ -226,13 +226,13 @@ fn infer_expr(
                 span,
             ))
         }
-        Expr::BinOp(lhs, op, rhs, span) => infer_binop(lhs, op, rhs, span, ctx, pending),
-        Expr::UnaryOp(op, operand, span) => infer_unaryop(op, operand, span, ctx, pending),
+        Expr::BinOp(lhs, op, rhs, span) => infer_binop(lhs, op, rhs, span, ctx, fun_generalizations),
+        Expr::UnaryOp(op, operand, span) => infer_unaryop(op, operand, span, ctx, fun_generalizations),
         Expr::If { condition, then_branch, else_branch, span } => {
-            let cond_ty = infer_expr(condition, ctx, pending)?;
+            let cond_ty = infer_expr(condition, ctx, fun_generalizations)?;
             ctx.add_constraint(cond_ty, InferType::bool(), span.clone());
-            let then_ty = infer_block(then_branch, ctx, pending)?;
-            let else_ty = infer_block(else_branch, ctx, pending)?;
+            let then_ty = infer_block(then_branch, ctx, fun_generalizations)?;
+            let else_ty = infer_block(else_branch, ctx, fun_generalizations)?;
             ctx.add_constraint(then_ty.clone(), else_ty, span.clone());
             Ok(then_ty)
         }
@@ -257,10 +257,10 @@ fn infer_binop(
     rhs: &Expr,
     span: &Span,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<InferType, YoloscriptError> {
-    let lhs_ty = infer_expr(lhs, ctx, pending)?;
-    let rhs_ty = infer_expr(rhs, ctx, pending)?;
+    let lhs_ty = infer_expr(lhs, ctx, fun_generalizations)?;
+    let rhs_ty = infer_expr(rhs, ctx, fun_generalizations)?;
     match op {
         BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Rem => {
             let result = ctx.fresh_var();
@@ -290,9 +290,9 @@ fn infer_unaryop(
     operand: &Expr,
     span: &Span,
     ctx: &mut InferContext,
-    pending: &mut Vec<PendingFun>,
+    fun_generalizations: &mut Vec<FunGeneralization>,
 ) -> Result<InferType, YoloscriptError> {
-    let ty = infer_expr(operand, ctx, pending)?;
+    let ty = infer_expr(operand, ctx, fun_generalizations)?;
     match op {
         UnaryOp::Neg => Ok(ty),
         UnaryOp::Not => {
