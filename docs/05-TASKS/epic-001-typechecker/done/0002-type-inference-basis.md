@@ -14,7 +14,7 @@ Built across 7 incremental phases — each phase fully tested before the next be
 Integration with the typechecker pipeline is handled in epic-005.
 
 Implementation notes and worked examples for each phase live in
-`docs/03-COMPONENTS/typeinference/ROADMAP.md`.
+`docs/02-ARCHITECTURE/typeinference/ROADMAP.md`.
 
 ## Phases
 

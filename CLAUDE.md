@@ -78,8 +78,7 @@ The project follows a strict documentation hierarchy in `docs/`:
 
 - **00-PROCESS/**: Development workflow and task management conventions
 - **01-SPEC/**: Language specification (authoritative) and feature backlog
-- **02-ARCHITECTURE/**: Architecture and design documentation
-- **03-COMPONENTS/**: Implementation guides for specific components
+- **02-ARCHITECTURE/**: System overview and per-component implementation guides
 - **04-PLANNING/**: Strategic roadmaps and medium-term plans
 - **05-TASKS/**: Epic-based task organization with status tracking
 - **06-DECISIONS/**: Architecture decision records (ADRs) — why non-obvious choices were made
@@ -88,8 +87,8 @@ The project follows a strict documentation hierarchy in `docs/`:
 
 - `docs/01-SPEC/LANGUAGE-SPEC.md`: Complete language specification (source of truth)
 - `docs/01-SPEC/BACKLOG.md`: Features not yet implemented
-- `docs/02-ARCHITECTURE/INTERPRETER-DESIGN.md`: Overall system design
-- `docs/03-COMPONENTS/typeinference/`: Type inference implementation guide
+- `docs/02-ARCHITECTURE/OVERVIEW.md`: Pipeline, crate structure, component boundaries
+- `docs/02-ARCHITECTURE/typeinference/`: Type inference implementation guide
 - `docs/06-DECISIONS/`: Architecture decision records (ADR-0001 onwards)
 - `docs/00-PROCESS/TASK-CONVENTION.md`: Task management workflow
 
@@ -129,7 +128,7 @@ cargo test --test typeinference_tests phase_2 -- --nocapture
 - `src/typeinference/mod.rs`: Core inference engine
 - `src/types/mod.rs`: Type representation
 - `tests/typeinference_tests.rs`: Phase-based test suite
-- `docs/03-COMPONENTS/typeinference/ROADMAP.md`: Implementation roadmap
+- `docs/02-ARCHITECTURE/typeinference/ROADMAP.md`: Implementation roadmap
 
 ## Current Development Focus
 

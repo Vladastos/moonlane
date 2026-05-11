@@ -36,8 +36,7 @@ tree-walk-interpreter/          # Rust implementation
 docs/                                # All documentation
 ├── 00-PROCESS/                 # How to work (this folder)
 ├── 01-SPEC/                    # What is Yoloscript
-├── 02-ARCHITECTURE/            # Architecture & design
-├── 03-COMPONENTS/              # Implementation guides
+├── 02-ARCHITECTURE/            # System overview & per-component implementation guides
 ├── 04-PLANNING/                # Roadmaps
 ├── 05-TASKS/                   # Current work
 └── 06-DECISIONS/               # ADRs — why non-obvious choices were made
@@ -53,7 +52,7 @@ Read this in order:
 1. `README.md` (root) - Project overview
 2. `docs/00-PROCESS/PROCESS.md` - Documentation philosophy
 3. `docs/01-SPEC/LANGUAGE-SPEC.md` - Language definition (reference as needed)
-4. Relevant component guide (e.g., `docs/03-COMPONENTS/typeinference/`)
+4. Relevant component guide (e.g., `docs/02-ARCHITECTURE/typeinference/`)
 
 ### 2. Check Current Tasks
 
