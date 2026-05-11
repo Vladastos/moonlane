@@ -5,7 +5,7 @@ Quick entry point for AI agents (Claude, etc.) contributing to Yoloscript.
 ## Essential Rules
 
 1. **The spec is law** - `docs/01-SPEC/LANGUAGE-SPEC.md` is the source of truth
-2. **Always check existing tasks** - `docs/05-TASKS/` before starting
+2. **Always check existing tasks** - `docs/04-TASKS/` before starting
 3. **Write tests before code** - All implementation must have tests
 4. **Update references** - When moving files, update all cross-references
 5. **Ask before creating documentation** - All .md files must follow the established structure
@@ -17,7 +17,7 @@ Quick entry point for AI agents (Claude, etc.) contributing to Yoloscript.
 Follow the same process as human contributors:
 
 1. **Read** `docs/00-PROCESS/PROCESS.md` - How the project works
-2. **Pick a task** - From `docs/05-TASKS/`
+2. **Pick a task** - From `docs/04-TASKS/`
 3. **Follow** `docs/00-PROCESS/TASK-CONVENTION.md` - Task conventions
 4. **Reference** `docs/01-SPEC/LANGUAGE-SPEC.md` - The spec is law
 5. **Test thoroughly** - Write tests before implementing
@@ -29,8 +29,8 @@ Follow the same process as human contributors:
 
 - **Spec** - `docs/01-SPEC/LANGUAGE-SPEC.md` (source of truth)
 - **Process** - `docs/00-PROCESS/`
-- **Tasks** - `docs/05-TASKS/`
-- **Decisions** - `docs/06-DECISIONS/` (ADRs — why non-obvious choices were made)
+- **Tasks** - `docs/04-TASKS/`
+- **Decisions** - `docs/05-DECISIONS/` (ADRs — why non-obvious choices were made)
 - **Architecture** - `docs/02-ARCHITECTURE/`
 - **Code** - `tree-walk-interpreter/src/`
 - **Tests** - `tree-walk-interpreter/tests/`

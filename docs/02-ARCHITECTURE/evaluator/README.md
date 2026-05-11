@@ -3,7 +3,7 @@
 **Source:** `src/evaluator/mod.rs` *(not yet implemented)*
 **Entry point:** `evaluator::eval(program: typed_ast::TypedProgram) -> Result<Value, YoloscriptError>`
 
-The evaluator is a tree-walking interpreter over the typed AST. See `docs/05-TASKS/epic-002-evaluator/` for the planned implementation work.
+The evaluator is a tree-walking interpreter over the typed AST. See `docs/04-TASKS/epic-002-evaluator/` for the planned implementation work.
 
 ## Planned Design
 

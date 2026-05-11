@@ -5,7 +5,7 @@
 
 The parser uses the [pest](https://pest.rs) PEG parser generator. `grammar.pest` defines the complete v0.1 grammar; `parser/mod.rs` drives pest and transforms the resulting CST into an `ast::Program`.
 
-The parser is stub-quality — it produces a correct AST but has no error recovery or diagnostic suggestions. Improving it is explicitly deferred (see `docs/04-PLANNING/MEDIUM-TERM-PLAN.md`).
+The parser is stub-quality — it produces a correct AST but has no error recovery or diagnostic suggestions. Improving it is explicitly deferred to Phase 02 (see `docs/03-PLANNING/PHASE-01-POC.md`).
 
 ## Key Files
 

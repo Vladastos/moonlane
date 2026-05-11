@@ -46,9 +46,9 @@ let typed_program = construct(&program, &substitution, &scheme_env)?;
 
 ## Key Design Decisions
 
-- [ADR-0001](../../06-DECISIONS/closed/ADR-0001-type-registry.md) — TypeRegistry
+- [ADR-0001](../../05-DECISIONS/closed/ADR-0001-type-registry.md) — TypeRegistry
   structure: pre-built and injected into `InferContext`
-- [ADR-0002](../../06-DECISIONS/closed/ADR-0002-inference-pass-structure.md) — Two-pass
+- [ADR-0002](../../05-DECISIONS/closed/ADR-0002-inference-pass-structure.md) — Two-pass
   with re-derivation (Option C): Pass 1 returns `(Substitution, SchemeEnv)`;
   Pass 2 re-derives types structurally with no constraint emission
 

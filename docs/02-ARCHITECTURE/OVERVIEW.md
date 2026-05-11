@@ -1,6 +1,6 @@
 # Interpreter Architecture Overview
 
-> For the rationale behind these architectural choices, see [ADR-0004](../06-DECISIONS/closed/ADR-0004-interpreter-architecture.md).
+> For the rationale behind these architectural choices, see [ADR-0004](../05-DECISIONS/closed/ADR-0004-interpreter-architecture.md).
 
 ## Pipeline
 

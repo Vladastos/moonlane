@@ -4,9 +4,9 @@ Two-level task organization: **Epics** (major features/milestones) contain **Tas
 
 ## Quick Reference
 
-**Create an epic:** Make folder `docs/05-TASKS/epic-NNN-slug/` with subfolders `open/`, `in-progress/`, `done/`, `blocked/`
+**Create an epic:** Make folder `docs/04-TASKS/epic-NNN-slug/` with subfolders `open/`, `in-progress/`, `done/`, `blocked/`
 
-**Create a task:** Copy `docs/05-TASKS/epic-NNN-slug/0000-template.md` → save to appropriate status folder → rename to `NNNN-slug.md`
+**Create a task:** Copy `docs/04-TASKS/epic-NNN-slug/0000-template.md` → save to appropriate status folder → rename to `NNNN-slug.md`
 
 **Move task:** Change status by moving file to corresponding subfolder (or update `**Status:**` field for quick reference)
 
@@ -22,7 +22,7 @@ An **epic** is a major language feature, subsystem milestone, or architectural c
 
 **Example structure:**
 ```
-docs/05-TASKS/
+docs/04-TASKS/
 ├── epic-001-typechecker/
 │   ├── EPIC.md                          # Epic description and goals
 │   ├── open/
@@ -50,7 +50,7 @@ docs/05-TASKS/
 **Component:**   interpreter | repl | parser | typechecker | evaluator | error-handling | spec
 **Spec Link:**   01-SPEC/LANGUAGE-SPEC.md#Section-Name (or Backlog item)
 **Blocked By:**  task IDs or "none"
-**Decisions:**   none | ADR-NNNN, ADR-NNNN (links to docs/06-DECISIONS/)
+**Decisions:**   none | ADR-NNNN, ADR-NNNN (links to docs/05-DECISIONS/)
 
 ## What
 What needs doing and why.
@@ -74,10 +74,10 @@ Once a question is resolved:
 
 2. **If the answer involved real alternatives** (two or more options with genuine
    tradeoffs, or a choice whose rationale would be non-obvious from the code) —
-   create an ADR in `docs/06-DECISIONS/`, add it to the task's `**Decisions:**`
+   create an ADR in `docs/05-DECISIONS/`, add it to the task's `**Decisions:**`
    field, then remove the open question.
 
-See `docs/06-DECISIONS/README.md` for the full ADR workflow.
+See `docs/05-DECISIONS/README.md` for the full ADR workflow.
 
 ## Rules
 
@@ -111,9 +111,9 @@ See `docs/06-DECISIONS/README.md` for the full ADR workflow.
 
 ## See Also
 
-- `docs/05-TASKS/README.md` — More details
-- `docs/05-TASKS/0000-template.md` — Task template
-- `docs/06-DECISIONS/README.md` — ADR process and index
-- `docs/06-DECISIONS/ADR-0000-template.md` — ADR template
-- `docs/06-DECISIONS/open/` — proposed ADRs (decision pending)
-- `docs/06-DECISIONS/closed/` — accepted, rejected, or superseded ADRs
+- `docs/04-TASKS/README.md` — More details
+- `docs/04-TASKS/0000-template.md` — Task template
+- `docs/05-DECISIONS/README.md` — ADR process and index
+- `docs/05-DECISIONS/ADR-0000-template.md` — ADR template
+- `docs/05-DECISIONS/open/` — proposed ADRs (decision pending)
+- `docs/05-DECISIONS/closed/` — accepted, rejected, or superseded ADRs

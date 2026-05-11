@@ -145,5 +145,5 @@ is always a statement; the workaround is `let result = if (…) { … } else { �
 
 ## References
 
-- Task: [0002 — Stage 2: Control Flow](../05-TASKS/epic-005-typechecker-integration/done/0002-stage2-control-flow.md) (where the limitation was discovered)
+- Task: [0002 — Stage 2: Control Flow](../04-TASKS/epic-005-typechecker-integration/done/0002-stage2-control-flow.md) (where the limitation was discovered)
 - Spec: [§4 — Statements](../01-SPEC/LANGUAGE-SPEC.md#4-statements), [§5 — Expressions](../01-SPEC/LANGUAGE-SPEC.md#5-expressions)

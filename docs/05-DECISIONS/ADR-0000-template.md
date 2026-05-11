@@ -44,5 +44,5 @@ enables. Any follow-up tasks created.
 
 ## References
 
-- Task: [NNNN — title](../05-TASKS/epic-NNN-slug/status/NNNN-slug.md)
+- Task: [NNNN — title](../04-TASKS/epic-NNN-slug/status/NNNN-slug.md)
 - Spec: [§N.N — section](../01-SPEC/LANGUAGE-SPEC.md#section-anchor)

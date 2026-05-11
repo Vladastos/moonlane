@@ -32,7 +32,7 @@ When a backlog item is resolved, its entry is removed from the backlog and the f
 
 ---
 
-### 3. `docs/06-DECISIONS/` — why a non-obvious choice was made
+### 3. `docs/05-DECISIONS/` — why a non-obvious choice was made
 
 Decision records capture the reasoning behind choices that were not obvious or that had meaningful alternatives. They are written once and never modified (superseded decisions get a new record).
 
@@ -120,6 +120,34 @@ Untagged sections are designed but not yet validated. This makes it immediately 
 3. Make the decision (write a decision record if non-obvious).
 4. Update the spec.
 5. Continue the implementation against the updated spec.
+
+---
+
+## Supporting documentation
+
+Two additional document types support day-to-day development. They are descriptive rather than authoritative — they describe how things are, not what they should be — and they can drift without invalidating the spec or any decision record.
+
+---
+
+### 4. `docs/02-ARCHITECTURE/` — how the system is structured and how to work with each component
+
+Two levels:
+
+**`OVERVIEW.md`** (top level) answers "how does the pipeline fit together?" — pipeline diagram, crate structure, component boundaries, key shared types. Updated when a new pipeline stage is added or a component boundary changes.
+
+**`<component>/`** (subfolders) answers "how do I extend this component?" — key invariants, non-obvious algorithms, patterns to follow. Create a subfolder when a component becomes non-trivial to extend. Update when something non-obvious is learned during implementation that would surprise a future reader.
+
+Does **not** contain: why a choice was made (→ `docs/05-DECISIONS/`), language features (→ spec), planned work (→ `docs/03-PLANNING/` or `docs/04-TASKS/`).
+
+---
+
+### 5. `docs/03-PLANNING/` — what phase the project is in
+
+One file per development phase (`PHASE-NN-slug.md`). Each answers five questions: goal, success criterion, milestones (observable checkpoints), scope (in and explicitly deferred), and next phase.
+
+Update when: a phase completes and the next begins, a milestone is added or completed, or the scope of the current phase changes significantly.
+
+Does **not** update for: individual epic or task completion, implementation findings, or routine development progress. Those belong in `docs/04-TASKS/` or `docs/05-DECISIONS/`.
 
 ---
 

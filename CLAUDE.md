@@ -79,9 +79,9 @@ The project follows a strict documentation hierarchy in `docs/`:
 - **00-PROCESS/**: Development workflow and task management conventions
 - **01-SPEC/**: Language specification (authoritative) and feature backlog
 - **02-ARCHITECTURE/**: System overview and per-component implementation guides
-- **04-PLANNING/**: Strategic roadmaps and medium-term plans
-- **05-TASKS/**: Epic-based task organization with status tracking
-- **06-DECISIONS/**: Architecture decision records (ADRs) — why non-obvious choices were made
+- **03-PLANNING/**: Strategic roadmaps and medium-term plans
+- **04-TASKS/**: Epic-based task organization with status tracking
+- **05-DECISIONS/**: Architecture decision records (ADRs) — why non-obvious choices were made
 
 ### Key Files
 
@@ -89,7 +89,7 @@ The project follows a strict documentation hierarchy in `docs/`:
 - `docs/01-SPEC/BACKLOG.md`: Features not yet implemented
 - `docs/02-ARCHITECTURE/OVERVIEW.md`: Pipeline, crate structure, component boundaries
 - `docs/02-ARCHITECTURE/typeinference/`: Type inference implementation guide
-- `docs/06-DECISIONS/`: Architecture decision records (ADR-0001 onwards)
+- `docs/05-DECISIONS/`: Architecture decision records (ADR-0001 onwards)
 - `docs/00-PROCESS/TASK-CONVENTION.md`: Task management workflow
 
 ## Development Principles
@@ -101,7 +101,7 @@ The project follows a strict documentation hierarchy in `docs/`:
 - Tag spec sections when interpreter-validated: `> ✓ Interpreter-validated (v0.1)`
 
 ### Task Management
-- Use epic-based organization under `docs/05-TASKS/`
+- Use epic-based organization under `docs/04-TASKS/`
 - Tasks have clear status: `open`, `in-progress`, `done`, `blocked`
 - Every task links to relevant spec section or backlog item
 - Move task files between status folders to reflect current state

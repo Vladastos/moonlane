@@ -6,7 +6,7 @@ This document explains how to work on the Yoloscript project as an AI agent (Cla
 
 1. **Always check the spec first** - `docs/01-SPEC/LANGUAGE-SPEC.md` is the source of truth
 2. **Follow task conventions** - See `TASK-CONVENTION.md` for how to organize work
-3. **Use the documentation structure** - Everything is in `docs/Yoloscript/`
+3. **Use the documentation structure** - Everything is in `docs/`
 4. **Write tests first** - All implementation has tests
 5. **Update references** - When moving/creating files, update cross-references
 6. **Link to documentation** - Changes should link to relevant spec sections
@@ -30,16 +30,22 @@ tree-walk-interpreter/          # Rust implementation
 │   ├── error/mod.rs            # Error types
 │   └── types/mod.rs            # Type system
 ├── tests/
-│   └── typeinference_tests.rs  # Type inference test suite
+│   ├── lib.rs                      # Root: makes Cargo discover subdirectory tests
+│   ├── typeinference/
+│   │   └── typeinference_tests.rs  # HM inference unit tests (phases 1–7)
+│   ├── typechecking/
+│   │   └── typechecking_tests.rs   # Full pipeline integration tests
+│   └── parsing/
+│       └── parsing_tests.rs        # Parser tests
 └── Cargo.toml
 
 docs/                                # All documentation
 ├── 00-PROCESS/                 # How to work (this folder)
 ├── 01-SPEC/                    # What is Yoloscript
 ├── 02-ARCHITECTURE/            # System overview & per-component implementation guides
-├── 04-PLANNING/                # Roadmaps
-├── 05-TASKS/                   # Current work
-└── 06-DECISIONS/               # ADRs — why non-obvious choices were made
+├── 03-PLANNING/                # Roadmaps
+├── 04-TASKS/                   # Current work
+└── 05-DECISIONS/               # ADRs — why non-obvious choices were made
 ```
 
 ---
@@ -56,7 +62,7 @@ Read this in order:
 
 ### 2. Check Current Tasks
 
-Open `docs/05-TASKS/` to see:
+Open `docs/04-TASKS/` to see:
 - Open issues (in `open/` folders)
 - In-progress work (in `in-progress/` folders)
 - Completed work (in `done/` folders)
@@ -66,7 +72,7 @@ Open `docs/05-TASKS/` to see:
 
 Get the exact task ID and path. Example:
 ```
-docs/05-TASKS/epic-001-typechecker/open/0002-type-inference.md
+docs/04-TASKS/epic-001-typechecker/open/0002-type-inference.md
 ```
 
 ---
@@ -111,7 +117,7 @@ When starting work:
 
 Before implementing:
 1. Open the test file relevant to your component
-   - Example: `tests/typeinference_tests.rs` for type inference
+   - Example: `tests/typeinference/typeinference_tests.rs` for type inference
 2. Find the test stubs (marked with `todo!()`)
 3. Write the test cases based on the task's acceptance criteria
 4. Leave tests commented out or stubbed for now
@@ -177,13 +183,13 @@ cd tree-walk-interpreter
 cargo test
 
 # Specific test file
-cargo test --test typeinference_tests
+cargo test --test lib typeinference_tests
 
 # Specific test
-cargo test --test typeinference_tests phase_2::test_infer_type_concrete
+cargo test --test lib typeinference_tests phase_2::test_infer_type_concrete
 
 # With output
-cargo test --test typeinference_tests -- --nocapture
+cargo test --test lib typeinference_tests -- --nocapture
 ```
 
 **All tests must pass before marking the task done.**
@@ -286,7 +292,7 @@ Fix the error by looking at the line number and message.
 
 ### Test Failure
 ```bash
-cargo test --test typeinference_tests -- --nocapture
+cargo test --test lib typeinference_tests -- --nocapture
 ```
 Tests show exactly what failed. Fix the code to match test expectations.
 
@@ -432,7 +438,7 @@ Update the task file with progress:
 
 ### If Spec is Unclear
 1. Check `BACKLOG.md` for open questions
-2. Look at decision records in `docs/06-DECISIONS/closed/` (accepted) or `docs/06-DECISIONS/open/` (pending)
+2. Look at decision records in `docs/05-DECISIONS/closed/` (accepted) or `docs/05-DECISIONS/open/` (pending)
 3. If still unclear, mark it in task notes
 
 ### If Tests Keep Failing
@@ -462,12 +468,12 @@ Before marking a task complete:
 
 ### Scenario: Implement Phase 2 (InferType)
 
-1. **Read task**: `docs/05-TASKS/epic-001-typechecker/open/0002-type-inference.md`
+1. **Read task**: `docs/04-TASKS/epic-001-typechecker/open/0002-type-inference.md`
 2. **Check spec**: `docs/01-SPEC/LANGUAGE-SPEC.md` (Type System section)
 3. **Move to in-progress**: Update status and file location
-4. **Write tests**: Add test cases in `tests/typeinference_tests.rs`
+4. **Write tests**: Add test cases in `tests/typeinference/typeinference_tests.rs`
 5. **Implement**: Add `InferType` enum in `src/typeinference/mod.rs`
-6. **Run tests**: `cargo test --test typeinference_tests phase_2`
+6. **Run tests**: `cargo test --test lib typeinference_tests phase_2`
 7. **Fix failures**: Update implementation until tests pass
 8. **Update docs**: If the enum is public API, add doc comments
 9. **Mark done**: Move file to `done/` and update status

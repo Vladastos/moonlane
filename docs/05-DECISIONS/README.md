@@ -19,7 +19,7 @@ Do NOT write one for:
 ## Folder structure
 
 ```
-06-DECISIONS/
+05-DECISIONS/
 ├── open/      # proposed — decision not yet made
 ├── closed/    # accepted | rejected | superseded
 └── ADR-0000-template.md
@@ -51,8 +51,8 @@ Numbers are assigned sequentially and never reused. The slug is lowercase-hyphen
 Add a `**Decisions:**` field to the task header listing any ADRs that govern the
 task's design. Use the path reflecting the ADR's current folder:
 
-- Open: `**Decisions:** [ADR-NNNN](../../06-DECISIONS/open/ADR-NNNN-slug.md)`
-- Closed: `**Decisions:** [ADR-NNNN](../../06-DECISIONS/closed/ADR-NNNN-slug.md)`
+- Open: `**Decisions:** [ADR-NNNN](../../05-DECISIONS/open/ADR-NNNN-slug.md)`
+- Closed: `**Decisions:** [ADR-NNNN](../../05-DECISIONS/closed/ADR-NNNN-slug.md)`
 
 ## Index
 
