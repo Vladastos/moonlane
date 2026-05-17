@@ -407,6 +407,7 @@ pub struct InferContext {
     poly_env: HashMap<String, TypeScheme>,
     constraints: Vec<Constraint>,
     current_return_type: Option<InferType>,
+    current_break_type:  Option<InferType>,
     pub struct_env: HashMap<String, Vec<(String, InferType)>>,
     pub method_env: HashMap<String, HashMap<String, InferType>>,
 }
@@ -419,6 +420,7 @@ impl InferContext {
             poly_env: HashMap::new(),
             constraints: Vec::new(),
             current_return_type: None,
+            current_break_type:  None,
             struct_env: HashMap::new(),
             method_env: HashMap::new(),
         }
@@ -535,6 +537,18 @@ impl InferContext {
     /// The expected return type of the innermost enclosing function, if any.
     pub fn current_return_type(&self) -> Option<&InferType> {
         self.current_return_type.as_ref()
+    }
+
+    pub fn push_break_type(&mut self, ty: InferType) -> Option<InferType> {
+        std::mem::replace(&mut self.current_break_type, Some(ty))
+    }
+
+    pub fn pop_break_type(&mut self, prev: Option<InferType>) {
+        self.current_break_type = prev;
+    }
+
+    pub fn current_break_type(&self) -> Option<&InferType> {
+        self.current_break_type.as_ref()
     }
 }
 

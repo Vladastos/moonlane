@@ -285,10 +285,20 @@ mod tests {
         check_file(&format!("{}/stage6_02_for_loops.yolo", test_dir()));
     }
 
+    #[test]
+    fn stage6_loop_expr() {
+        check_file(&format!("{}/stage6_03_loop_expr.yolo", test_dir()));
+    }
+
     // ── Stage 6 negative tests ────────────────────────────────────────────────
 
     #[test]
     fn stage6_neg_for_in_non_iterable() {
         check_file(&format!("{}/stage6_neg_01_for_in_non_iterable.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage6_neg_loop_break_mismatch() {
+        check_file(&format!("{}/stage6_neg_02_loop_break_mismatch.yolo", test_dir()));
     }
 }

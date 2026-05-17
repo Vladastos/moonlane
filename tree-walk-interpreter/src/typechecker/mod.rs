@@ -327,8 +327,12 @@ fn infer_stmt(
             Ok(InferType::never())
         }
         Stmt::Break(bs) => {
-            if let Some(e) = &bs.value {
-                infer_expr(e, ctx, fun_generalizations)?;
+            let break_ty = match &bs.value {
+                Some(e) => infer_expr(e, ctx, fun_generalizations)?,
+                None    => InferType::unit(),
+            };
+            if let Some(expected) = ctx.current_break_type().cloned() {
+                ctx.add_constraint(break_ty, expected, bs.span.clone());
             }
             Ok(InferType::never())
         }
@@ -606,6 +610,14 @@ fn infer_expr(
                 ctx.add_constraint(expr_ty, decl_ty, span.clone());
             }
             Ok(InferType::Named(struct_name, vec![]))
+        }
+        Expr::Loop { body, span } => {
+            let break_var = ctx.fresh_var();
+            let saved_break = ctx.push_break_type(break_var.clone());
+            infer_block(body, ctx, fun_generalizations)?;
+            ctx.pop_break_type(saved_break);
+            let _ = span;
+            Ok(break_var)
         }
         _ => Err(YoloscriptError::internal("expression not yet supported")),
     }
@@ -957,6 +969,14 @@ fn construct_stmt(stmt: &Stmt, ctx: &mut ConstructCtx) -> Result<TypedStmt, Yolo
             };
             Ok(TypedStmt::Return(TypedReturnStmt { value, span: r.span.clone() }))
         }
+        Stmt::Break(bs) => {
+            let value = match &bs.value {
+                Some(e) => Some(construct_expr(e, None, ctx)?),
+                None    => None,
+            };
+            Ok(TypedStmt::Break(TypedBreakStmt { value, span: bs.span.clone() }))
+        }
+        Stmt::Continue(span) => Ok(TypedStmt::Continue(span.clone())),
         Stmt::While(ws) => {
             let condition = construct_expr(&ws.condition, None, ctx)?;
             let body = construct_block(&ws.body, ctx)?;
@@ -1162,10 +1182,23 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
                 span:   span.clone(),
             })
         }
+        Expr::Loop { body, span } => {
+            let typed_body = construct_block(body, ctx)?;
+            let ty = find_loop_break_type(&typed_body).unwrap_or(Type::Never);
+            Ok(TypedExpr::Loop { body: typed_body, ty, span: span.clone() })
+        }
         _ => Err(YoloscriptError::internal("expression not yet supported in construct")),
     }
 }
 
+fn find_loop_break_type(block: &TypedBlock) -> Option<Type> {
+    for stmt in &block.stmts {
+        if let TypedDecl::Stmt(TypedStmt::Break(bs)) = stmt {
+            return bs.value.as_ref().map(|v| v.ty().clone());
+        }
+    }
+    None
+}
 
 /// Build a typed Call expression.
 ///
