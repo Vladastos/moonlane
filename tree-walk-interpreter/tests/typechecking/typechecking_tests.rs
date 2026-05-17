@@ -281,6 +281,11 @@ mod tests {
     // ── Stage 6 tests ─────────────────────────────────────────────────────────
 
     #[test]
+    fn stage6_builtins() {
+        check_file(&format!("{}/stage6_01_builtins.yolo", test_dir()));
+    }
+
+    #[test]
     fn stage6_for_loops() {
         check_file(&format!("{}/stage6_02_for_loops.yolo", test_dir()));
     }
@@ -345,5 +350,10 @@ mod tests {
     #[test]
     fn stage6_neg_error_propagation_non_result() {
         check_file(&format!("{}/stage6_neg_05_error_propagation_non_result.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage6_neg_builtin_wrong_arg_type() {
+        check_file(&format!("{}/stage6_neg_07_builtin_wrong_arg_type.yolo", test_dir()));
     }
 }

@@ -1,0 +1,2 @@
+// calling a builtin with the wrong argument type should fail.
+let bad: Int = string_len(42); // ERROR[E0001]

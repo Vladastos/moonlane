@@ -13,7 +13,8 @@ type SchemeEnv = HashMap<String, TypeScheme>;
 pub fn check(program: Program) -> Result<TypedProgram, YoloscriptError> {
     let mut ctx = InferContext::new();
 
-    // Pre-pass: register built-in enums then hoist names so forward references work.
+    // Pre-pass: register built-ins and enums, then hoist names so forward references work.
+    register_builtins(&mut ctx);
     register_builtin_enums(&mut ctx);
     hoist_fun_decls(&program.decls, &mut ctx);
     hoist_struct_and_impl_decls(&program.decls, &mut ctx);
@@ -23,13 +24,14 @@ pub fn check(program: Program) -> Result<TypedProgram, YoloscriptError> {
     infer_program(&program, &mut ctx, &mut fun_generalizations)?;
     let subst = ctx.solve()?;
 
-    // Build SchemeEnv from user functions.
+    // Build SchemeEnv from user functions, then add polymorphic built-in schemes.
     let mut scheme_env: SchemeEnv = HashMap::new();
     for fg in fun_generalizations {
         let resolved = subst.apply(&fg.fun_ty);
         let scheme = generalize(resolved, &fg.env_fvs);
         scheme_env.insert(fg.name, scheme);
     }
+    register_builtin_poly_schemes(&mut scheme_env);
 
     // Build concrete environments for Pass 2.
     let concrete_struct_env = build_concrete_struct_env(&ctx.struct_env, &subst)?;
@@ -37,6 +39,63 @@ pub fn check(program: Program) -> Result<TypedProgram, YoloscriptError> {
 
     // Pass 2: re-derive concrete types and build TypedAST.
     construct_program(&program, &subst, &scheme_env, concrete_struct_env, concrete_method_env, &ctx.enum_env)
+}
+
+fn register_builtins(ctx: &mut InferContext) {
+    let str_ty   = InferType::str();
+    let int_ty   = InferType::int();
+    let float_ty = InferType::float();
+    let bool_ty  = InferType::bool();
+    let unit_ty  = InferType::unit();
+
+    let mono = |params, ret| TypeScheme::mono(InferType::Fun(params, Box::new(ret)));
+
+    ctx.bind_poly("print",           mono(vec![str_ty.clone()], unit_ty.clone()));
+    ctx.bind_poly("println",         mono(vec![str_ty.clone()], unit_ty.clone()));
+    ctx.bind_poly("int_to_string",   mono(vec![int_ty.clone()], str_ty.clone()));
+    ctx.bind_poly("float_to_string", mono(vec![float_ty],       str_ty.clone()));
+    ctx.bind_poly("bool_to_string",  mono(vec![bool_ty],        str_ty.clone()));
+    ctx.bind_poly("string_len",      mono(vec![str_ty.clone()], int_ty.clone()));
+    ctx.bind_poly("string_concat",   mono(vec![str_ty.clone(), str_ty.clone()], str_ty.clone()));
+    ctx.bind_poly("clock",           mono(vec![], int_ty.clone()));
+
+    let t = ctx.fresh_type_var_raw();
+    ctx.bind_poly("array_push", TypeScheme {
+        quantified_vars: vec![t],
+        ty: InferType::Fun(
+            vec![InferType::Array(Box::new(InferType::Var(t))), InferType::Var(t)],
+            Box::new(InferType::unit()),
+        ),
+    });
+    let t = ctx.fresh_type_var_raw();
+    ctx.bind_poly("array_len", TypeScheme {
+        quantified_vars: vec![t],
+        ty: InferType::Fun(
+            vec![InferType::Array(Box::new(InferType::Var(t)))],
+            Box::new(InferType::int()),
+        ),
+    });
+}
+
+fn register_builtin_poly_schemes(scheme_env: &mut SchemeEnv) {
+    let mut gen = TypeVarGenerator::new();
+
+    let t = gen.fresh();
+    scheme_env.insert("array_push".into(), TypeScheme {
+        quantified_vars: vec![t],
+        ty: InferType::Fun(
+            vec![InferType::Array(Box::new(InferType::Var(t))), InferType::Var(t)],
+            Box::new(InferType::unit()),
+        ),
+    });
+    let t = gen.fresh();
+    scheme_env.insert("array_len".into(), TypeScheme {
+        quantified_vars: vec![t],
+        ty: InferType::Fun(
+            vec![InferType::Array(Box::new(InferType::Var(t)))],
+            Box::new(InferType::int()),
+        ),
+    });
 }
 
 fn register_builtin_enums(ctx: &mut InferContext) {
@@ -1071,7 +1130,26 @@ impl<'a> ConstructCtx<'a> {
         method_env: HashMap<String, HashMap<String, Type>>,
         enum_env:   &'a HashMap<String, EnumInfo>,
     ) -> Self {
-        Self { subst, scheme_env, env: vec![HashMap::new()], struct_env, method_env, enum_env }
+        let mut ctx = Self {
+            subst, scheme_env,
+            env: vec![HashMap::new()],
+            struct_env, method_env, enum_env,
+        };
+        let str_ty   = Type::Str;
+        let int_ty   = Type::Int;
+        let float_ty = Type::Float;
+        let bool_ty  = Type::Bool;
+        let unit_ty  = Type::Unit;
+        let mono = |params, ret| Type::Fun(params, Box::new(ret));
+        ctx.bind("print",           mono(vec![str_ty.clone()], unit_ty.clone()));
+        ctx.bind("println",         mono(vec![str_ty.clone()], unit_ty.clone()));
+        ctx.bind("int_to_string",   mono(vec![int_ty.clone()], str_ty.clone()));
+        ctx.bind("float_to_string", mono(vec![float_ty],       str_ty.clone()));
+        ctx.bind("bool_to_string",  mono(vec![bool_ty],        str_ty.clone()));
+        ctx.bind("string_len",      mono(vec![str_ty.clone()], int_ty.clone()));
+        ctx.bind("string_concat",   mono(vec![str_ty.clone(), str_ty.clone()], str_ty.clone()));
+        ctx.bind("clock",           mono(vec![], int_ty.clone()));
+        ctx
     }
 
     fn push_scope(&mut self) { self.env.push(HashMap::new()); }
