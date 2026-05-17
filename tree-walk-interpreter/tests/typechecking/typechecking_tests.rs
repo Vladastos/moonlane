@@ -290,6 +290,11 @@ mod tests {
         check_file(&format!("{}/stage6_03_loop_expr.yolo", test_dir()));
     }
 
+    #[test]
+    fn stage6_tuple_access() {
+        check_file(&format!("{}/stage6_04_tuple_access.yolo", test_dir()));
+    }
+
     // ── Stage 6 negative tests ────────────────────────────────────────────────
 
     #[test]
@@ -300,5 +305,10 @@ mod tests {
     #[test]
     fn stage6_neg_loop_break_mismatch() {
         check_file(&format!("{}/stage6_neg_02_loop_break_mismatch.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage6_neg_tuple_access_oob() {
+        check_file(&format!("{}/stage6_neg_03_tuple_access_oob.yolo", test_dir()));
     }
 }

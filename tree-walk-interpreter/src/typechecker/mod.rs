@@ -611,6 +611,24 @@ fn infer_expr(
             }
             Ok(InferType::Named(struct_name, vec![]))
         }
+        Expr::TupleAccess { object, index, span } => {
+            let obj_ty = infer_expr(object, ctx, fun_generalizations)?;
+            let obj_ty = ctx.solve()?.apply(&obj_ty);
+            match &obj_ty {
+                InferType::Tuple(elems) => {
+                    elems.get(*index).cloned().ok_or_else(|| YoloscriptError::type_error(
+                        ErrorCode::E0003,
+                        format!("tuple index {index} out of bounds (tuple has {} elements)", elems.len()),
+                        span,
+                    ))
+                }
+                _ => Err(YoloscriptError::type_error(
+                    ErrorCode::E0002,
+                    "cannot infer tuple type for index access; add a type annotation",
+                    span,
+                )),
+            }
+        }
         Expr::Loop { body, span } => {
             let break_var = ctx.fresh_var();
             let saved_break = ctx.push_break_type(break_var.clone());
@@ -1181,6 +1199,17 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
                 ty:     Type::Named(struct_name, vec![]),
                 span:   span.clone(),
             })
+        }
+        Expr::TupleAccess { object, index, span } => {
+            let typed_obj = construct_expr(object, None, ctx)?;
+            let ty = match typed_obj.ty() {
+                Type::Tuple(elems) => elems.get(*index).cloned()
+                    .ok_or_else(|| YoloscriptError::internal(
+                        format!("tuple index {index} out of bounds")
+                    ))?,
+                _ => return Err(YoloscriptError::internal("tuple access on non-tuple")),
+            };
+            Ok(TypedExpr::TupleAccess { object: Box::new(typed_obj), index: *index, ty, span: span.clone() })
         }
         Expr::Loop { body, span } => {
             let typed_body = construct_block(body, ctx)?;
