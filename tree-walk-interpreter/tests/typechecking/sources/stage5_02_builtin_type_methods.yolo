@@ -1,0 +1,8 @@
+// Stage 5: method calls on built-in types.
+
+// String.len() returns Int
+let s = "hello";
+let n: Int = s.len();
+
+// Works on string expressions, not just variables
+let m: Int = "world!".len();

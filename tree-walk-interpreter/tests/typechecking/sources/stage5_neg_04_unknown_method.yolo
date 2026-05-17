@@ -1,0 +1,9 @@
+// Negative: calling an unknown method on a struct.
+
+struct Point {
+    x: Float,
+    y: Float,
+}
+
+let p = Point { x: 1.0, y: 2.0 };
+let n = p.nonexistent(); // ERROR[E0003]

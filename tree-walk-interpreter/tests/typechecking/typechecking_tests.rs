@@ -261,6 +261,11 @@ mod tests {
         check_file(&format!("{}/stage5_01_structs_and_methods.yolo", test_dir()));
     }
 
+    #[test]
+    fn stage5_builtin_type_methods() {
+        check_file(&format!("{}/stage5_02_builtin_type_methods.yolo", test_dir()));
+    }
+
     // ── Stage 5 negative tests ────────────────────────────────────────────────
 
     #[test]
@@ -276,6 +281,11 @@ mod tests {
     #[test]
     fn stage5_neg_method_arg_type_mismatch() {
         check_file(&format!("{}/stage5_neg_03_method_arg_type_mismatch.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage5_neg_unknown_method() {
+        check_file(&format!("{}/stage5_neg_04_unknown_method.yolo", test_dir()));
     }
 
     // ── Stage 6 tests ─────────────────────────────────────────────────────────

@@ -61,6 +61,10 @@ fn register_builtins(ctx: &mut InferContext) {
     ctx.bind_poly("string_concat",   mono(vec![str_ty.clone(), str_ty.clone()], str_ty.clone()));
     ctx.bind_poly("clock",           mono(vec![], int_ty.clone()));
 
+    // Built-in type methods.
+    ctx.register_method("String".to_string(), "len".to_string(),
+        InferType::Fun(vec![str_ty.clone()], Box::new(int_ty.clone())));
+
     let t = ctx.fresh_type_var_raw();
     ctx.bind_poly("array_push", TypeScheme {
         quantified_vars: vec![t],
@@ -977,7 +981,11 @@ fn pattern_span(pattern: &Pattern) -> &Span {
 
 fn named_type_name(ty: &InferType) -> Option<String> {
     match ty {
-        InferType::Named(name, _) => Some(name.clone()),
+        InferType::Named(name, _)         => Some(name.clone()),
+        InferType::Concrete(Type::Str)    => Some("String".to_string()),
+        InferType::Concrete(Type::Int)    => Some("Int".to_string()),
+        InferType::Concrete(Type::Float)  => Some("Float".to_string()),
+        InferType::Concrete(Type::Bool)   => Some("Bool".to_string()),
         _ => None,
     }
 }
@@ -1523,6 +1531,10 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
             let typed_receiver = construct_expr(receiver, None, ctx)?;
             let struct_name = match typed_receiver.ty() {
                 Type::Named(name, _) => name.clone(),
+                Type::Str            => "String".to_string(),
+                Type::Int            => "Int".to_string(),
+                Type::Float          => "Float".to_string(),
+                Type::Bool           => "Bool".to_string(),
                 t => return Err(YoloscriptError::internal(
                     format!("method call on non-struct type {t}")
                 )),
