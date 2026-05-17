@@ -1,0 +1,3 @@
+// Constructing an unknown variant should fail with E0003.
+enum Shape { Circle { radius: Float } }
+let s = Shape::Triangle { radius: 1.0 }; // ERROR[E0003]

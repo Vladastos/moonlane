@@ -356,4 +356,14 @@ mod tests {
     fn stage6_neg_builtin_wrong_arg_type() {
         check_file(&format!("{}/stage6_neg_07_builtin_wrong_arg_type.yolo", test_dir()));
     }
+
+    #[test]
+    fn stage6_neg_enum_unknown_variant() {
+        check_file(&format!("{}/stage6_neg_08_enum_unknown_variant.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage6_neg_enum_field_type_mismatch() {
+        check_file(&format!("{}/stage6_neg_09_enum_field_type_mismatch.yolo", test_dir()));
+    }
 }

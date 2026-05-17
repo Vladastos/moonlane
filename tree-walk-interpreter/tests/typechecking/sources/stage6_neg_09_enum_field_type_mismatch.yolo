@@ -1,0 +1,3 @@
+// Wrong field type in variant construction should fail with E0001.
+enum Shape { Circle { radius: Float } }
+let s: Shape = Shape::Circle { radius: "big" }; // ERROR[E0001]
