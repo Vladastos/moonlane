@@ -1816,7 +1816,9 @@ fn instantiate_scheme_for_call(
     arg_types: &[&Type],
     span:      &Span,
 ) -> Result<Type, YoloscriptError> {
-    let mut gen = TypeVarGenerator::new();
+    // Start past the scheme's quantified vars to avoid mapping a var to itself.
+    let start = scheme.quantified_vars.iter().map(|v| v.0 + 1).max().unwrap_or(0);
+    let mut gen = TypeVarGenerator::with_counter(start);
     let instance = instantiate(scheme, &mut gen);
 
     let (params, ret) = match instance {

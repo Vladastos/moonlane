@@ -34,6 +34,10 @@ impl TypeVarGenerator {
         TypeVarGenerator { counter: 0 }
     }
 
+    pub fn with_counter(start: u32) -> Self {
+        TypeVarGenerator { counter: start }
+    }
+
     /// Generate a fresh type variable.
     pub fn fresh(&mut self) -> TypeVar {
         let var = TypeVar(self.counter);
