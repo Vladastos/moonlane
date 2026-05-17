@@ -1,0 +1,4 @@
+// ? on a non-Result type should fail.
+fun might_fail() -> Int {
+    42? // ERROR[E0001]
+}

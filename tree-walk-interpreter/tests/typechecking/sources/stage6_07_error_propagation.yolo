@@ -1,0 +1,23 @@
+// Stage 6: error propagation with the ? operator.
+
+// Helper that may fail
+fun parse_positive(n: Int) -> Result<Int, String> {
+    if (n > 0) {
+        Result::Ok { value: n }
+    } else {
+        Result::Err { error: "must be positive" }
+    }
+}
+
+// Function using ? to propagate errors
+fun double_positive(n: Int) -> Result<Int, String> {
+    let x: Int = parse_positive(n)?;
+    Result::Ok { value: x * 2 }
+}
+
+// Chained ? calls
+fun sum_positive(a: Int, b: Int) -> Result<Int, String> {
+    let x: Int = parse_positive(a)?;
+    let y: Int = parse_positive(b)?;
+    Result::Ok { value: x + y }
+}

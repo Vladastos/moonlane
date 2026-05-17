@@ -305,6 +305,11 @@ mod tests {
         check_file(&format!("{}/stage6_08_enums.yolo", test_dir()));
     }
 
+    #[test]
+    fn stage6_error_propagation() {
+        check_file(&format!("{}/stage6_07_error_propagation.yolo", test_dir()));
+    }
+
     // ── Stage 6 negative tests ────────────────────────────────────────────────
 
     #[test]
@@ -330,5 +335,10 @@ mod tests {
     #[test]
     fn stage6_neg_match_arm_mismatch() {
         check_file(&format!("{}/stage6_neg_06_match_arm_mismatch.yolo", test_dir()));
+    }
+
+    #[test]
+    fn stage6_neg_error_propagation_non_result() {
+        check_file(&format!("{}/stage6_neg_05_error_propagation_non_result.yolo", test_dir()));
     }
 }

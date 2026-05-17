@@ -753,6 +753,26 @@ fn infer_expr(
                 span,
             ))
         }
+        Expr::PropagateError { expr, span } => {
+            let inner_ty = infer_expr(expr, ctx, fun_generalizations)?;
+            let ok_var  = ctx.fresh_var();
+            let err_var = ctx.fresh_var();
+            ctx.add_constraint(
+                inner_ty,
+                InferType::Named("Result".to_string(), vec![ok_var.clone(), err_var.clone()]),
+                span.clone(),
+            );
+            // v0.1 provisional: exact error type match. Epic 004 task 0003 upgrades to From<E>.
+            if let Some(fn_ret) = ctx.current_return_type().cloned() {
+                let fn_ok_var = ctx.fresh_var();
+                ctx.add_constraint(
+                    fn_ret,
+                    InferType::Named("Result".to_string(), vec![fn_ok_var, err_var]),
+                    span.clone(),
+                );
+            }
+            Ok(ok_var)
+        }
         Expr::Match(m) => infer_match(m, ctx, fun_generalizations),
         _ => Err(YoloscriptError::internal("expression not yet supported")),
     }
@@ -1456,6 +1476,15 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
                 Type::Named(type_name.clone(), vec![]),
                 span.clone(),
             ))
+        }
+        Expr::PropagateError { expr, span } => {
+            let typed_expr = construct_expr(expr, None, ctx)?;
+            let ty = match typed_expr.ty() {
+                Type::Result(ok, _) => *ok.clone(),
+                Type::Named(name, args) if name == "Result" && args.len() == 2 => args[0].clone(),
+                _ => return Err(YoloscriptError::internal("? on non-Result value")),
+            };
+            Ok(TypedExpr::PropagateError { expr: Box::new(typed_expr), ty, span: span.clone() })
         }
         Expr::Match(m) => construct_match(m, ctx),
         Expr::Cast { expr, target_type, span } => {
