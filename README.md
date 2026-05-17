@@ -30,7 +30,7 @@ Yoloscript is a statically typed, expression-oriented programming language. It f
 - **Traits** for ad-hoc polymorphism
 - **Memory managed by the runtime** (reference counting)
 
-See the [Language Specification](./docs/01-SPEC/LANGUAGE-SPEC.md) for the complete definition.
+See the Language Specification (managed via the Backlog MCP) for the complete definition.
 
 
 ## How?
@@ -49,9 +49,7 @@ Observe gaps, wrong assumptions, usability issues
 Refine the spec  →  implement the refinement  →  next feature
 ```
 
-The spec (`docs/01-SPEC/LANGUAGE-SPEC.md`) is the source of truth within each iteration — no code diverges from it — but the spec itself is a living document expected to evolve through usage. The tree-walk interpreter is the feedback mechanism: fast enough to iterate on, disposable enough not to over-invest in.
-
-Work is organised into epics under `docs/04-TASKS/`, each broken into tasks that move through `open → in-progress → done`. Architecture decisions are recorded in `docs/05-DECISIONS/` so the reasoning behind non-obvious choices isn't lost. The current phase and its milestones are defined in `docs/03-PLANNING/`.
+The spec is the source of truth within each iteration — no code diverges from it — but the spec itself is a living document expected to evolve through usage. The tree-walk interpreter is the feedback mechanism: fast enough to iterate on, disposable enough not to over-invest in.
 
 ## Quick Start
 
@@ -117,37 +115,7 @@ Yoloscript/
 │   │   └── parsing/        # Parser tests
 │   └── Cargo.toml
 │
-└── docs/
-    ├── 00-PROCESS/         # How to work on this project
-    ├── 01-SPEC/            # Language specification (source of truth)
-    ├── 02-ARCHITECTURE/    # System overview and component guides
-    ├── 03-PLANNING/        # Phase definitions and milestones
-    ├── 04-TASKS/           # Epic-based task tracking
-    └── 05-DECISIONS/       # Architecture decision records (ADRs)
+└── backlog/           # Docs, tasks, milestones, and decisions (Backlog MCP)
 ```
-
-## Current Status
-
-This is Phase 01: Proof-of-Concept. The goal is to validate the language specification through a working interpreter — correctness over production quality.
-
-| Milestone | Status |
-|-----------|--------|
-| M1: All 10 test programs parse | Done |
-| M2: All 10 test programs type-check | In progress |
-| M3: All 10 test programs execute correctly | Not started |
-| M4: All spec sections interpreter-validated | Not started |
-
-See [PHASE-01-POC.md](./docs/03-PLANNING/PHASE-01-POC.md) for the full plan.
-
-## Documentation
-
-| Folder | Purpose | Start here |
-|--------|---------|------------|
-| [00-PROCESS/](./docs/00-PROCESS/) | Development workflow and conventions | [PROCESS.md](./docs/00-PROCESS/PROCESS.md) |
-| [01-SPEC/](./docs/01-SPEC/) | Language specification | [LANGUAGE-SPEC.md](./docs/01-SPEC/LANGUAGE-SPEC.md) |
-| [02-ARCHITECTURE/](./docs/02-ARCHITECTURE/) | System overview and component guides | [OVERVIEW.md](./docs/02-ARCHITECTURE/OVERVIEW.md) |
-| [03-PLANNING/](./docs/03-PLANNING/) | Phase definitions and milestones | [PHASE-01-POC.md](./docs/03-PLANNING/PHASE-01-POC.md) |
-| [04-TASKS/](./docs/04-TASKS/) | Epics and task tracking | [epic-005-typechecker-integration/](./docs/04-TASKS/epic-005-typechecker-integration/) |
-| [05-DECISIONS/](./docs/05-DECISIONS/) | Architecture decision records | [README.md](./docs/05-DECISIONS/README.md) |
 
 ## License
