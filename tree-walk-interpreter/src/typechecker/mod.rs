@@ -1670,7 +1670,11 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
                     })
                     .collect::<Result<_, _>>()?;
 
-                Type::Named(enum_name.clone(), concrete_args)
+                // Route through infer_type_to_type so "Perhaps"/"Result" become
+                // Type::Perhaps/Type::Result rather than Type::Named — infer_type_to_type
+                // is the single normalisation point for this conversion.
+                let infer_args: Vec<InferType> = concrete_args.iter().map(type_to_infer).collect();
+                infer_type_to_type(&InferType::Named(enum_name.clone(), infer_args), span)?
             } else {
                 // Single-segment path: plain struct literal with no type parameters.
                 let type_name = path.last().unwrap();
