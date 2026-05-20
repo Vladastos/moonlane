@@ -1263,17 +1263,21 @@ fn construct_fun_decl(fun: &FunDecl, ctx: &mut ConstructCtx) -> Result<TypedDecl
 
     let body = if scheme.quantified_vars.is_empty() {
         // Monomorphic: every expression has a concrete type — construct a typed body.
-        let param_types = match ctx.subst.apply(&scheme.ty) {
-            InferType::Fun(params, _) => params.iter()
-                .map(|p| infer_type_to_type(p, &fun.span))
-                .collect::<Result<Vec<_>, _>>()?,
+        let (param_types, ret_ty) = match ctx.subst.apply(&scheme.ty) {
+            InferType::Fun(params, ret) => {
+                let pts = params.iter()
+                    .map(|p| infer_type_to_type(p, &fun.span))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let rt = infer_type_to_type(&ret, &fun.span).ok();
+                (pts, rt)
+            }
             _ => return Err(YoloscriptError::internal(format!("expected Fun type for `{}`", fun.name))),
         };
         ctx.push_scope();
         for (param, ty) in fun.params.iter().zip(param_types.iter()) {
             ctx.bind(&param.name, ty.clone());
         }
-        let typed_block = construct_block(&fun.body, ctx)?;
+        let typed_block = construct_block(&fun.body, ret_ty.as_ref(), ctx)?;
         ctx.pop_scope();
         FunBody::Typed(typed_block)
     } else {
@@ -1328,7 +1332,7 @@ fn construct_impl_method(method: &FunDecl, target_name: &str, ctx: &mut Construc
     for (p, ty) in method.params.iter().zip(param_types.iter()) {
         ctx.bind(&p.name, ty.clone());
     }
-    let typed_block = construct_block(&method.body, ctx)?;
+    let typed_block = construct_block(&method.body, None, ctx)?;
     ctx.pop_scope();
     Ok(TypedFunDecl {
         name:        method.name.clone(),
@@ -1340,14 +1344,14 @@ fn construct_impl_method(method: &FunDecl, target_name: &str, ctx: &mut Construc
     })
 }
 
-fn construct_block(block: &Block, ctx: &mut ConstructCtx) -> Result<TypedBlock, YoloscriptError> {
+fn construct_block(block: &Block, expected_tail_ty: Option<&Type>, ctx: &mut ConstructCtx) -> Result<TypedBlock, YoloscriptError> {
     ctx.push_scope();
     let mut stmts = vec![];
     for stmt in &block.stmts {
         stmts.push(construct_decl(stmt, ctx)?);
     }
     let tail = match &block.tail {
-        Some(e) => Some(Box::new(construct_expr(e, None, ctx)?)),
+        Some(e) => Some(Box::new(construct_expr(e, expected_tail_ty, ctx)?)),
         None    => None,
     };
     ctx.pop_scope();
@@ -1374,7 +1378,7 @@ fn construct_stmt(stmt: &Stmt, ctx: &mut ConstructCtx) -> Result<TypedStmt, Yolo
         Stmt::Continue(span) => Ok(TypedStmt::Continue(span.clone())),
         Stmt::While(ws) => {
             let condition = construct_expr(&ws.condition, None, ctx)?;
-            let body = construct_block(&ws.body, ctx)?;
+            let body = construct_block(&ws.body, None, ctx)?;
             Ok(TypedStmt::While(TypedWhileStmt { condition, body, span: ws.span.clone() }))
         }
         Stmt::For(fs) => {
@@ -1403,7 +1407,7 @@ fn construct_stmt(stmt: &Stmt, ctx: &mut ConstructCtx) -> Result<TypedStmt, Yolo
                 Some(s) => Some(construct_expr(s, None, ctx)?),
                 None    => None,
             };
-            let body = construct_block(&fs.body, ctx)?;
+            let body = construct_block(&fs.body, None, ctx)?;
             ctx.pop_scope();
             Ok(TypedStmt::For(TypedForStmt { init, condition, step, body, span: fs.span.clone() }))
         }
@@ -1416,7 +1420,7 @@ fn construct_stmt(stmt: &Stmt, ctx: &mut ConstructCtx) -> Result<TypedStmt, Yolo
             };
             ctx.push_scope();
             ctx.bind(&fi.binding, elem_ty);
-            let body = construct_block(&fi.body, ctx)?;
+            let body = construct_block(&fi.body, None, ctx)?;
             ctx.pop_scope();
             Ok(TypedStmt::ForIn(TypedForInStmt {
                 binding: fi.binding.clone(), iterable, body, span: fi.span.clone(),
@@ -1486,10 +1490,10 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
         }
         Expr::If { condition, then_branch, else_branch, span } => {
             let condition = construct_expr(condition, None, ctx)?;
-            let then_branch = construct_block(then_branch, ctx)?;
+            let then_branch = construct_block(then_branch, expected_ty, ctx)?;
             let (else_branch, ty) = match else_branch {
                 Some(eb) => {
-                    let typed_else = construct_block(eb, ctx)?;
+                    let typed_else = construct_block(eb, expected_ty, ctx)?;
                     let ty = then_branch.tail.as_ref()
                         .map(|e| e.ty().clone())
                         .unwrap_or(Type::Unit);
@@ -1570,14 +1574,104 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
             })
         }
         Expr::StructLiteral { path, fields, span } => {
-            let type_name = if path.len() == 2 { &path[0] } else { path.last().unwrap() };
             let typed_fields: Vec<(String, TypedExpr)> = fields.iter()
                 .map(|(name, expr)| Ok((name.clone(), construct_expr(expr, None, ctx)?)))
                 .collect::<Result<_, _>>()?;
+
+            let ty = if path.len() == 2 {
+                // Enum variant: resolve concrete type arguments using the same
+                // instantiate-then-unify pattern as instantiate_scheme_for_call.
+                let enum_name    = &path[0];
+                let variant_name = &path[1];
+                let enum_info = ctx.enum_env.get(enum_name)
+                    .ok_or_else(|| YoloscriptError::type_error(
+                        ErrorCode::E0003,
+                        format!("unknown enum `{enum_name}`"),
+                        span,
+                    ))?;
+                let variant = enum_info.variants.iter()
+                    .find(|v| v.name == *variant_name)
+                    .ok_or_else(|| YoloscriptError::type_error(
+                        ErrorCode::E0003,
+                        format!("no variant `{variant_name}` on enum `{enum_name}`"),
+                        span,
+                    ))?;
+
+                // Assign a fresh type variable to each formal type parameter and
+                // build an instantiation substitution for this particular usage site.
+                let mut init_subst = Substitution::new();
+                let fresh_vars: Vec<InferType> = enum_info.type_params.iter()
+                    .map(|&tp| {
+                        let fresh = InferType::Var(ctx.gen.fresh());
+                        init_subst.bind(tp, fresh.clone());
+                        fresh
+                    })
+                    .collect();
+
+                // Unify each instantiated field type against the actual expression type
+                // to solve for the fresh variables.
+                let mut local_subst = Substitution::new();
+                for (field_name, typed_expr) in &typed_fields {
+                    if let Some((_, field_decl_ty)) = variant.fields.iter()
+                        .find(|(n, _)| n == field_name)
+                    {
+                        let instantiated = init_subst.apply(field_decl_ty);
+                        let actual = type_to_infer(typed_expr.ty());
+                        if let Ok(s) = unify(&local_subst.apply(&instantiated), &local_subst.apply(&actual)) {
+                            local_subst = local_subst.compose(&s);
+                        }
+                    }
+                }
+
+                // Apply the local substitution to recover concrete type arguments.
+                // If a type param remains unresolved (fieldless variants like
+                // `Perhaps::Nope`), fall back to the annotation's args.
+                // type_to_infer normalises Perhaps/Result into Named for uniform handling.
+                let hint_args: Vec<Type> = expected_ty
+                    .map(|ty| {
+                        if let InferType::Named(n, args) = type_to_infer(ty) {
+                            if n == *enum_name {
+                                args.iter()
+                                    .map(|a| infer_type_to_type(a, span))
+                                    .collect::<Result<Vec<_>, _>>()
+                                    .unwrap_or_default()
+                            } else {
+                                vec![]
+                            }
+                        } else {
+                            vec![]
+                        }
+                    })
+                    .unwrap_or_default();
+                let concrete_args: Vec<Type> = fresh_vars.iter()
+                    .enumerate()
+                    .map(|(i, fv)| {
+                        let resolved = local_subst.apply(fv);
+                        if matches!(resolved, InferType::Var(_)) {
+                            // Unresolved — use hint from annotation if available
+                            hint_args.get(i).cloned()
+                                .ok_or_else(|| YoloscriptError::type_error(
+                                    ErrorCode::E0002,
+                                    "cannot infer type; add a type annotation",
+                                    span,
+                                ))
+                        } else {
+                            infer_type_to_type(&resolved, span)
+                        }
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                Type::Named(enum_name.clone(), concrete_args)
+            } else {
+                // Single-segment path: plain struct literal with no type parameters.
+                let type_name = path.last().unwrap();
+                Type::Named(type_name.clone(), vec![])
+            };
+
             Ok(TypedExpr::StructLiteral {
                 path:   path.clone(),
                 fields: typed_fields,
-                ty:     Type::Named(type_name.clone(), vec![]),
+                ty,
                 span:   span.clone(),
             })
         }
@@ -1616,7 +1710,7 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
             for (p, ty) in params.iter().zip(param_types.iter()) {
                 ctx.bind(&p.name, ty.clone());
             }
-            let typed_body = construct_block(body, ctx)?;
+            let typed_body = construct_block(body, None, ctx)?;
             ctx.pop_scope();
             let ty = Type::Fun(param_types, Box::new(ret_ty));
             Ok(TypedExpr::Closure { params: params.clone(), return_type: return_type.clone(), body: typed_body, ty, span: span.clone() })
@@ -1648,7 +1742,7 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
             Ok(TypedExpr::TupleAccess { object: Box::new(typed_obj), index: *index, ty, span: span.clone() })
         }
         Expr::Loop { body, span } => {
-            let typed_body = construct_block(body, ctx)?;
+            let typed_body = construct_block(body, None, ctx)?;
             let ty = find_loop_break_type(&typed_body).unwrap_or(Type::Never);
             Ok(TypedExpr::Loop { body: typed_body, ty, span: span.clone() })
         }

@@ -353,6 +353,11 @@ mod tests {
     }
 
     #[test]
+    fn stage6_enum_literal_types() {
+        check_file(&format!("{}/stage6_10_enum_literal_types.yolo", test_dir()));
+    }
+
+    #[test]
     fn stage6_neg_for_in_non_iterable() {
         check_file(&format!("{}/stage6_neg_01_for_in_non_iterable.yolo", test_dir()));
     }
