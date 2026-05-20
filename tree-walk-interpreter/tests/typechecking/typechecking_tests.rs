@@ -348,6 +348,11 @@ mod tests {
     // ── Stage 6 negative tests ────────────────────────────────────────────────
 
     #[test]
+    fn stage6_nested_loop_break() {
+        check_file(&format!("{}/stage6_09_nested_loop_break.yolo", test_dir()));
+    }
+
+    #[test]
     fn stage6_neg_for_in_non_iterable() {
         check_file(&format!("{}/stage6_neg_01_for_in_non_iterable.yolo", test_dir()));
     }

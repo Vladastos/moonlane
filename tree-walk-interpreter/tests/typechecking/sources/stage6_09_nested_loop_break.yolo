@@ -1,0 +1,18 @@
+// Stage 6: break nested inside if branches is visible to find_loop_break_type.
+
+// break inside if-then branch only
+let _a: Int = loop {
+    if (true) { break 42; }
+};
+
+// break in both then and else branches
+let _b: Int = loop {
+    if (true) { break 42; } else { break 0; }
+};
+
+// inner loop break does not escape to outer loop; outer diverges (Never)
+fun diverge_outer() -> Int {
+    loop {
+        let _: String = loop { break "inner"; };
+    }
+}

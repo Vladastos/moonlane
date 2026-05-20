@@ -1657,12 +1657,38 @@ fn construct_expr(expr: &Expr, expected_ty: Option<&Type>, ctx: &mut ConstructCt
 }
 
 fn find_loop_break_type(block: &TypedBlock) -> Option<Type> {
-    for stmt in &block.stmts {
-        if let TypedDecl::Stmt(TypedStmt::Break(bs)) = stmt {
-            return bs.value.as_ref().map(|v| v.ty().clone());
-        }
+    block.stmts.iter().find_map(find_break_in_decl)
+}
+
+fn find_break_in_decl(decl: &TypedDecl) -> Option<Type> {
+    match decl {
+        TypedDecl::Stmt(stmt) => find_break_in_stmt(stmt),
+        _ => None,
     }
-    None
+}
+
+fn find_break_in_stmt(stmt: &TypedStmt) -> Option<Type> {
+    match stmt {
+        TypedStmt::Break(bs) => bs.value.as_ref().map(|v| v.ty().clone()),
+        TypedStmt::Expr(expr) => find_break_in_expr(expr),
+        // break inside a nested while/for/for-in exits that loop, not the outer loop
+        TypedStmt::While(_) | TypedStmt::For(_) | TypedStmt::ForIn(_) => None,
+        TypedStmt::Return(_) | TypedStmt::Continue(_) => None,
+    }
+}
+
+fn find_break_in_expr(expr: &TypedExpr) -> Option<Type> {
+    match expr {
+        TypedExpr::If { then_branch, else_branch, .. } => {
+            find_loop_break_type(then_branch)
+                .or_else(|| else_branch.as_ref().and_then(|b| find_loop_break_type(b)))
+        }
+        // break inside a nested loop exits the inner loop, not the outer
+        TypedExpr::Loop { .. } => None,
+        // break inside a closure doesn't escape to the enclosing loop
+        TypedExpr::Closure { .. } => None,
+        _ => None,
+    }
 }
 
 fn construct_match(m: &MatchExpr, ctx: &mut ConstructCtx) -> Result<TypedExpr, YoloscriptError> {
