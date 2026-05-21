@@ -184,6 +184,15 @@ mod tests {
     #[test]
     fn propagate_error() { check("34_propagate_error.yolo"); }
 
+    #[test]
+    fn loop_if_break() { check("35_loop_if_break.yolo"); }
+
+    #[test]
+    fn call_edge() { check("36_call_edge.yolo"); }
+
+    #[test]
+    fn closure_edge() { check("37_closure_edge.yolo"); }
+
     // ── Negative tests ────────────────────────────────────────────────────────
 
     #[test]
