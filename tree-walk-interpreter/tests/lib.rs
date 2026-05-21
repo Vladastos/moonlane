@@ -15,3 +15,6 @@ mod evaluator_tests;
 
 #[path = "evaluator/evaluator_tests_3.rs"]
 mod evaluator_tests_3;
+
+#[path = "evaluator/evaluator_tests_edge.rs"]
+mod evaluator_tests_edge;
