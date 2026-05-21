@@ -1,0 +1,18 @@
+fun main() {
+    // True branch.
+    let x = if (true) { 1 } else { 2 };
+    let _ok1 = match (x == 1) { true => 0, };
+    // False branch.
+    let y = if (false) { 1 } else { 2 };
+    let _ok2 = match (y == 2) { true => 0, };
+    // No-else in statement position — evaluates without error.
+    if (false) { };
+    // Nested if.
+    let z = 5;
+    let result = if (z > 0) {
+        if (z > 10) { 2 } else { 1 }
+    } else {
+        0
+    };
+    let _ok3 = match (result == 1) { true => 0, };
+}

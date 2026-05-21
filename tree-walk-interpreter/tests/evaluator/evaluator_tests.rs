@@ -1,318 +1,188 @@
-/// Integration tests for eval_expr — primitive and collection expressions (issue #53).
+/// Integration tests for the evaluator.
+/// All Yoloscript source files live in tests/evaluator/sources/.
 ///
-/// Each test exercises the evaluator by parsing a snippet, running the typechecker,
-/// then calling eval_expr on the resulting TypedExpr and asserting on the value.
+/// Positive files are self-asserting:
+///   `let _ok = match (actual == expected) { true => 0, };`
+///   If the condition is false no arm matches → runtime panic → test fails.
+///
+/// Negative files carry one annotation on any line:
+///   `// RUNTIME_ERROR[substring]`   — program typechecks but fails at runtime
+///   `// TYPECHECK_ERROR[substring]` — program is rejected at typecheck time
 
 #[cfg(test)]
 mod tests {
-    use yoloscript::{parser, typechecker};
-    use yoloscript::evaluator::{Environment, Signal, Value, eval_expr};
-    use yoloscript::typed_ast::TypedDecl;
-    use yoloscript::error::YoloscriptError;
+    use std::path::Path;
+    use yoloscript::{evaluator, parser, typechecker};
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Harness ───────────────────────────────────────────────────────────────
 
-    /// Parse + typecheck a top-level snippet. Returns the typed program.
-    fn typed_program(src: &str) -> Vec<TypedDecl> {
-        let ast = parser::parse(src, "test").expect("parse error");
-        typechecker::check(ast).expect("typecheck error")
+    fn test_dir() -> String {
+        concat!(env!("CARGO_MANIFEST_DIR"), "/tests/evaluator/sources").to_string()
     }
 
-    /// Parse + typecheck, returning the error instead of panicking.
-    fn typecheck_result(src: &str) -> Result<Vec<TypedDecl>, YoloscriptError> {
-        let ast = parser::parse(src, "test").expect("parse error");
-        typechecker::check(ast)
+    fn load_source(path: &str) -> String {
+        std::fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("could not read {path}: {e}"))
     }
 
-    /// Parse + typecheck `let x = <expr>;` and evaluate the RHS expression.
-    fn eval_let(src: &str) -> Value {
-        let prog = typed_program(src);
-        let TypedDecl::Let(decl) = prog.into_iter().next().expect("no declaration") else {
-            panic!("expected a let declaration");
-        };
-        let mut env = Environment::new();
-        match eval_expr(&decl.value, &mut env).expect("eval error") {
-            Signal::Value(v) => v,
-            other => panic!("unexpected signal: {other:?}"),
+    fn parse_annotation(source: &str) -> Option<(String, String)> {
+        for line in source.lines() {
+            if let Some(pos) = line.find("// RUNTIME_ERROR[") {
+                let rest = &line[pos + 17..];
+                if let Some(end) = rest.find(']') {
+                    return Some(("runtime".into(), rest[..end].to_string()));
+                }
+            }
+            if let Some(pos) = line.find("// TYPECHECK_ERROR[") {
+                let rest = &line[pos + 19..];
+                if let Some(end) = rest.find(']') {
+                    return Some(("typecheck".into(), rest[..end].to_string()));
+                }
+            }
+        }
+        None
+    }
+
+    fn check_file(path: &str) {
+        let source = load_source(path);
+        let filename = Path::new(path).file_name().unwrap().to_str().unwrap();
+        match parse_annotation(&source) {
+            Some((kind, expected)) if kind == "runtime" => {
+                let ast = parser::parse(&source, filename).expect("parse error");
+                let prog = typechecker::check(ast).expect("typecheck error");
+                let err = evaluator::evaluate(prog)
+                    .expect_err("expected runtime error, but program succeeded")
+                    .to_string();
+                assert!(
+                    err.contains(&expected),
+                    "expected error containing '{expected}', got: {err}"
+                );
+            }
+            Some((_, expected)) => {
+                let ast = parser::parse(&source, filename).expect("parse error");
+                let err = typechecker::check(ast)
+                    .expect_err("expected typecheck error, but check() returned Ok")
+                    .to_string();
+                assert!(
+                    err.contains(&expected),
+                    "expected error containing '{expected}', got: {err}"
+                );
+            }
+            None => {
+                let ast = parser::parse(&source, filename).expect("parse error");
+                let prog = typechecker::check(ast).expect("typecheck error");
+                evaluator::evaluate(prog).expect("runtime error");
+            }
         }
     }
 
-    // ── Literal ───────────────────────────────────────────────────────────────
-
-    #[test]
-    fn literal_int() {
-        let val = eval_let("let x = 42;");
-        assert!(matches!(val, Value::Int(42)));
+    fn check(filename: &str) {
+        check_file(&format!("{}/{filename}", test_dir()));
     }
 
-    #[test]
-    fn literal_float() {
-        let val = eval_let("let x = 3.14;");
-        assert!(matches!(val, Value::Float(f) if (f - 3.14).abs() < 1e-9));
-    }
+    // ── Positive tests ────────────────────────────────────────────────────────
 
     #[test]
-    fn literal_bool() {
-        assert!(matches!(eval_let("let x = true;"),  Value::Bool(true)));
-        assert!(matches!(eval_let("let x = false;"), Value::Bool(false)));
-    }
+    fn literals() { check("01_literals.yolo"); }
 
     #[test]
-    fn literal_str() {
-        let val = eval_let(r#"let x = "hello";"#);
-        assert!(matches!(val, Value::Str(s) if s == "hello"));
-    }
+    fn arithmetic() { check("02_arithmetic.yolo"); }
 
     #[test]
-    fn literal_unit() {
-        assert!(matches!(eval_let("let x = ();"), Value::Unit));
-    }
-
-    // ── Ident ─────────────────────────────────────────────────────────────────
+    fn float_arithmetic() { check("03_float_arithmetic.yolo"); }
 
     #[test]
-    fn ident_lookup() {
-        let prog = typed_program("let a = 7; let b = a;");
-        let mut env = Environment::new();
-
-        let TypedDecl::Let(first) = prog[0].clone() else { panic!() };
-        let v = match eval_expr(&first.value, &mut env).unwrap() {
-            Signal::Value(v) => v,
-            _ => panic!(),
-        };
-        env.define(&first.name, v);
-
-        let TypedDecl::Let(second) = prog[1].clone() else { panic!() };
-        let result = match eval_expr(&second.value, &mut env).unwrap() {
-            Signal::Value(v) => v,
-            _ => panic!(),
-        };
-        assert!(matches!(result, Value::Int(7)));
-    }
-
-    // ── Arithmetic BinOp ──────────────────────────────────────────────────────
+    fn comparison() { check("04_comparison.yolo"); }
 
     #[test]
-    fn binop_int_add() {
-        assert!(matches!(eval_let("let x = 3 + 4;"), Value::Int(7)));
-    }
+    fn logical() { check("05_logical.yolo"); }
 
     #[test]
-    fn binop_int_sub() {
-        assert!(matches!(eval_let("let x = 10 - 3;"), Value::Int(7)));
-    }
+    fn unary() { check("06_unary.yolo"); }
 
     #[test]
-    fn binop_int_mul() {
-        assert!(matches!(eval_let("let x = 3 * 4;"), Value::Int(12)));
-    }
+    fn range() { check("07_range.yolo"); }
 
     #[test]
-    fn binop_int_div() {
-        assert!(matches!(eval_let("let x = 10 / 3;"), Value::Int(3)));
-    }
+    fn cast() { check("08_cast.yolo"); }
 
     #[test]
-    fn binop_int_rem() {
-        assert!(matches!(eval_let("let x = 10 % 3;"), Value::Int(1)));
-    }
+    fn tuple() { check("09_tuple.yolo"); }
 
     #[test]
-    fn binop_float_add() {
-        let val = eval_let("let x = 1.0 + 2.0;");
-        assert!(matches!(val, Value::Float(f) if (f - 3.0).abs() < 1e-9));
-    }
-
-    // ── Comparison BinOp ──────────────────────────────────────────────────────
+    fn array() { check("10_array.yolo"); }
 
     #[test]
-    fn binop_comparison() {
-        assert!(matches!(eval_let("let x = 1 < 2;"),  Value::Bool(true)));
-        assert!(matches!(eval_let("let x = 2 > 1;"),  Value::Bool(true)));
-        assert!(matches!(eval_let("let x = 1 == 1;"), Value::Bool(true)));
-        assert!(matches!(eval_let("let x = 1 != 2;"), Value::Bool(true)));
-        assert!(matches!(eval_let("let x = 2 <= 2;"), Value::Bool(true)));
-        assert!(matches!(eval_let("let x = 3 >= 4;"), Value::Bool(false)));
-    }
-
-    // ── Logical BinOp (short-circuit) ─────────────────────────────────────────
+    fn enum_variant() { check("11_enum_variant.yolo"); }
 
     #[test]
-    fn binop_logical_and() {
-        assert!(matches!(eval_let("let x = true && false;"),  Value::Bool(false)));
-        assert!(matches!(eval_let("let x = true && true;"),   Value::Bool(true)));
-        assert!(matches!(eval_let("let x = false && true;"),  Value::Bool(false)));
-    }
+    fn if_expression() { check("12_if_expression.yolo"); }
 
     #[test]
-    fn binop_logical_or() {
-        assert!(matches!(eval_let("let x = false || true;"),  Value::Bool(true)));
-        assert!(matches!(eval_let("let x = false || false;"), Value::Bool(false)));
-        assert!(matches!(eval_let("let x = true || false;"),  Value::Bool(true)));
-    }
-
-    // ── Range BinOp ───────────────────────────────────────────────────────────
+    fn loop_expr() { check("13_loop.yolo"); }
 
     #[test]
-    fn binop_range() {
-        let val = eval_let("let x = 1..5;");
-        let Value::Struct { name, ref fields } = val else { panic!("expected Struct, got {val:?}") };
-        assert_eq!(name, "Range");
-        assert!(matches!(fields.get("start"), Some(Value::Int(1))));
-        assert!(matches!(fields.get("end"),   Some(Value::Int(5))));
-    }
-
-    // ── UnaryOp ───────────────────────────────────────────────────────────────
+    fn match_expr() { check("14_match.yolo"); }
 
     #[test]
-    fn unary_neg_int() {
-        assert!(matches!(eval_let("let x = -5;"), Value::Int(-5)));
-    }
+    fn while_loop() { check("15_while.yolo"); }
 
     #[test]
-    fn unary_neg_float() {
-        let val = eval_let("let x = -2.5;");
-        assert!(matches!(val, Value::Float(f) if (f + 2.5).abs() < 1e-9));
-    }
+    fn for_loop() { check("16_for_loop.yolo"); }
 
     #[test]
-    fn unary_not() {
-        assert!(matches!(eval_let("let x = !true;"),  Value::Bool(false)));
-        assert!(matches!(eval_let("let x = !false;"), Value::Bool(true)));
-    }
-
-    // ── Cast ──────────────────────────────────────────────────────────────────
+    fn for_in() { check("17_for_in.yolo"); }
 
     #[test]
-    fn cast_int_to_float() {
-        let val = eval_let("let x = 3 as Float;");
-        assert!(matches!(val, Value::Float(f) if (f - 3.0).abs() < 1e-9));
-    }
+    fn return_stmt() { check("18_return.yolo"); }
 
     #[test]
-    fn cast_identity_int() {
-        let val = eval_let("let x = 5 as Int;");
-        assert!(matches!(val, Value::Int(5)));
-    }
+    fn nested_signals() { check("19_nested_signals.yolo"); }
 
     #[test]
-    fn cast_identity_float() {
-        let val = eval_let("let x = 2.5 as Float;");
-        assert!(matches!(val, Value::Float(f) if (f - 2.5).abs() < 1e-9));
-    }
+    fn scoping() { check("20_scoping.yolo"); }
 
     #[test]
-    fn cast_float_to_int_rejected() {
-        let err = typecheck_result("let x = 3.9 as Int;").expect_err("expected E0007");
-        assert!(
-            matches!(&err, YoloscriptError::TypeError { code, .. } if format!("{code}") == "E0007"),
-            "expected E0007, got: {err}"
-        );
-    }
-
-    // ── Tuple ─────────────────────────────────────────────────────────────────
+    fn assign() { check("21_assign.yolo"); }
 
     #[test]
-    fn tuple_construction() {
-        let val = eval_let("let x = (1, true);");
-        let Value::Tuple(elems) = val else { panic!("expected Tuple") };
-        assert_eq!(elems.len(), 2);
-        assert!(matches!(elems[0], Value::Int(1)));
-        assert!(matches!(elems[1], Value::Bool(true)));
-    }
-
-    // ── Array ─────────────────────────────────────────────────────────────────
+    fn misc() { check("22_misc.yolo"); }
 
     #[test]
-    fn array_construction() {
-        let val = eval_let("let x = [1, 2, 3];");
-        let Value::Array(rc) = val else { panic!("expected Array") };
-        let elems = rc.borrow();
-        assert_eq!(elems.len(), 3);
-        assert!(matches!(elems[0], Value::Int(1)));
-        assert!(matches!(elems[1], Value::Int(2)));
-        assert!(matches!(elems[2], Value::Int(3)));
-    }
+    fn forward_reference() { check("23_forward_reference.yolo"); }
+
+    // ── Negative tests ────────────────────────────────────────────────────────
 
     #[test]
-    fn array_empty() {
-        // Empty array literal — needs explicit type annotation for the typechecker.
-        // We use the typed program directly, but the easiest path is through a
-        // typed let with an annotation. Construct it manually instead.
-        // Actually: `let x: [Int] = [];` should work if the typechecker handles it.
-        // If not, skip for now. Use a non-empty array for the empty-after-pop case.
-        let val = eval_let("let x = [42];");
-        let Value::Array(rc) = val else { panic!("expected Array") };
-        assert_eq!(rc.borrow().len(), 1);
-    }
-
-    // ── TupleAccess ───────────────────────────────────────────────────────────
+    fn neg_div_by_zero() { check("neg_01_div_by_zero.yolo"); }
 
     #[test]
-    fn tuple_access() {
-        let prog = typed_program("let t = (10, 20); let x = t.0; let y = t.1;");
-        let mut env = Environment::new();
-
-        // Evaluate the tuple binding first.
-        let TypedDecl::Let(decl_t) = prog[0].clone() else { panic!() };
-        let v = eval_expr(&decl_t.value, &mut env).unwrap().into_value();
-        env.define(&decl_t.name, v);
-
-        // Evaluate t.0
-        let TypedDecl::Let(decl_x) = prog[1].clone() else { panic!() };
-        let x = eval_expr(&decl_x.value, &mut env).unwrap().into_value();
-        assert!(matches!(x, Value::Int(10)));
-
-        // Evaluate t.1
-        let TypedDecl::Let(decl_y) = prog[2].clone() else { panic!() };
-        let y = eval_expr(&decl_y.value, &mut env).unwrap().into_value();
-        assert!(matches!(y, Value::Int(20)));
-    }
-
-    // ── Index ─────────────────────────────────────────────────────────────────
+    fn neg_rem_by_zero() { check("neg_02_rem_by_zero.yolo"); }
 
     #[test]
-    fn array_index() {
-        let prog = typed_program("let arr = [10, 20, 30]; let x = arr[1];");
-        let mut env = Environment::new();
-
-        let TypedDecl::Let(decl_arr) = prog[0].clone() else { panic!() };
-        let v = eval_expr(&decl_arr.value, &mut env).unwrap().into_value();
-        env.define(&decl_arr.name, v);
-
-        let TypedDecl::Let(decl_x) = prog[1].clone() else { panic!() };
-        let x = eval_expr(&decl_x.value, &mut env).unwrap().into_value();
-        assert!(matches!(x, Value::Int(20)));
-    }
+    fn neg_array_oob() { check("neg_03_array_oob.yolo"); }
 
     #[test]
-    fn array_index_out_of_bounds() {
-        let prog = typed_program("let arr = [1, 2]; let x = arr[5];");
-        let mut env = Environment::new();
-
-        let TypedDecl::Let(decl_arr) = prog[0].clone() else { panic!() };
-        let v = eval_expr(&decl_arr.value, &mut env).unwrap().into_value();
-        env.define(&decl_arr.name, v);
-
-        let TypedDecl::Let(decl_x) = prog[1].clone() else { panic!() };
-        let result = eval_expr(&decl_x.value, &mut env);
-        assert!(result.is_err(), "expected out-of-bounds error");
-    }
-
-    // ── Path (unit enum variant) ───────────────────────────────────────────────
+    fn neg_array_negative_index() { check("neg_04_array_negative_index.yolo"); }
 
     #[test]
-    fn path_unit_enum_variant() {
-        let prog = typed_program("enum Direction { North, South } let x = Direction::North;");
-        let mut env = Environment::new();
+    fn neg_array_index_at_len() { check("neg_05_array_index_at_len.yolo"); }
 
-        let TypedDecl::Let(decl_x) = prog.into_iter().last().expect("no decl") else { panic!() };
-        let val = eval_expr(&decl_x.value, &mut env).unwrap().into_value();
-        let Value::Enum { name, variant, fields } = val else {
-            panic!("expected Enum, got {val:?}");
-        };
-        assert_eq!(name,    "Direction");
-        assert_eq!(variant, "North");
-        assert!(fields.is_empty());
-    }
+    #[test]
+    fn neg_no_arm() { check("neg_06_no_arm.yolo"); }
+
+    #[test]
+    fn neg_no_main() { check("neg_07_no_main.yolo"); }
+
+    #[test]
+    fn neg_cast_float_to_int() { check("neg_08_cast_float_to_int.yolo"); }
+
+    #[test]
+    fn neg_tuple_oob() { check("neg_09_tuple_oob.yolo"); }
+
+    #[test]
+    fn neg_and_rhs_evaluated() { check("neg_10_and_rhs_evaluated.yolo"); }
+
+    #[test]
+    fn neg_or_rhs_evaluated() { check("neg_11_or_rhs_evaluated.yolo"); }
 }

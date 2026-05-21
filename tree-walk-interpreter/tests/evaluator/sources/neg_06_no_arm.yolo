@@ -1,0 +1,6 @@
+// RUNTIME_ERROR[no arm matched]
+enum Coin { Heads, Tails }
+fun main() {
+    let c = Coin::Tails;
+    let _x = match c { Coin::Heads => 1, };
+}
