@@ -10,11 +10,14 @@ Yoloscript is a statically-typed, expression-oriented language. This repository 
 
 | Location | Purpose |
 |---|---|
-| `backlog/docs/doc-2` | **Language Specification** — single source of truth for the language. If it's not here, it doesn't exist yet. |
-| `backlog/docs/doc-3` | **Spec Backlog** — open design questions and deferred features |
-| `backlog/docs/doc-4` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `backlog/docs/doc-5,6,7` | **Type Inference docs** — concepts, implementation guide, roadmap |
-| `backlog/decisions/` | **Decision records** — why a non-obvious choice was made |
+| `docs/public/spec.md` | **Language Specification** — entry point; links to all spec sections. If it's not here, it doesn't exist yet. |
+| `docs/public/spec/` | **Spec sections** — lexical, types, declarations, functions, expressions, runtime, grammar |
+| `docs/public/changelog.md` | **Changelog** — per-version feature list |
+| `docs/internal/rfcs/` | **RFCs** — language change proposals; see versioning model for lifecycle |
+| `docs/internal/decisions/` | **Decision records** — why a non-obvious choice was made |
+| `docs/internal/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `docs/internal/type-inference/` | **Type Inference docs** — concepts, implementation guide, roadmap |
+| `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
 | GitHub Projects v2 | **Task board** — canonical status view (https://github.com/users/Vladastos/projects/1) |
 | GitHub Issues | **Tasks** — unit of work; use `gh issue list` for CLI access |
 | GitHub Milestones | **Version milestones** (`v0.2`, `v0.3`, …) and **Epic milestones** (implementation groupings) |
@@ -129,7 +132,7 @@ Task state changes happen on GitHub Issues, not in the repo. **The main repo onl
 | Situation | Type | Example |
 |---|---|---|
 | Code change for a task | `feat` / `fix` / `refactor` / `test` | `feat(#42): add generic type inference` |
-| Spec or doc edit | `docs` | `docs(#42): clarify let-polymorphism in §4.2` |
+| Spec or doc edit | `docs` | `docs(#42): clarify let-polymorphism in spec/declarations.md` |
 | Decision record | `docs` | `docs: add decision — unify type var generation` |
 
 ### Closing commits require a body
@@ -186,7 +189,7 @@ Accepted decisions are never modified. To reverse one, create a new decision rec
 
 - The spec is the source of truth. Implementation follows the spec; the spec does not follow the implementation.
 - The spec does not contain rationale, history, or open questions. Those belong in decision records and the spec backlog respectively.
-- When a backlog item is resolved: remove it from `doc-3` (Spec Backlog) and write it into `doc-2` (Language Spec).
+- When an RFC is accepted and implemented, mark it `incorporated` in `docs/internal/rfcs/` and write the feature into the appropriate `docs/public/spec/` file.
 - Do not skip validation levels: interpreter validates before compiler implements.
 
 ---

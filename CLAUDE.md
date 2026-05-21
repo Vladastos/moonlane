@@ -115,12 +115,13 @@ Spec documents, decision records, and RFCs live in `docs/`. Read them directly �
 
 | Path | Purpose |
 |---|---|
-| `docs/public/spec.md` | **Language Specification** — single source of truth |
-| `docs/internal/spec-backlog.md` | **Spec Backlog** — open design questions and deferred features |
-| `docs/public/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `docs/internal/type-inference/` | **Type Inference** — concepts, implementation guide, roadmap |
-| `docs/internal/decisions/` | **Decision records** — why a non-obvious choice was made |
+| `docs/public/spec.md` | **Language Specification** — entry point; links to all spec sections |
+| `docs/public/spec/` | **Spec sections** — lexical, types, declarations, functions, expressions, runtime, grammar |
+| `docs/public/changelog.md` | **Changelog** — per-version feature list |
 | `docs/internal/rfcs/` | **RFCs** — language change proposals |
+| `docs/internal/decisions/` | **Decision records** — why a non-obvious choice was made |
+| `docs/internal/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `docs/internal/type-inference/` | **Type Inference** — concepts, implementation guide, roadmap |
 | `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
 
 ## Development Principles
