@@ -29,7 +29,13 @@ wsl gh issue edit <N> --repo Vladastos/Yoloscript \
   --add-label "status:backlog"
 ```
 
-4. **Create the sprint review issue:**
+4. **Ensure all tests pass on the sprint branch:**
+```bash
+cd tree-walk-interpreter && cargo test
+```
+If any tests fail, do not proceed — fix them first.
+
+5. **Create the sprint review issue:**
 ```bash
 wsl gh issue create \
   --repo Vladastos/Yoloscript \
@@ -54,14 +60,32 @@ $(for each open issue: - [ ] #N Title)
 <!-- Issues or ideas for the next sprint -->"
 ```
 
-5. **Close the kickoff issue** for this sprint:
+6. **Open a pull request** from `sprint/<N>` → `main`:
 ```bash
-wsl gh issue close <kickoff-issue-number> --repo Vladastos/Yoloscript
+gh pr create \
+  --repo Vladastos/Yoloscript \
+  --base main \
+  --head sprint/<N> \
+  --title "Sprint <N> — <theme>" \
+  --body "$(cat <<'EOF'
+Sprint review: #<review-issue-number>
+
+Closes #<kickoff-issue-number>
+EOF
+)"
+```
+The PR body must link the sprint review issue. The PR diff is the authoritative record of all sprint changes.
+
+7. **Close the kickoff issue** for this sprint:
+```bash
+gh issue close <kickoff-issue-number> --repo Vladastos/Yoloscript
 ```
 
-6. **Report** the review issue URL and a one-line summary of completed vs carried-over.
+8. **Report** the PR URL, the review issue URL, and a one-line summary of completed vs carried-over.
 
 ## Notes
 - The review issue stays open for the user to fill in Epic Progress and Spec Notes.
 - A sprint with 0 completed issues should still produce a review issue — record why.
 - If spec ambiguities surfaced during the sprint, prompt the user to open a `/new-rfc`.
+- The sprint branch is deleted after the PR is merged — not before.
+- Remind the user: merge the PR on GitHub, then delete the `sprint/<N>` branch.

@@ -21,6 +21,54 @@ Yoloscript is a statically-typed, expression-oriented scripting language. This r
 
 ---
 
+## Sprint Workflow
+
+Sprints are the unit of shipping. All sprint work must live on a dedicated branch and be merged into `main` via a pull request before the sprint is closed. The PR diff is the canonical sprint deliverable — it replaces any need to reconstruct what changed from individual commits.
+
+### Starting a sprint
+
+1. **Create the sprint branch** from the current `main`:
+   ```bash
+   git checkout main && git pull
+   git checkout -b sprint/N        # e.g. sprint/3
+   git push -u origin sprint/N
+   ```
+   Branch naming convention: `sprint/<N>` where `N` is the sprint number (matches the kickoff issue number's sprint label).
+
+2. **Create the kickoff issue** (title: `Sprint N Kickoff — <theme>`) listing all planned tracks and issues. Leave it open until the sprint closes.
+
+3. **All subsequent work on this sprint goes on `sprint/N`**. This includes code commits, doc commits, and submodule pointer updates.
+
+### During a sprint
+
+- Every commit must be on `sprint/N`. Do not commit sprint work directly to `main`.
+- Individual issue work follows the normal task workflow (see below).
+- The sprint branch is pushed to origin after each logical unit of work (issue closed, fix applied, etc.).
+
+### Closing a sprint
+
+1. **Ensure all planned issues are closed** and all tests pass on the branch.
+2. **Create the sprint review issue** (title: `Sprint N Review — <theme>`) summarising what was delivered, any debt carried forward, and architectural notes. Link it to the kickoff issue.
+3. **Open a PR** from `sprint/N` → `main`:
+   ```bash
+   gh pr create \
+     --base main \
+     --head sprint/N \
+     --title "Sprint N — <theme>" \
+     --body "Sprint review: #<review-issue-number>\n\nCloses #<kickoff-issue-number>"
+   ```
+   The PR description must link the sprint review issue. The PR diff is the authoritative record of all changes made during the sprint.
+4. **Merge the PR** (squash or merge commit — no force-push). Close the kickoff issue if not auto-closed.
+5. **Delete the sprint branch** after merge.
+
+### Why this process
+
+- The PR diff makes sprint reviews straightforward: reviewers see exactly what changed, in what files, without reconstructing it from individual commits.
+- `main` always reflects a completed, reviewed sprint — never mid-sprint state.
+- Rollback of a sprint is a single revert if needed.
+
+---
+
 ## Task Workflow
 
 ### Before starting a task (open → in-progress)
@@ -73,9 +121,9 @@ Every commit related to a task **must reference the issue number**:
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`. Commits unrelated to any issue omit the reference: `docs: fix typo in README`.
 
-### One commit stream — main repo only
+### One commit stream — sprint branch only
 
-Task state changes happen on GitHub Issues, not in the repo. **The main repo only gets a commit when actual code or docs are written.**
+Task state changes happen on GitHub Issues, not in the repo. **The main repo only gets a commit when actual code or docs are written.** During an active sprint, all commits go on the sprint branch (`sprint/N`). Nothing is committed directly to `main` while a sprint is in progress.
 
 ### Commit reference table
 

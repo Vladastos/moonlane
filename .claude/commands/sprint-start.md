@@ -1,6 +1,6 @@
 # /sprint-start
 
-Open a new sprint: create the kickoff issue, assign issues to the sprint iteration, and mark them in-progress.
+Open a new sprint: create the sprint branch, the kickoff issue, assign issues to the sprint, and mark them in-progress.
 
 **Arguments:** `$ARGUMENTS` — sprint number and goal, e.g. `3 "Implement expression evaluation"`
 
@@ -10,19 +10,30 @@ Open a new sprint: create the kickoff issue, assign issues to the sprint iterati
 
 2. **Show the current backlog** for the active epic so the user can decide what goes into the sprint:
 ```bash
-wsl gh issue list --repo Vladastos/Yoloscript --label "status:backlog" --json number,title,labels,milestone
+gh issue list --repo Vladastos/Yoloscript --label "status:backlog" --json number,title,labels,milestone
 ```
 
 3. **Ask the user** which issue numbers to include in this sprint before proceeding.
 
-4. **Create the sprint kickoff issue:**
+4. **Create and push the sprint branch:**
 ```bash
-wsl gh issue create \
+git checkout main && git pull
+git checkout -b sprint/<N>
+git push -u origin sprint/<N>
+```
+All sprint work must be committed to `sprint/<N>`. Nothing goes directly to `main` during the sprint.
+
+5. **Create the sprint kickoff issue:**
+```bash
+gh issue create \
   --repo Vladastos/Yoloscript \
   --title "Sprint <N> Kickoff: <goal>" \
   --label "sprint:kickoff" \
   --body "## Sprint Goal
 <goal>
+
+## Branch
+\`sprint/<N>\`
 
 ## Epic Context
 <!-- Which milestone does this sprint contribute to? -->
@@ -31,24 +42,25 @@ wsl gh issue create \
 $(for each selected issue: - [ ] #N)
 
 ## Definition of Done
-<!-- What does sprint complete look like? -->"
+- All planned issues closed
+- All tests pass on sprint/<N>
+- PR opened against main with sprint review linked"
 ```
 
-5. **Mark each planned issue as in-progress:**
+6. **Mark each planned issue as in-progress:**
 ```bash
-wsl gh issue edit <N> --repo Vladastos/Yoloscript \
+gh issue edit <N> --repo Vladastos/Yoloscript \
   --remove-label "status:backlog" \
   --add-label "status:in-progress"
 ```
 
-6. **Assign issues to the Sprint iteration** in GitHub Projects v2 using the GraphQL API. For each issue:
-   - Get the project item ID for the issue
-   - Set the Sprint field to the current iteration
+7. **Update the project board** Status field to "In Progress" for each planned issue via GraphQL.
 
-7. **Report** the kickoff issue URL and the list of issues now in the sprint.
+8. **Report** the kickoff issue URL, the sprint branch name, and the list of issues now in the sprint.
 
 ## Notes
 - Sprint numbers are sequential integers (Sprint 1, Sprint 2, …).
 - The sprint goal should be one sentence.
 - Only issues with `status:backlog` should be moved into a sprint.
 - Check CLAUDE.md for the active epic before suggesting which issues to include.
+- Remind the user: all commits must go on `sprint/<N>`, not on `main`.
