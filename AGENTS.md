@@ -14,10 +14,11 @@ Yoloscript is a statically-typed, expression-oriented language. This repository 
 | `docs/public/spec/` | **Spec sections** — lexical, types, declarations, functions, expressions, runtime, grammar |
 | `docs/public/changelog.md` | **Changelog** — per-version feature list |
 | `docs/internal/rfcs/` | **RFCs** — language change proposals; see versioning model for lifecycle |
-| `docs/internal/decisions/` | **Decision records** — why a non-obvious choice was made |
-| `docs/internal/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `docs/internal/type-inference/` | **Type Inference docs** — concepts, implementation guide, roadmap |
 | `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
+| `tree-walk-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `tree-walk-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
+| `tree-walk-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
+| `tree-walk-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
 | GitHub Projects v2 | **Task board** — canonical status view (https://github.com/users/Vladastos/projects/1) |
 | GitHub Issues | **Tasks** — unit of work; use `gh issue list` for CLI access |
 | GitHub Milestones | **Version milestones** (`v0.2`, `v0.3`, …) and **Epic milestones** (implementation groupings) |
@@ -79,7 +80,7 @@ Sprints are the unit of shipping. All sprint work must live on a dedicated branc
 1. **Read the full issue** including all acceptance criteria: `gh issue view <number>`
 2. **Check the spec** — read every spec section the task touches. Identify anything ambiguous or missing.
    - If a spec gap exists: **STOP**. Fix the spec first (`docs/public/spec.md`). If the fix requires a non-obvious decision, write a decision record first.
-3. **Check existing decisions** — `grep` or `ls` in `docs/internal/decisions/` for any ADR that governs the area being changed. Read it before writing any code.
+3. **Check existing decisions** — `grep` or `ls` in `tree-walk-interpreter/docs/decisions/` for any ADR that governs the area being changed. Read it before writing any code.
 4. **Check dependencies** — verify every linked issue is closed and its implementation matches what this task expects.
 5. **If no clear path forward exists** — STOP. Ask for guidance before beginning implementation. Do not make a significant architectural decision unilaterally.
 6. **Mark in-progress**: `gh issue edit <number> --add-label "status:in-progress"` and set the project Status field to **In Progress**
@@ -168,7 +169,7 @@ When you stop, explain clearly: what you found, what the options are, and what y
 
 ## Decision Records
 
-Create a decision record (a new `.md` file in `docs/internal/decisions/`, following the naming and format of existing records) when:
+Create a decision record (a new `.md` file in `tree-walk-interpreter/docs/decisions/`, following the naming and format of existing records) when:
 
 - Multiple reasonable implementation options existed and the choice was non-trivial.
 - The rationale will matter when revisiting this area later.

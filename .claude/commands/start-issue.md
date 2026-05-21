@@ -31,11 +31,13 @@ wsl gh issue edit <N> --repo Vladastos/Yoloscript \
    - Fetch the project item ID for this issue
    - Set the Status field to the "In Progress" option
 
-6. **Read relevant source files** mentioned in the issue or inferable from its labels:
-   - `evaluator` → `tree-walk-interpreter/src/evaluator/`
-   - `typechecker` → `tree-walk-interpreter/src/typechecker/`
-   - `type-inference` → `tree-walk-interpreter/src/typeinference/`
+6. **Read relevant source and doc files** mentioned in the issue or inferable from its labels:
+   - `evaluator` → `tree-walk-interpreter/src/evaluator/` + `tree-walk-interpreter/docs/evaluator.md`
+   - `typechecker` → `tree-walk-interpreter/src/typechecker/` + `tree-walk-interpreter/docs/typechecker.md`
+   - `type-inference` → `tree-walk-interpreter/src/typeinference/` + `tree-walk-interpreter/docs/typechecker.md`
    - `generics` / `traits` → `tree-walk-interpreter/src/types/`
+   - `architecture` → `tree-walk-interpreter/docs/architecture.md`
+   - Any label → check `tree-walk-interpreter/docs/decisions/` for ADRs governing the area
 
 7. **Summarise** what needs to be done in 2–3 bullet points based on the acceptance criteria, so work can begin immediately.
 

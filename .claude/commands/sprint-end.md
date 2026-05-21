@@ -54,7 +54,7 @@ $(for each open issue: - [ ] #N Title)
 <!-- How does this sprint advance the milestone? -->
 
 ## Spec Notes
-<!-- Did any spec ambiguities surface? Link to RFC or doc-2 changes. -->
+<!-- Did any spec ambiguities surface? Link to any RFC or docs/public/spec/ changes. -->
 
 ## Next Sprint Seeds
 <!-- Issues or ideas for the next sprint -->"

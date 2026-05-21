@@ -119,10 +119,11 @@ Spec documents, decision records, and RFCs live in `docs/`. Read them directly �
 | `docs/public/spec/` | **Spec sections** — lexical, types, declarations, functions, expressions, runtime, grammar |
 | `docs/public/changelog.md` | **Changelog** — per-version feature list |
 | `docs/internal/rfcs/` | **RFCs** — language change proposals |
-| `docs/internal/decisions/` | **Decision records** — why a non-obvious choice was made |
-| `docs/internal/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `docs/internal/type-inference/` | **Type Inference** — concepts, implementation guide, roadmap |
 | `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
+| `tree-walk-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `tree-walk-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
+| `tree-walk-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
+| `tree-walk-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
 
 ## Development Principles
 

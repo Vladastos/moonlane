@@ -20,7 +20,8 @@ Create a new RFC document and register it as a GitHub issue.
 id: rfc-NNNN
 title: "<title>"
 date: '<YYYY-MM-DD>'
-status: open
+status: draft
+target:
 ---
 
 ## Summary
@@ -79,4 +80,6 @@ cd .. && git add docs && git commit -m "docs: update docs submodule with RFC-NNN
 ## Notes
 - Do not start the RFC body — leave sections blank for the user to fill in.
 - The GitHub issue title must match the RFC id and title exactly.
-- Remind the user: the RFC must be accepted and `docs/public/spec.md` updated before implementation begins.
+- The `target:` field is left blank until the RFC is accepted and assigned to a version.
+- Remind the user: the RFC must be accepted (status → `accepted`, `target:` set) and the relevant `docs/public/spec/` file updated before implementation begins.
+- When an RFC is incorporated into a release, mark it `incorporated` and commit the spec change in the docs submodule.
