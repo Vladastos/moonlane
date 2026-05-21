@@ -172,6 +172,18 @@ mod tests {
     #[test]
     fn assign_field() { check("30_assign_field.yolo"); }
 
+    #[test]
+    fn call() { check("31_call.yolo"); }
+
+    #[test]
+    fn recursive() { check("32_recursive.yolo"); }
+
+    #[test]
+    fn closure() { check("33_closure.yolo"); }
+
+    #[test]
+    fn propagate_error() { check("34_propagate_error.yolo"); }
+
     // ── Negative tests ────────────────────────────────────────────────────────
 
     #[test]

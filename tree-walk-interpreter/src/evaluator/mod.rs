@@ -22,9 +22,6 @@ pub enum Value {
     Array(Rc<RefCell<Vec<Value>>>),
     Struct { name: String, fields: HashMap<String, Value> },
     Enum { name: String, variant: String, fields: HashMap<String, Value> },
-    /// A named function definition hoisted into the environment.
-    /// Actual call dispatch is implemented in #4; the entry point uses this directly for main().
-    Function { name: String, params: Vec<Param>, body: FunBody },
     Closure(Rc<ClosureValue>),
     Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, YoloscriptError>),
     Perhaps(Option<Box<Value>>),
@@ -33,8 +30,10 @@ pub enum Value {
 
 #[derive(Debug, Clone)]
 pub struct ClosureValue {
-    pub params: Vec<String>,
-    // body and captured env — filled in when closures are implemented
+    pub name:     Option<String>,
+    pub params:   Vec<Param>,
+    pub body:     TypedBlock,
+    pub captured: Environment,
 }
 
 // ── Control flow signals ──────────────────────────────────────────────────────
@@ -128,28 +127,56 @@ pub fn evaluate(program: TypedProgram) -> Result<(), YoloscriptError> {
     let mut env = Environment::new();
     register_builtins(&mut env);
 
-    // Pass 1: hoist function declarations and impl block methods so forward
-    // references work regardless of declaration order.
+    // Pass 1a: define placeholder entries for all top-level functions and methods
+    // so that closures created in 1b can capture references to them via shared Rcs.
+    for decl in &program {
+        match decl {
+            TypedDecl::Fun(f) => { env.define(&f.name, Value::Unit); }
+            TypedDecl::Impl(impl_block) => {
+                if let crate::ast::TypeExpr::Named(type_name, _) = &impl_block.target_type {
+                    for method in &impl_block.methods {
+                        env.define(&format!("{}::{}", type_name, method.name), Value::Unit);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Pass 1b: create closures that capture the now-complete name set.
+    // Using env.set() mutates existing Rc cells, so all already-captured envs
+    // (from earlier iterations) see the updates — this "ties the knot" for
+    // mutual recursion without a separate fixpoint pass.
     for decl in &program {
         match decl {
             TypedDecl::Fun(f) => {
-                env.define(&f.name, Value::Function {
-                    name:   f.name.clone(),
-                    params: f.params.clone(),
-                    body:   f.body.clone(),
-                });
+                let body = match &f.body {
+                    FunBody::Typed(b) => b.clone(),
+                    FunBody::Generic(_) => continue, // called in v0.1 → internal error at call site
+                };
+                let captured = env.clone();
+                env.set(&f.name, Value::Closure(Rc::new(ClosureValue {
+                    name:     Some(f.name.clone()),
+                    params:   f.params.clone(),
+                    body,
+                    captured,
+                })));
             }
             TypedDecl::Impl(impl_block) => {
-                // Register each method under "TypeName::method_name" so method
-                // dispatch in eval_expr can look them up without a separate table.
                 if let crate::ast::TypeExpr::Named(type_name, _) = &impl_block.target_type {
                     for method in &impl_block.methods {
+                        let body = match &method.body {
+                            FunBody::Typed(b) => b.clone(),
+                            FunBody::Generic(_) => continue,
+                        };
                         let key = format!("{}::{}", type_name, method.name);
-                        env.define(&key, Value::Function {
-                            name:   method.name.clone(),
-                            params: method.params.clone(),
-                            body:   method.body.clone(),
-                        });
+                        let captured = env.clone();
+                        env.set(&key, Value::Closure(Rc::new(ClosureValue {
+                            name:     Some(method.name.clone()),
+                            params:   method.params.clone(),
+                            body,
+                            captured,
+                        })));
                     }
                 }
             }
@@ -158,20 +185,19 @@ pub fn evaluate(program: TypedProgram) -> Result<(), YoloscriptError> {
     }
 
     // Pass 2: evaluate top-level let/mut bindings and statements in order.
-    // Fun and Impl are already handled in Pass 1.
     for decl in &program {
         if !matches!(decl, TypedDecl::Fun(_) | TypedDecl::Impl(_)) {
             eval_decl(decl, &mut env)?;
         }
     }
 
-    // Call main() directly — it takes no arguments, so we execute its body without
-    // the full call-dispatch machinery that will come in #4.
+    // Call main() by executing its body directly in the full env so that any
+    // top-level let/mut bindings from Pass 2 are visible.
     let dummy = Span { start: 0, end: 0, filename: "<program>".to_string() };
     let main_body = match env.get("main") {
-        Some(Value::Function { body: FunBody::Typed(b), .. }) => b,
-        Some(Value::Function { body: FunBody::Generic(_), .. }) =>
-            return Err(YoloscriptError::panic("main() must not be generic", &dummy)),
+        Some(Value::Closure(rc)) => rc.body.clone(),
+        Some(Value::Unit) =>
+            return Err(YoloscriptError::panic("main() is generic — not supported in v0.1", &dummy)),
         Some(_) =>
             return Err(YoloscriptError::panic("`main` is not a function", &dummy)),
         None =>
@@ -214,21 +240,35 @@ pub fn eval_block(block: &TypedBlock, env: &mut Environment) -> Result<Signal, Y
 fn eval_decl(decl: &TypedDecl, env: &mut Environment) -> Result<Signal, YoloscriptError> {
     match decl {
         TypedDecl::Let(d) => {
-            let val = eval_expr(&d.value, env)?.into_value();
-            env.define(&d.name, val);
-            Ok(Signal::Value(Value::Unit))
+            match eval_expr(&d.value, env)? {
+                Signal::Value(val) => { env.define(&d.name, val); Ok(Signal::Value(Value::Unit)) }
+                other => Ok(other),
+            }
         }
         TypedDecl::Mut(d) => {
-            let val = eval_expr(&d.value, env)?.into_value();
-            env.define(&d.name, val);
-            Ok(Signal::Value(Value::Unit))
+            match eval_expr(&d.value, env)? {
+                Signal::Value(val) => { env.define(&d.name, val); Ok(Signal::Value(Value::Unit)) }
+                other => Ok(other),
+            }
         }
         TypedDecl::Fun(f) => {
-            env.define(&f.name, Value::Function {
-                name:   f.name.clone(),
-                params: f.params.clone(),
-                body:   f.body.clone(),
-            });
+            let body = match &f.body {
+                FunBody::Typed(b) => b.clone(),
+                FunBody::Generic(_) => return Err(YoloscriptError::internal(
+                    "generic functions are not supported in v0.1",
+                )),
+            };
+            // Define a placeholder first so the closure can see itself via shared Rc
+            // (enables self-recursion for functions defined inside other functions).
+            env.define(&f.name, Value::Unit);
+            let captured = env.clone();
+            let closure = Value::Closure(Rc::new(ClosureValue {
+                name:     Some(f.name.clone()),
+                params:   f.params.clone(),
+                body,
+                captured,
+            }));
+            env.set(&f.name, closure);
             Ok(Signal::Value(Value::Unit))
         }
         TypedDecl::Stmt(s) => eval_stmt(s, env),
@@ -728,31 +768,57 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Yolo
             let func = env.get(&key).ok_or_else(|| {
                 YoloscriptError::panic(format!("no method `{method}` on `{type_name}`"), span)
             })?;
-            let (params, body) = match func {
-                Value::Function { params, body: FunBody::Typed(b), .. } => (params, b),
-                _ => return Err(YoloscriptError::panic(
-                    format!("method `{method}` is not a typed function"), span,
-                )),
-            };
-            // PoC inline dispatch: bind self + args, eval body, pop scope.
-            // Full call machinery (stack frames, recursion, closures) comes in #4.
-            env.push_scope();
-            if let Some(self_param) = params.first() {
-                env.define(&self_param.name, recv_val);
-            }
-            for (param, val) in params.iter().skip(1).zip(arg_vals.iter()) {
-                env.define(&param.name, val.clone());
-            }
-            let result = eval_block(&body, env);
-            env.pop_scope();
-            result
+            // Prepend receiver as first argument (the `self` param).
+            let mut all_args = vec![recv_val];
+            all_args.extend(arg_vals);
+            call_function(func, all_args, span)
         }
 
-        // Variants for #4 (Call/Closure) and error propagation.
-        other => Err(YoloscriptError::panic(
-            format!("eval_expr: unimplemented variant"),
-            other.span(),
-        )),
+        TypedExpr::Call { callee, args, span, .. } => {
+            let func_val = eval_expr(callee, env)?.into_value();
+            let arg_vals: Vec<Value> = args.iter()
+                .map(|a| eval_expr(a, env).map(Signal::into_value))
+                .collect::<Result<_, _>>()?;
+            call_function(func_val, arg_vals, span)
+        }
+
+        TypedExpr::Closure { params, body, .. } => {
+            let captured = env.clone();
+            Ok(Signal::Value(Value::Closure(Rc::new(ClosureValue {
+                name:     None,
+                params:   params.clone(),
+                body:     body.clone(),
+                captured,
+            }))))
+        }
+
+        TypedExpr::PropagateError { expr, span, .. } => {
+            let val = eval_expr(expr, env)?.into_value();
+            match val {
+                Value::YoloResult(Ok(v))  => Ok(Signal::Value(*v)),
+                Value::YoloResult(Err(e)) => Ok(Signal::PropagateErr(*e)),
+                Value::Enum { ref name, ref variant, ref fields } if name == "Result" => {
+                    match variant.as_str() {
+                        "Ok" => {
+                            let v = fields.get("value").cloned().ok_or_else(|| {
+                                YoloscriptError::panic("Result::Ok: missing `value` field", span)
+                            })?;
+                            Ok(Signal::Value(v))
+                        }
+                        "Err" => {
+                            let e = fields.get("error").cloned().ok_or_else(|| {
+                                YoloscriptError::panic("Result::Err: missing `error` field", span)
+                            })?;
+                            Ok(Signal::PropagateErr(e))
+                        }
+                        v => Err(YoloscriptError::panic(
+                            format!("?: unknown Result variant `{v}`"), span,
+                        )),
+                    }
+                }
+                _ => Err(YoloscriptError::panic("?: expected a Result value", span)),
+            }
+        }
     }
 }
 
@@ -806,6 +872,43 @@ fn match_pattern(pattern: &Pattern, value: &Value, out: &mut HashMap<String, Val
                 _ => false,
             }
         }
+    }
+}
+
+// ── Function call dispatch ────────────────────────────────────────────────────
+
+/// Dispatch a function call to a `Value::Builtin` or `Value::Closure`.
+/// Converts `Signal::Return` and `Signal::PropagateErr` at the function boundary.
+fn call_function(func: Value, args: Vec<Value>, span: &Span) -> Result<Signal, YoloscriptError> {
+    match func {
+        Value::Builtin(_, f) => Ok(Signal::Value(f(args, span)?)),
+
+        Value::Closure(rc) => {
+            let closure = (*rc).clone();
+            let mut call_env = closure.captured.clone();
+            call_env.push_scope();
+            for (param, val) in closure.params.iter().zip(args.iter()) {
+                call_env.define(&param.name, val.clone());
+            }
+            let sig = eval_block(&closure.body, &mut call_env)?;
+            Ok(match sig {
+                Signal::Return(v) => Signal::Value(v),
+                Signal::PropagateErr(e) => Signal::Value(Value::Enum {
+                    name:    "Result".to_string(),
+                    variant: "Err".to_string(),
+                    fields:  { let mut m = HashMap::new(); m.insert("error".to_string(), e); m },
+                }),
+                other => other,
+            })
+        }
+
+        Value::Unit =>
+            Err(YoloscriptError::panic("call: target is a generic function (not supported in v0.1)", span)),
+
+        other => Err(YoloscriptError::panic(
+            format!("call: expected a closure or builtin, got {:?}", std::mem::discriminant(&other)),
+            span,
+        )),
     }
 }
 
