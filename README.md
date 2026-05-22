@@ -4,17 +4,11 @@ A Rust-inspired programming language with a tree-walk interpreter written in Rus
 
 ## Why?
 
-Looking for a side project, a colleague suggested writing an interpreter. "Nice one, very funny" was my first response — until I found out he was completely serious and pointed me to the Crafting Interpreters book.
+A sudden gust of inspiration — sometimes a project just takes flight on its own momentum. This one started with a suggestion: write an interpreter. The first iteration was chaotic momentum (hence the predecessor's name). The second iteration aims for clarity and structure, guided by better design up front.
 
-I started following the book (using Rust) but soon decided I wanted to design my own language. Designing a language proved to be a non-trivial task — what type system? expression-oriented or statement-oriented? garbage collected or not? Rather than overthink it, I took the only reasonable approach: just go for it.
+Gust draws heavily from Rust's approach: strong static typing, algebraic data types, explicit error handling — but designed to be learnable without the borrow checker's complexity. The goal is a language that feels safe and expressive without requiring deep knowledge of ownership mechanics.
 
-Hence the name: **Gust**.
-
-The first iteration proved you can only yolo so much before getting lost in the sauce. This second one tries to learn from that — structure and a clear path tend to get you further than raw momentum.
-
-The language ended up drawing heavily from Rust — strong static typing, algebraic data types, explicit error handling — but without the borrow checker complexity. The goal was something that felt safe and expressive without requiring a PhD to understand ownership.
-
-Whether that goal was achieved is left as an exercise to the reader.
+The implementation is intentionally simple: a tree-walk interpreter in Rust, paired with a living specification. They evolve together in a tight feedback loop, with real programs revealing gaps and design flaws before they ossify in a compiler.
 
 ## What?
 
@@ -118,4 +112,14 @@ Gust/
 └── backlog/           # Docs, tasks, milestones, and decisions (Backlog MCP)
 ```
 
+## Resources
+
+- **Language Specification:** [`docs/public/spec.md`](docs/public/spec.md)
+- **Typechecker Architecture:** [`tree-walk-interpreter/docs/typechecker.md`](tree-walk-interpreter/docs/typechecker.md)
+- **Evaluator Design:** [`tree-walk-interpreter/docs/evaluator.md`](tree-walk-interpreter/docs/evaluator.md)
+- **RFCs:** [`docs/internal/rfcs/`](docs/internal/rfcs/) — language change proposals and decisions
+- **Decision Records:** [`tree-walk-interpreter/docs/decisions/`](tree-walk-interpreter/docs/decisions/) — implementation rationales
+
 ## License
+
+Gust is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
