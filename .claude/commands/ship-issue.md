@@ -8,7 +8,7 @@ Complete an issue: verify acceptance criteria, commit with the correct format, a
 
 1. **Read the issue** to retrieve title, acceptance criteria, and milestone:
 ```bash
-wsl gh issue view <N> --repo Vladastos/Gust
+gh issue view <N> --repo gust-lang/gust
 ```
 
 2. **Verify acceptance criteria.** Go through each checkbox in the issue body and confirm it is met. If any criterion is unmet, stop and tell the user what remains.
@@ -34,7 +34,6 @@ type(#<N>): <short description>
 - <bullet: what was done>
 
 Closes #<N>
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 `type` is one of: `feat`, `fix`, `refactor`, `test`, `docs`.
 `Closes #<N>` in the body auto-closes the issue on push.
@@ -43,7 +42,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 7. **Verify the issue closes automatically on push**, or close it manually if not pushing immediately:
 ```bash
-wsl gh issue close <N> --repo Vladastos/Gust
+gh issue close <N> --repo gust-lang/gust
 ```
 
 8. **Update the GitHub Projects v2 board** status to "Done" via GraphQL.

@@ -64,8 +64,8 @@ target:
 5. **Create the GitHub tracking issue:**
 
 ```bash
-wsl gh issue create \
-  --repo Vladastos/Gust \
+gh issue create \
+  --repo gust-lang/gust \
   --title "RFC-NNNN: <title>" \
   --label "type:rfc,rfc:draft" \
   --body "Tracking issue for RFC-NNNN.\n\nDoc: \`docs/internal/rfcs/<slug>.md\`"
