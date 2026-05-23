@@ -650,8 +650,7 @@ fn construct_match(m: &MatchExpr, ctx: &mut ConstructCtx) -> Result<TypedExpr, G
             Some(g) => Some(construct_expr(g, None, ctx)?),
             None    => None,
         };
-        let body = construct_expr(&arm.body, None, ctx)?;
-        let arm_ty = body.ty().clone();
+        let body = construct_block(&arm.body, None, ctx)?;
         typed_arms.push(TypedMatchArm {
             pattern: arm.pattern.clone(),
             guard,
@@ -659,11 +658,10 @@ fn construct_match(m: &MatchExpr, ctx: &mut ConstructCtx) -> Result<TypedExpr, G
             span: arm.span.clone(),
         });
         ctx.pop_scope();
-        let _ = arm_ty;
     }
     check_match_exhaustiveness(&typed_arms, &scrutinee_ty, ctx.enum_env, &m.span)?;
     let expr_type = typed_arms.first()
-        .map(|a| a.body.ty().clone())
+        .map(|a| a.body.tail.as_ref().map(|e| e.ty().clone()).unwrap_or(Type::Unit))
         .unwrap_or(Type::Unit);
     Ok(TypedExpr::Match(TypedMatchExpr {
         scrutinee: Box::new(scrutinee),

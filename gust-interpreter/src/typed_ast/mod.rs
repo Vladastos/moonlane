@@ -323,6 +323,6 @@ pub struct TypedMatchExpr {
 pub struct TypedMatchArm {
     pub pattern: Pattern,  // Patterns don't contain expressions, reuse as-is
     pub guard: Option<TypedExpr>,
-    pub body: TypedExpr,
+    pub body: TypedBlock,
     pub span: Span,
 }

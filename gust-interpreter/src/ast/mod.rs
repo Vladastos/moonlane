@@ -291,7 +291,7 @@ pub struct MatchExpr {
 pub struct MatchArm {
     pub pattern: Pattern,
     pub guard:   Option<Expr>,
-    pub body:    Expr,
+    pub body:    Block,
     pub span:    Span,
 }
 

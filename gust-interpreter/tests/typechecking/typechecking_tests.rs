@@ -419,6 +419,11 @@ mod tests {
         check_file(&format!("{}/stage7_01_return_type_propagation.gust", test_dir()));
     }
 
+    #[test]
+    fn stage7_match_arm_blocks() {
+        check_file(&format!("{}/stage7_02_match_arm_blocks.gust", test_dir()));
+    }
+
     // ── Known-limitation tests ─────────────────────────────────────────────────
 
     #[test]

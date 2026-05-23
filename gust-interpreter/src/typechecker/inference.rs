@@ -579,7 +579,7 @@ fn infer_match(
             let g = infer_expr(guard, ctx, fun_generalizations)?;
             ctx.add_constraint(g, InferType::bool(), arm.span.clone());
         }
-        let arm_ty = infer_expr(&arm.body, ctx, fun_generalizations)?;
+        let arm_ty = infer_block(&arm.body, ctx, fun_generalizations)?;
         ctx.add_constraint(arm_ty, result_var.clone(), arm.span.clone());
         ctx.pop_scope();
     }

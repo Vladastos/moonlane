@@ -774,16 +774,25 @@ fn parse_match_arm(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<
         filename,
     )?;
 
-    // Remaining children: optionally a guard `expr`, then the body `expr`.
-    let mut exprs: Vec<pest::iterators::Pair<Rule>> = inner
-        .filter(|p| p.as_rule() == Rule::expr)
-        .collect();
+    // Remaining children: optionally a guard `expr`, then body `block | expr`.
+    let remaining: Vec<_> = inner.collect();
+    let (body_pair, guard_pairs) = remaining.split_last()
+        .ok_or_else(|| GustError::internal("match_arm: expected body"))?;
 
-    let body  = parse_expr(
-        exprs.pop().ok_or_else(|| GustError::internal("match_arm: expected body expression"))?,
-        filename,
-    )?;
-    let guard = exprs.into_iter().next().map(|p| parse_expr(p, filename)).transpose()?;
+    let guard = guard_pairs.iter()
+        .find(|p| p.as_rule() == Rule::expr)
+        .map(|p| parse_expr(p.clone(), filename))
+        .transpose()?;
+
+    let body = match body_pair.as_rule() {
+        Rule::block => parse_block(body_pair.clone(), filename)?,
+        Rule::expr  => {
+            let body_span = Span::of(body_pair, filename);
+            let expr = parse_expr(body_pair.clone(), filename)?;
+            Block { stmts: vec![], tail: Some(Box::new(expr)), span: body_span }
+        }
+        _ => return Err(GustError::internal("match_arm: unexpected body rule")),
+    };
 
     Ok(MatchArm { pattern, guard, body, span })
 }

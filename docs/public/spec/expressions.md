@@ -11,6 +11,15 @@ match value {
 }
 ```
 
+Each arm body can be a single expression **or** a block:
+
+```gust
+match value {
+    pattern => expression,
+    _       => { stmts* expression? },
+}
+```
+
 `match` is an expression — all arms must produce the same type:
 
 ```gust
@@ -18,6 +27,18 @@ let label = match x {
     0 => "zero",
     1 => "one",
     _ => "other",
+};
+```
+
+Arms with blocks follow the same rules as function bodies: the block's tail expression (if present) is the arm's value; a block with no tail produces `Unit`.
+
+```gust
+let desc: String = match shape {
+    Shape::Circle { radius } => {
+        let area = radius * radius;
+        int_to_string(area as Int)
+    },
+    Shape::Rectangle { width, height } => "rectangle",
 };
 ```
 

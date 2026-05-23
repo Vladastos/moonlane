@@ -622,7 +622,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 // Execute the arm body in a scope with pattern bindings.
                 env.push_scope();
                 for (k, v) in bindings { env.define(&k, v); }
-                let result = eval_expr(&arm.body, env);
+                let result = eval_block(&arm.body, env);
                 env.pop_scope();
                 return result;
             }
