@@ -19,7 +19,7 @@ The v0.2 trait system uses only static dispatch (generics + monomorphization). T
 - Functions that return an opaque type without generic parameters at the call site
 - Plugin-style APIs where the set of types is open
 
-The spec ([Static Dispatch Only](../spec/declarations.md#static-dispatch-only)) explicitly defers `dyn Trait` to a future version.
+The spec ([Static Dispatch Only](../../public/spec/declarations.md#static-dispatch-only)) explicitly defers `dyn Trait` to a future version.
 
 ---
 

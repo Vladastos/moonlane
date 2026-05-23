@@ -122,7 +122,7 @@ v0.2 feature work begins to avoid a breaking change later.
 
 ## References
 
-- Language spec: [`spec/functions.md`](../spec/functions.md), [`spec/types.md#resultt-e`](../spec/types.md#resultt-e), [`spec/runtime.md#panics`](../spec/runtime.md#panics)
+- Language spec: [`spec/functions.md`](../../public/spec/functions.md), [`spec/types.md#resultt-e`](../../public/spec/types.md#resultt-e), [`spec/runtime.md#panics`](../../public/spec/runtime.md#panics)
 - Spec backlog: `docs/internal/spec-backlog.md` — unwrap syntax entry
 - Rust RFC 1937: `fn main()` returning `Result` (`std::process::Termination`)
 

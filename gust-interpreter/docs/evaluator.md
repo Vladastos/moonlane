@@ -214,7 +214,7 @@ Replace the `FunBody::Generic` early-return in `eval_decl` with monomorphization
 
 ### v0.3 — Traits / `?` coercion
 
-`PropagateError` currently requires `Value::Enum { name: "Result", .. }`. Upgrading `?` to use `From<E>` coercion (spec [The ? Operator](../../../public/spec/functions.md#the--operator)) requires looking up a `From` impl at the call site and applying the conversion before wrapping.
+`PropagateError` currently requires `Value::Enum { name: "Result", .. }`. Upgrading `?` to use `From<E>` coercion (spec [The ? Operator](../../docs/public/spec/functions.md#the--operator)) requires looking up a `From` impl at the call site and applying the conversion before wrapping.
 
 ### Rewrite
 

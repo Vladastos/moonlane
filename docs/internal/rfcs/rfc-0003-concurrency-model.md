@@ -345,7 +345,7 @@ Do not implement concurrency primitives in the current PoC evaluator (v0.1). The
 2. The open questions (panic isolation, `Chan<T>` close semantics, directional channels) should be resolved through spec discussion before any implementation begins.
 3. The PoC's purpose is to validate the core language (expressions, control flow, functions, closures). Concurrency is a separate capability layer.
 
-**Minimum action from this RFC:** update the spec overview ([`spec.md`](../spec.md#overview)) to name concurrency as a first-class design principle and note that language-native fibers and channels are planned. This sets expectations and prevents spec-inconsistent implementation choices in the PoC.
+**Minimum action from this RFC:** update the spec overview ([`spec.md`](../../public/spec.md#overview)) to name concurrency as a first-class design principle and note that language-native fibers and channels are planned. This sets expectations and prevents spec-inconsistent implementation choices in the PoC.
 
 **Implementation target:** v0.4 (Concurrency), to be scoped after v0.1–v0.3 complete. Prior to that version, open a follow-up RFC for `Arc<T>` and `Sync` (depends on the pointer and trait implementations from v0.3–v0.4 to reason about concretely).
 
@@ -353,7 +353,7 @@ Do not implement concurrency primitives in the current PoC evaluator (v0.1). The
 
 ## References
 
-- Language spec: [`spec.md`](../spec.md#overview) (overview and design principles)
+- Language spec: [`spec.md`](../../public/spec.md#overview) (overview and design principles)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` — `*T`/`*mut T` as non-`Send`; timing interaction
 - RFC-0002: `docs/internal/rfcs/rfc-0002-trait-bound-syntax.md` — `Send` as marker trait; fiber capture bounds
 - v0.1: #1–#4 (Evaluator — PoC must complete before concurrency implementation begins)

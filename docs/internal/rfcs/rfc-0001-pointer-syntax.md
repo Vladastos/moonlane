@@ -295,9 +295,9 @@ Complete the PoC evaluator. Resolve the RFC after the PoC ships. Grammar/AST/typ
 
 ## References
 
-- Language Spec: [`spec/types.md`](../spec/types.md) (type system), [`spec/declarations.md`](../spec/declarations.md) (variables, structs, enums)
-- ADR-0001: `docs/internal/decisions/adr-0001-typeregistry-structure-and-location.md` (TypeRegistry — will need Pointer handling for v0.3)
-- Evaluator impl-notes: `docs/internal/impl-notes/typechecker.md`
+- Language Spec: [`spec/types.md`](../../public/spec/types.md) (type system), [`spec/declarations.md`](../../public/spec/declarations.md) (variables, structs, enums)
+- ADR-0001: `gust-interpreter/docs/decisions/adr-0001-typeregistry-structure-and-location.md` (TypeRegistry — will need Pointer handling for v0.3)
+- Typechecker impl-notes: `gust-interpreter/docs/typechecker.md`
 - Related: #5 (Type Variables and Constraint System — generics RFC; pointer type params interact)
 
 ---

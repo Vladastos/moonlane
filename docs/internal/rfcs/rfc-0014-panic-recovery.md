@@ -13,7 +13,7 @@ Define whether and how Gust programs can recover from panics — the runtime err
 
 ## Motivation
 
-The spec ([Panics](../spec/runtime.md#panics)) defines panics as hard, unrecoverable, and uncatchable. This is a deliberate simplicity choice for v0.1. The question is whether this should remain true permanently, or whether a recovery mechanism is needed for production use cases (e.g. server processes that must not crash on a single bad request).
+The spec ([Panics](../../public/spec/runtime.md#panics)) defines panics as hard, unrecoverable, and uncatchable. This is a deliberate simplicity choice for v0.1. The question is whether this should remain true permanently, or whether a recovery mechanism is needed for production use cases (e.g. server processes that must not crash on a single bad request).
 
 ---
 

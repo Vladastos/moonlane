@@ -278,7 +278,7 @@ RFC-0003 (concurrency) is informative here but not blocking for the capture sema
 
 ## References
 
-- Language spec: [`spec/functions.md#closures`](../spec/functions.md#closures), [`spec/runtime.md#panics`](../spec/runtime.md#panics)
+- Language spec: [`spec/functions.md#closures`](../../public/spec/functions.md#closures), [`spec/runtime.md#panics`](../../public/spec/runtime.md#panics)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` — `*T`/`*mut T`, `Rc<RefCell<Value>>` evaluator backing, non-`Send` classification
 - RFC-0003: `docs/internal/rfcs/rfc-0003-concurrency-model.md` — `Send` marker, `spawn { }` capture constraints, `Arc<Mutex<T>>`
 - RFC-0002: `docs/internal/rfcs/rfc-0002-trait-bound-syntax.md` — trait bounds on `fun` types (open question 1 and 4)

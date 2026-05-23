@@ -123,8 +123,8 @@ Small, isolated fix with no design risk. No new language surface. Implement befo
 ## References
 
 - Language spec: `docs/public/spec/types.md` (§ `Perhaps<T>`, § `Result<T, E>`)
-- `tree-walk-interpreter/src/typechecker/construction.rs`
-- `tree-walk-interpreter/src/typechecker/inference.rs` — `InferContext::current_return_type` for reference
+- `gust-interpreter/src/typechecker/construction.rs`
+- `gust-interpreter/src/typechecker/inference.rs` — `InferContext::current_return_type` for reference
 
 ## Decision
 

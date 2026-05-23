@@ -13,7 +13,7 @@ Define the initial scope and organisation of the Gust standard library: which mo
 
 ## Motivation
 
-All v0.1 programs are single-file with no stdlib beyond the [built-in functions](../spec/runtime.md#built-in-functions). A standard library is needed for practical programs: numeric utilities, string manipulation, I/O, and higher-level collections.
+All v0.1 programs are single-file with no stdlib beyond the [built-in functions](../../public/spec/runtime.md#built-in-functions). A standard library is needed for practical programs: numeric utilities, string manipulation, I/O, and higher-level collections.
 
 ---
 

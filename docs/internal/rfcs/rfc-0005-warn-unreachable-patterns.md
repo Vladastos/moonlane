@@ -37,7 +37,7 @@ status: draft
 
 ## References
 
-- Language spec: [`spec/expressions.md#pattern-matching`](../spec/expressions.md#pattern-matching)
+- Language spec: [`spec/expressions.md#pattern-matching`](../../public/spec/expressions.md#pattern-matching)
 
 ---
 

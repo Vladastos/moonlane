@@ -104,7 +104,7 @@ Small, self-contained change. No design risk. Implement alongside other v0.2 gra
 ## References
 
 - Language spec: `docs/public/spec/expressions.md`
-- Grammar: `tree-walk-interpreter/src/grammar.pest`
+- Grammar: `gust-interpreter/src/grammar.pest`
 
 ## Decision
 
