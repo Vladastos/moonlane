@@ -403,8 +403,8 @@ Rationale:
 
 - Language spec: [`spec/declarations.md#traits`](../spec/declarations.md#traits), [`spec/types.md#generics`](../spec/types.md#generics)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` (`&` operator — tension with Option B)
-- Epic 003: #5–#10 (type variables, generics, monomorphization)
-- Epic 004: #11–#13 (traits and method dispatch)
+- v0.3: #5–#10 (type variables, generics, monomorphization)
+- v0.3: #11–#13 (traits and method dispatch)
 - AST: `src/ast/mod.rs` — `GenericParam`, `TraitDecl`, `TraitMethod`
 
 ---

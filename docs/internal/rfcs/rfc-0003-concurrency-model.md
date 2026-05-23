@@ -339,7 +339,7 @@ Named-process addressing enables supervision, restart, and distributed messaging
 
 ## Timing Recommendation
 
-Do not implement concurrency primitives in the current PoC evaluator (Epic 002). The reasons:
+Do not implement concurrency primitives in the current PoC evaluator (v0.1). The reasons:
 
 1. The PoC evaluator uses `Rc<RefCell<Value>>` — single-threaded. Fibers require `Arc<Mutex<Value>>`. Retrofitting the evaluator mid-epic is out of scope.
 2. The open questions (panic isolation, `Chan<T>` close semantics, directional channels) should be resolved through spec discussion before any implementation begins.
@@ -347,7 +347,7 @@ Do not implement concurrency primitives in the current PoC evaluator (Epic 002).
 
 **Minimum action from this RFC:** update the spec overview ([`spec.md`](../spec.md#overview)) to name concurrency as a first-class design principle and note that language-native fibers and channels are planned. This sets expectations and prevents spec-inconsistent implementation choices in the PoC.
 
-**Implementation target:** Epic 006 (Concurrency), to be scoped after Epics 002–005 complete. Prior to that epic, open a follow-up RFC for `Arc<T>` and `Sync` (depends on the pointer and trait implementations from Epics 003–005 to reason about concretely).
+**Implementation target:** v0.4 (Concurrency), to be scoped after v0.1–v0.3 complete. Prior to that version, open a follow-up RFC for `Arc<T>` and `Sync` (depends on the pointer and trait implementations from v0.3–v0.4 to reason about concretely).
 
 ---
 
@@ -356,7 +356,7 @@ Do not implement concurrency primitives in the current PoC evaluator (Epic 002).
 - Language spec: [`spec.md`](../spec.md#overview) (overview and design principles)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` — `*T`/`*mut T` as non-`Send`; timing interaction
 - RFC-0002: `docs/internal/rfcs/rfc-0002-trait-bound-syntax.md` — `Send` as marker trait; fiber capture bounds
-- Epic 002: #1–#4 (Evaluator — PoC must complete before concurrency implementation begins)
+- v0.1: #1–#4 (Evaluator — PoC must complete before concurrency implementation begins)
 - Go specification: https://go.dev/ref/spec#Go_statements, https://go.dev/ref/spec#Select_statements
 - Go memory model: https://go.dev/ref/mem
 

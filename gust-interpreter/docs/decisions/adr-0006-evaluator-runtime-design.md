@@ -168,4 +168,4 @@ On call: prepend `captured_env`, push a new frame for the call's arguments, eval
 - ADR: [ADR-0004 — Interpreter Architecture](adr-0004-interpreter-architecture.md) (tree-walking, monomorphisation)
 - Spec: [docs/public/spec.md](../../../docs/public/spec.md) (value semantics, closure behaviour)
 - RFCs: [RFC-0015](../../../docs/internal/rfcs/rfc-0015-unwrap-syntax.md) (`.yolo()` open question), [RFC-0013](../../../docs/internal/rfcs/rfc-0013-integer-overflow.md) (integer overflow)
-- Epic 002 — Evaluator: Tasks 21–24 (Value Representation, Expression Evaluation, Control Flow, Function Calls; complete)
+- v0.1 — Evaluator: Tasks 21–24 (Value Representation, Expression Evaluation, Control Flow, Function Calls; complete)

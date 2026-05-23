@@ -1,6 +1,6 @@
 # Evaluator Implementation Notes
 
-> Status: PoC complete (Epic 002, Sprint 2).  
+> Status: PoC complete (v0.1).  
 > This evaluator is intentionally the simplest correct implementation. It will be rewritten before production use. Do not over-engineer it; open new issues for correctness gaps instead of adding complexity here.
 
 ---
@@ -182,7 +182,7 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 
 - `Value::Builtin(_, f)` — calls the function pointer directly.
 - `Value::Closure(rc)` — clones the captured environment, pushes a parameter scope, evaluates the body, and converts `Signal::Return` to `Signal::Value` at the boundary. `Signal::PropagateErr` is also converted: it wraps the error value in `Value::Enum { name: "Result", variant: "Err", .. }` and returns `Signal::Value` of that — so the `?` error appears as a `Result::Err` value to the caller.
-- `Value::Unit` — panics with "generic function not supported in v0.1". Top-level generic functions have `FunBody::Generic` and are registered as `Value::Unit` (Pass 1a, never overwritten in 1b). This is the Epic 003 placeholder.
+- `Value::Unit` — panics with "generic function not supported in v0.1". Top-level generic functions have `FunBody::Generic` and are registered as `Value::Unit` (Pass 1a, never overwritten in 1b). This is the v0.3 (generics) placeholder.
 
 ---
 
@@ -198,7 +198,7 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 
 ### Generic functions — not callable
 
-Generic functions produce `Value::Unit` and calling them panics. This is intentional for Epic 003. No test calls a generic function at the value level.
+Generic functions produce `Value::Unit` and calling them panics. This is intentional until v0.3 (generics). No test calls a generic function at the value level.
 
 ### `Perhaps` and `YoloResult` variants unused
 
@@ -212,11 +212,11 @@ The PoC's `Rc<RefCell<Value>>` environment gives closures reference semantics fo
 
 ## Extension Points
 
-### Epic 003 — Generics
+### v0.3 — Generics
 
 Replace the `FunBody::Generic` early-return in `eval_decl` with monomorphization. At call time, specialize the untyped body against the concrete argument types (requires a mini type-check pass or a pre-monomorphized TypedAST).
 
-### Epic 004 — Traits / `?` coercion
+### v0.3 — Traits / `?` coercion
 
 `PropagateError` currently requires `Value::Enum { name: "Result", .. }`. Upgrading `?` to use `From<E>` coercion (spec [The ? Operator](../../../public/spec/functions.md#the--operator)) requires looking up a `From` impl at the call site and applying the conversion before wrapping.
 

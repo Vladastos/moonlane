@@ -154,5 +154,5 @@ Option C over Option A because it requires no `NodeId` fields on AST nodes — a
 
 ## References
 
-- Epic 005 — Typechecker Integration: implements this pass structure across Stages 1–4 (complete)
+- v0.1 — Typechecker Integration: implements this pass structure across Stages 1–4 (complete)
 - ADR: [ADR-0001 — TypeRegistry Structure and Location](adr-0001-typeregistry-structure-and-location.md) (inject philosophy; decision here is downstream of that one)

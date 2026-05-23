@@ -1,7 +1,7 @@
 # Typechecker Implementation Notes
 
-> Status: v0.1 complete (Epic 001, Sprint 2 fixes).  
-> Extension points for Epic 003 (generics) and Epic 004 (traits) are called out inline.
+> Status: v0.1 complete.  
+> Extension points for v0.3 (generics and traits) are called out inline.
 
 ---
 
@@ -202,7 +202,7 @@ When a call site resolves to a polymorphic callee (present in `scheme_env` but n
 
 ### Polymorphic Function Bodies
 
-Functions with quantified type variables in their scheme are stored as `FunBody::Generic(untyped_block)` rather than `FunBody::Typed(typed_block)`. This is a placeholder for Epic 003 monomorphization — not a working generic dispatch mechanism.
+Functions with quantified type variables in their scheme are stored as `FunBody::Generic(untyped_block)` rather than `FunBody::Typed(typed_block)`. This is a placeholder for v0.3 monomorphization — not a working generic dispatch mechanism.
 
 ### Exhaustive Match Checking
 
@@ -239,20 +239,20 @@ Three registries live inside `TypeRegistry` (owned by `InferContext`):
 
 ### `as` Cast — Widening Only (Provisional)
 
-`Int as Float` (widening) and identity casts are supported. Narrowing (`Float as Int`) and cross-type casts are rejected. Epic 004 (#12) replaces the fixed-case check with a `From<S>` trait lookup.
+`Int as Float` (widening) and identity casts are supported. Narrowing (`Float as Int`) and cross-type casts are rejected. v0.3 (#12) replaces the fixed-case check with a `From<S>` trait lookup.
 
 ---
 
 ## Extension Points
 
-### Epic 003 — Generics
+### v0.3 — Generics
 
 1. Change `struct_env` to carry type params (`StructInfo { type_params: Vec<TypeVar>, fields: … }`). Field lookup must instantiate type params with fresh vars (same pattern already used for `EnumInfo`).
 2. Remove the `!fun.generics.is_empty()` error guard in `infer_fun_decl` and `infer_impl_method`. Implement proper generic function inference.
 3. Replace `FunBody::Generic(untyped_block)` with monomorphization.
 4. `let_polymorphism` (#10) is partially in place via `generalize/instantiate` — main work is generic structs and the monomorphization engine (#9).
 
-### Epic 004 — Traits
+### v0.3 — Traits
 
 1. Add `impl_env: HashMap<(String, String), Vec<MethodInfo>>` (type × trait → methods) or extend `TypeRegistry` with trait-impl storage.
 2. Replace the provisional `as` cast with a `From<S>` trait check.

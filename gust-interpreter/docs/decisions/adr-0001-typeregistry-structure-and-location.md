@@ -19,11 +19,11 @@ construction sequence and the structure affects what the API looks like:
 2. **Location** — where does the registry live relative to `InferContext`?
 
 Constraints:
-- Generic structs/enums are stubbed in Epic 001 (non-empty `generics` → error),
+- Generic structs/enums are stubbed in v0.1 (non-empty `generics` → error),
   so the structure only needs to handle monomorphic types for now.
-- Epic 003 will need to instantiate generic types at use sites — the structure
+- v0.3 will need to instantiate generic types at use sites — the structure
   should not require a full rewrite to support that.
-- Epic 004 will need to store trait implementations per type — should be addable
+- v0.3 will need to store trait implementations per type — should be addable
   without restructuring the registry.
 
 ## Options Considered — Structure
@@ -65,10 +65,10 @@ pre-pass. Callers ask by name and get back a typed result or a located error.
   a type error at the registry boundary if given an enum name, not a silent wrong
   answer deeper in inference
 - Lookup methods encapsulate error production (span-aware), so call sites are clean
-- Epic 003 path is clear: change `Vec<(String, InferType)>` to
+- v0.3 (generics) path is clear: change `Vec<(String, InferType)>` to
   `Vec<(String, TypeScheme)>` and make `field_type` instantiate with fresh vars;
   the method signature stays the same
-- Epic 004 path is clear: add `impls: Vec<ImplInfo>` to `StructInfo`/`EnumInfo`
+- v0.3 (traits) path is clear: add `impls: Vec<ImplInfo>` to `StructInfo`/`EnumInfo`
   or keep a parallel `ImplTable` — either fits without restructuring
 
 **Cons:**
@@ -88,13 +88,13 @@ pub struct TypeRegistry {
 ```
 
 **Pros:**
-- Minimal code to write for Epic 001
+- Minimal code to write for v0.1
 
 **Cons:**
 - No typed distinction at the boundary — callers must know which map to look in,
   and a wrong lookup silently returns `None` instead of "this is an enum, not a
   struct"
-- Epic 003 migration touches the map value types directly everywhere; no single
+- v0.3 (generics) migration touches the map value types directly everywhere; no single
   conversion point
 - Harder to extend for traits (no natural `TypeDef` attachment point)
 
@@ -117,7 +117,7 @@ field is looked up.
 - `TypeExpr → InferType` conversion must be available at lookup time, which means
   threading a converter or a reference to the conversion logic into every lookup call
 - Repeated conversion of the same types on every access
-- For Epic 001 (no generics), the on-demand conversion buys nothing
+- For v0.1 (no generics), the on-demand conversion buys nothing
 
 ## Options Considered — Location
 
@@ -170,7 +170,7 @@ takes ownership of it.
 **Structure: Option A — `TypeDef` enum with typed lookup methods**  
 **Location: Option B — Pre-built and injected**
 
-The `TypeDef` enum approach over flat maps because every real caller (struct literal, field access, enum variant pattern) needs typed data, not just existence — so the indirection cost is zero in practice. The lookup methods encapsulate span-aware error production, keeping inference call sites clean. The Epic 003 upgrade path is a single change inside `TypeRegistry` with no call-site impact.
+The `TypeDef` enum approach over flat maps because every real caller (struct literal, field access, enum variant pattern) needs typed data, not just existence — so the indirection cost is zero in practice. The lookup methods encapsulate span-aware error production, keeping inference call sites clean. The v0.3 (generics) upgrade path is a single change inside `TypeRegistry` with no call-site impact.
 
 The pre-built and injected approach over a field on `InferContext` because the registry is immutable after the pre-pass; embedding it in a mutably-borrowed struct misrepresents that invariant and creates borrow-checker friction if any lookup method ever returns a reference. Injection makes the construction sequence explicit and allows the registry to be unit-tested in isolation.
 
@@ -181,12 +181,12 @@ The two choices reflect a consistent design philosophy: the pre-pass produces fu
 - The typechecker entry point has a two-step construction sequence: `build_registry(&program)` → `InferContext::new(registry)`
 - `InferContext::new` signature changes to accept a `TypeRegistry`
 - The registry is read-only for the entire inference walk — no mutations after construction
-- Epic 003: extend `StructInfo`/`EnumInfo` field types from `InferType` to `TypeScheme`; `field_type` gains instantiation logic; call sites unchanged
-- Epic 004: add `impls` to `StructInfo`/`EnumInfo` or a parallel `ImplTable`; registry structure accommodates either without restructuring
+- v0.3 (generics): extend `StructInfo`/`EnumInfo` field types from `InferType` to `TypeScheme`; `field_type` gains instantiation logic; call sites unchanged
+- v0.3 (traits): add `impls` to `StructInfo`/`EnumInfo` or a parallel `ImplTable`; registry structure accommodates either without restructuring
 
 ## References
 
-- Stage 4 (struct/enum registry for StructLiteral, FieldAccess, Match) — Epic 005, now complete
-- Mutable binding tracking — Epic 001, now complete
-- Epic 003 — Generics: will extend field types to TypeScheme
-- Epic 004 — Traits: will add impl storage to registry
+- Stage 4 (struct/enum registry for StructLiteral, FieldAccess, Match) — v0.1, now complete
+- Mutable binding tracking — v0.1, now complete
+- v0.3 — Generics: will extend field types to TypeScheme
+- v0.3 — Traits: will add impl storage to registry

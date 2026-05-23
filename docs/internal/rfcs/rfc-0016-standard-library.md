@@ -49,7 +49,7 @@ All v0.1 programs are single-file with no stdlib beyond the [built-in functions]
 
 ### `std::collections`
 
-- `List<T>`: higher-level sequence type on top of `Array<T>`, with `push`, `pop`, `map`, `filter`, `fold`. Requires generics (Epic 003).
+- `List<T>`: higher-level sequence type on top of `Array<T>`, with `push`, `pop`, `map`, `filter`, `fold`. Requires generics (v0.3).
 
 ---
 
