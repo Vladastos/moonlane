@@ -412,6 +412,13 @@ mod tests {
         check_file(&format!("{}/stage6_neg_09_enum_field_type_mismatch.gust", test_dir()));
     }
 
+    // ── Stage 7 positive tests ────────────────────────────────────────────────
+
+    #[test]
+    fn stage7_return_type_propagation() {
+        check_file(&format!("{}/stage7_01_return_type_propagation.gust", test_dir()));
+    }
+
     // ── Known-limitation tests ─────────────────────────────────────────────────
 
     #[test]

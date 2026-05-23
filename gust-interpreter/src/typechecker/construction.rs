@@ -20,6 +20,10 @@ struct ConstructCtx<'a> {
     enum_env:   &'a HashMap<String, EnumInfo>,
     /// Shared generator continued from Pass 1; keeps TypeVar identities globally unique.
     gen:        TypeVarGenerator,
+    /// Return type of the innermost enclosing function (None = unit / unknown).
+    current_return_ty: Option<Type>,
+    /// Break value type of the innermost enclosing `loop` (None = no loop or bare break).
+    current_break_ty:  Option<Type>,
 }
 
 impl<'a> ConstructCtx<'a> {
@@ -35,6 +39,8 @@ impl<'a> ConstructCtx<'a> {
             subst, scheme_env,
             env: vec![HashMap::new()],
             struct_env, method_env, enum_env, gen,
+            current_return_ty: None,
+            current_break_ty:  None,
         };
         let str_ty   = Type::Str;
         let int_ty   = Type::Int;
@@ -62,6 +68,19 @@ impl<'a> ConstructCtx<'a> {
 
     fn lookup(&self, name: &str) -> Option<&Type> {
         self.env.iter().rev().find_map(|s| s.get(name))
+    }
+
+    fn push_return_type(&mut self, ty: Option<Type>) -> Option<Type> {
+        std::mem::replace(&mut self.current_return_ty, ty)
+    }
+    fn pop_return_type(&mut self, prev: Option<Type>) {
+        self.current_return_ty = prev;
+    }
+    fn push_break_type(&mut self, ty: Option<Type>) -> Option<Type> {
+        std::mem::replace(&mut self.current_break_ty, ty)
+    }
+    fn pop_break_type(&mut self, prev: Option<Type>) {
+        self.current_break_ty = prev;
     }
 }
 
@@ -157,7 +176,9 @@ fn construct_fun_decl(fun: &FunDecl, ctx: &mut ConstructCtx) -> Result<TypedDecl
         for (param, ty) in fun.params.iter().zip(param_types.iter()) {
             ctx.bind(&param.name, ty.clone());
         }
+        let saved_return = ctx.push_return_type(ret_ty.clone());
         let typed_block = construct_block(&fun.body, ret_ty.as_ref(), ctx)?;
+        ctx.pop_return_type(saved_return);
         ctx.pop_scope();
         FunBody::Typed(typed_block)
     } else {
@@ -211,11 +232,16 @@ fn construct_impl_method(
             }
         })
         .collect::<Result<_, _>>()?;
+    let ret_ty = method.return_type.as_ref()
+        .map(|ann| resolved_to_type(&type_expr_to_infer(ann), ctx.subst, &method.span))
+        .transpose()?;
     ctx.push_scope();
     for (p, ty) in method.params.iter().zip(param_types.iter()) {
         ctx.bind(&p.name, ty.clone());
     }
-    let typed_block = construct_block(&method.body, None, ctx)?;
+    let saved_return = ctx.push_return_type(ret_ty.clone());
+    let typed_block = construct_block(&method.body, ret_ty.as_ref(), ctx)?;
+    ctx.pop_return_type(saved_return);
     ctx.pop_scope();
     Ok(TypedFunDecl {
         name:        method.name.clone(),
@@ -249,15 +275,17 @@ fn construct_stmt(stmt: &Stmt, ctx: &mut ConstructCtx) -> Result<TypedStmt, Gust
     match stmt {
         Stmt::Expr(e) => Ok(TypedStmt::Expr(construct_expr(e, None, ctx)?)),
         Stmt::Return(r) => {
+            let return_ty = ctx.current_return_ty.clone();
             let value = match &r.value {
-                Some(e) => Some(construct_expr(e, None, ctx)?),
+                Some(e) => Some(construct_expr(e, return_ty.as_ref(), ctx)?),
                 None    => None,
             };
             Ok(TypedStmt::Return(TypedReturnStmt { value, span: r.span.clone() }))
         }
         Stmt::Break(bs) => {
+            let break_ty = ctx.current_break_ty.clone();
             let value = match &bs.value {
-                Some(e) => Some(construct_expr(e, None, ctx)?),
+                Some(e) => Some(construct_expr(e, break_ty.as_ref(), ctx)?),
                 None    => None,
             };
             Ok(TypedStmt::Break(TypedBreakStmt { value, span: bs.span.clone() }))
@@ -566,7 +594,9 @@ fn construct_expr(
             })
         }
         Expr::Loop { body, span } => {
+            let saved_break = ctx.push_break_type(expected_ty.cloned());
             let typed_body = construct_block(body, None, ctx)?;
+            ctx.pop_break_type(saved_break);
             let ty = find_loop_break_type(&typed_body).unwrap_or(Type::Never);
             Ok(TypedExpr::Loop { body: typed_body, ty, span: span.clone() })
         }
