@@ -208,6 +208,14 @@ mod tests {
     #[test]
     fn closures_advanced() { check("42_closures_advanced.gust"); }
 
+    // ── Integration tests ─────────────────────────────────────────────────────
+
+    #[test]
+    fn int_statistics() { check("int_01_statistics.gust"); }
+
+    #[test]
+    fn int_battle() { check("int_02_battle.gust"); }
+
     // ── Negative tests ────────────────────────────────────────────────────────
 
     #[test]
