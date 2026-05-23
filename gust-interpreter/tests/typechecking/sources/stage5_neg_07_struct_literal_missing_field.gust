@@ -5,4 +5,4 @@ struct Point {
     y: Float,
 }
 
-let p = Point { x: 1.0 }; // ERROR[E0003]
+let p = Point { x: 1.0 }; // ERROR[T0003]

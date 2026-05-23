@@ -4,4 +4,4 @@
 // Using a non-Unit value (like Int) in the then-branch with no else is a type error.
 
 let x: Int = 5;
-if (x > 0) { x }; // ERROR[E0001]
+if (x > 0) { x }; // ERROR[T0001]

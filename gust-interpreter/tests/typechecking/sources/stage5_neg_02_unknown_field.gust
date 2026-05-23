@@ -4,4 +4,4 @@ struct Counter {
     value: Int,
 }
 
-let c = Counter { value: 0, extra: 1 }; // ERROR[E0003]
+let c = Counter { value: 0, extra: 1 }; // ERROR[T0003]

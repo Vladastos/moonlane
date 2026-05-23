@@ -1078,7 +1078,7 @@ mod phase_8_known_limitations {
         let s = Substitution::new();
         let unresolved = s.apply(&InferType::var(TypeVar(0)));
         // An unresolved variable has no concrete struct name — this is what
-        // triggers E0002 "cannot infer struct type for field access".
+        // triggers T0002 "cannot infer struct type for field access".
         assert!(matches!(unresolved, InferType::Var(_)));
     }
 }

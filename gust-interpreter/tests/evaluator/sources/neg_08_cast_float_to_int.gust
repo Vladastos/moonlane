@@ -1,2 +1,2 @@
-// TYPECHECK_ERROR[E0007]
+// TYPECHECK_ERROR[T0007]
 fun main() { let _x = 3.9 as Int; }

@@ -3,7 +3,7 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use crate::ast::*;
-use crate::error::GustError;
+use crate::error::{ParseErrorCode, GustError};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -16,12 +16,13 @@ pub fn parse(source: &str, filename: &str) -> Result<Program, GustError> {
             pest::error::InputLocation::Pos(p) => (p, p),
             pest::error::InputLocation::Span((s, e)) => (s, e),
         };
-        GustError::ParseErrorWithLine {
+        GustError::ParseError {
+            code: ParseErrorCode::P0001,
             message: e.variant.to_string(),
             start,
             end,
-            line : e.line().to_string(),
             filename: filename.to_string(),
+            line: Some(e.line().to_string()),
         }
     })?;
 
@@ -31,9 +32,9 @@ pub fn parse(source: &str, filename: &str) -> Result<Program, GustError> {
 
 
 fn parse_program(pairs: &mut Pairs<Rule>, filename: &str) -> Result<Program, GustError> {
-    let program_pair = pairs.next().ok_or(GustError::ParseError { message: "Expected program".into(), start: 0, end: 0, filename: "".into() })?;
+    let program_pair = pairs.next().ok_or_else(|| GustError::internal("parse_program: no program rule from pest"))?;
     if program_pair.as_rule() != Rule::program {
-        return Err(GustError::ParseError { message: "Expected program".into(), start: 0, end: 0, filename: "".into() });
+        return Err(GustError::internal("parse_program: first rule is not program"));
     }
     let mut decls = Vec::new();
     for pair in program_pair.into_inner() {
@@ -444,14 +445,18 @@ fn parse_literal_expr(pair: pest::iterators::Pair<Rule>, filename: &str) -> Resu
     let lit = match pair.as_rule() {
         Rule::int_lit => Literal::Int(
             text.replace('_', "").parse().map_err(|_| GustError::ParseError {
+                code: ParseErrorCode::P0002,
                 message: format!("integer literal '{text}' is out of range for i64"),
                 start: span.start, end: span.end, filename: filename.to_string(),
+                line: None,
             })?
         ),
         Rule::float_lit => Literal::Float(
             text.parse().map_err(|_| GustError::ParseError {
+                code: ParseErrorCode::P0003,
                 message: format!("invalid float literal '{text}'"),
                 start: span.start, end: span.end, filename: filename.to_string(),
+                line: None,
             })?
         ),
         Rule::string_lit => Literal::Str(unescape(&text[1..text.len()-1])),
@@ -827,14 +832,18 @@ fn parse_pattern(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<Pa
             let lit = match lit_pair.as_rule() {
                 Rule::float_lit => Literal::Float(
                     text.parse().map_err(|_| GustError::ParseError {
+                        code: ParseErrorCode::P0003,
                         message: format!("float literal '{text}' is out of range"),
                         start: span.start, end: span.end, filename: filename.to_string(),
+                        line: None,
                     })?
                 ),
                 Rule::int_lit => Literal::Int(
                     text.replace('_', "").parse().map_err(|_| GustError::ParseError {
+                        code: ParseErrorCode::P0002,
                         message: format!("integer literal '{text}' is out of range for i64"),
                         start: span.start, end: span.end, filename: filename.to_string(),
+                        line: None,
                     })?
                 ),
                 Rule::string_lit => Literal::Str(unescape(&text[1..text.len()-1])),

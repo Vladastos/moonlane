@@ -1,1 +1,1 @@
-let bad = [];  // ERROR[E0002]
+let bad = [];  // ERROR[T0002]

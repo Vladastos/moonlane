@@ -1,5 +1,5 @@
 use crate::ast::{Span, TypeExpr};
-use crate::error::{ErrorCode, GustError};
+use crate::error::{TypeErrorCode, GustError};
 use crate::typeinference::{InferType, Substitution};
 use crate::types::Type;
 
@@ -34,7 +34,7 @@ pub(super) fn infer_type_to_type(ty: &InferType, span: &Span) -> Result<Type, Gu
         InferType::Concrete(t) => Ok(t.clone()),
         InferType::Never       => Ok(Type::Never),
         InferType::Var(_)      => Err(GustError::type_error(
-            ErrorCode::E0002,
+            TypeErrorCode::T0002,
             "cannot infer type; add a type annotation",
             span,
         )),

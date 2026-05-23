@@ -1,2 +1,2 @@
 let x: Int = 42;
-let bad = x(1, 2);  // ERROR[E0001]
+let bad = x(1, 2);  // ERROR[T0001]

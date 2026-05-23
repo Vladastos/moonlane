@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::error::{ErrorCode, GustError};
+use crate::error::{TypeErrorCode, GustError};
 use crate::typeinference::*;
 use crate::types::Type;
 
@@ -266,7 +266,7 @@ fn infer_stmt(
                 }
                 _ => {
                     return Err(GustError::type_error(
-                        ErrorCode::E0001,
+                        TypeErrorCode::T0001,
                         format!("expected array or range in for-in, got `{resolved_iter}`"),
                         &fi.span,
                     ));
@@ -294,7 +294,7 @@ fn infer_expr(
         Expr::Literal(lit, _)          => Ok(infer_literal(lit, ctx)),
         Expr::Ident(name, span)        => {
             ctx.lookup(name).ok_or_else(|| GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("undefined name `{name}`"),
                 span,
             ))
@@ -326,7 +326,7 @@ fn infer_expr(
             if let InferType::Fun(params, _) = &callee_ty {
                 if params.len() != arg_tys.len() {
                     return Err(GustError::type_error(
-                        ErrorCode::E0004,
+                        TypeErrorCode::T0004,
                         format!("expected {} argument(s), got {}", params.len(), arg_tys.len()),
                         span,
                     ));
@@ -395,13 +395,13 @@ fn infer_expr(
             let obj_ty = infer_expr(object, ctx, fun_generalizations)?;
             let obj_ty = ctx.solve()?.apply(&obj_ty);
             let struct_name = named_type_name(&obj_ty).ok_or_else(|| GustError::type_error(
-                ErrorCode::E0002,
+                TypeErrorCode::T0002,
                 "cannot infer struct type for field access; add a type annotation",
                 span,
             ))?;
             let fields = ctx.get_struct_fields(&struct_name)
                 .ok_or_else(|| GustError::type_error(
-                    ErrorCode::E0003,
+                    TypeErrorCode::T0003,
                     format!("unknown type `{struct_name}`"),
                     span,
                 ))?;
@@ -409,7 +409,7 @@ fn infer_expr(
                 .find(|(n, _)| n == field)
                 .map(|(_, ty)| ty.clone())
                 .ok_or_else(|| GustError::type_error(
-                    ErrorCode::E0003,
+                    TypeErrorCode::T0003,
                     format!("no field `{field}` on `{struct_name}`"),
                     span,
                 ))
@@ -418,14 +418,14 @@ fn infer_expr(
             let recv_ty = infer_expr(receiver, ctx, fun_generalizations)?;
             let recv_ty = ctx.solve()?.apply(&recv_ty);
             let struct_name = named_type_name(&recv_ty).ok_or_else(|| GustError::type_error(
-                ErrorCode::E0002,
+                TypeErrorCode::T0002,
                 "cannot infer receiver type for method call; add a type annotation",
                 span,
             ))?;
             let method_ty = ctx.get_method_type(&struct_name, method)
                 .cloned()
                 .ok_or_else(|| GustError::type_error(
-                    ErrorCode::E0003,
+                    TypeErrorCode::T0003,
                     format!("no method `{method}` on `{struct_name}`"),
                     span,
                 ))?;
@@ -463,7 +463,7 @@ fn infer_expr(
             );
             if !valid {
                 return Err(GustError::type_error(
-                    ErrorCode::E0007,
+                    TypeErrorCode::T0007,
                     format!("cannot cast `{source_resolved}` to `{target_resolved}` — only `Int as Float` and identity casts are supported"),
                     span,
                 ));
@@ -476,13 +476,13 @@ fn infer_expr(
             match &obj_ty {
                 InferType::Tuple(elems) => {
                     elems.get(*index).cloned().ok_or_else(|| GustError::type_error(
-                        ErrorCode::E0003,
+                        TypeErrorCode::T0003,
                         format!("tuple index {index} out of bounds (tuple has {} elements)", elems.len()),
                         span,
                     ))
                 }
                 _ => Err(GustError::type_error(
-                    ErrorCode::E0002,
+                    TypeErrorCode::T0002,
                     "cannot infer tuple type for index access; add a type annotation",
                     span,
                 )),
@@ -499,7 +499,7 @@ fn infer_expr(
         Expr::Path(segments, span) => {
             let [type_name, member_name] = segments.as_slice() else {
                 return Err(GustError::type_error(
-                    ErrorCode::E0003,
+                    TypeErrorCode::T0003,
                     format!("unresolved path `{}`", segments.join("::")),
                     span,
                 ));
@@ -518,7 +518,7 @@ fn infer_expr(
                 }
             }
             Err(GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("no member `{member_name}` on type `{type_name}`"),
                 span,
             ))
@@ -623,7 +623,7 @@ fn infer_pattern(
         Pattern::EnumVariant { path, fields, span: pat_span } => {
             let [enum_name, variant_name] = path.as_slice() else {
                 return Err(GustError::type_error(
-                    ErrorCode::E0003,
+                    TypeErrorCode::T0003,
                     format!("unresolved pattern path `{}`", path.join("::")),
                     pat_span,
                 ));
@@ -725,7 +725,7 @@ fn infer_enum_variant_literal(
 ) -> Result<InferType, GustError> {
     let enum_info = ctx.get_enum(enum_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("unknown enum `{enum_name}`"),
             span,
         ))?
@@ -733,7 +733,7 @@ fn infer_enum_variant_literal(
     let variant = enum_info.variants.iter()
         .find(|v| v.name == variant_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("no variant `{variant_name}` on enum `{enum_name}`"),
             span,
         ))?
@@ -747,7 +747,7 @@ fn infer_enum_variant_literal(
             .find(|(n, _)| n == fname)
             .map(|(_, ty)| ty)
             .ok_or_else(|| GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("no field `{fname}` on `{enum_name}::{variant_name}`"),
                 span,
             ))?;
@@ -773,7 +773,7 @@ fn infer_struct_literal(
 ) -> Result<InferType, GustError> {
     let expected_fields = ctx.get_struct_fields(&struct_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("unknown struct `{struct_name}`"),
             span,
         ))?
@@ -783,7 +783,7 @@ fn infer_struct_literal(
             .find(|(n, _)| n == name)
             .map(|(_, ty)| ty.clone())
             .ok_or_else(|| GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("no field `{name}` on `{struct_name}`"),
                 span,
             ))?;
@@ -793,7 +793,7 @@ fn infer_struct_literal(
     for (decl_name, _) in &expected_fields {
         if !fields.iter().any(|(n, _)| n == decl_name) {
             return Err(GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("missing field `{decl_name}` in `{struct_name}`"),
                 span,
             ));
@@ -813,14 +813,14 @@ fn infer_field_assign_type(
     let obj_ty = ctx.solve()?.apply(&obj_ty);
     let struct_name = named_type_name(&obj_ty).ok_or_else(|| {
         GustError::type_error(
-            ErrorCode::E0002,
+            TypeErrorCode::T0002,
             "cannot infer struct type for field assignment; add a type annotation",
             target_span,
         )
     })?;
     let fields = ctx.get_struct_fields(&struct_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("unknown type `{struct_name}`"),
             target_span,
         ))?
@@ -829,7 +829,7 @@ fn infer_field_assign_type(
         .find(|(n, _)| n == field)
         .map(|(_, ty)| ty.clone())
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("no field `{field}` on `{struct_name}`"),
             target_span,
         ))
@@ -845,7 +845,7 @@ fn infer_enum_variant_pattern(
 ) -> Result<(), GustError> {
     let enum_info = ctx.get_enum(enum_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("unknown enum `{enum_name}` in pattern"),
             pat_span,
         ))?
@@ -853,7 +853,7 @@ fn infer_enum_variant_pattern(
     let variant = enum_info.variants.iter()
         .find(|v| v.name == variant_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("no variant `{variant_name}` on `{enum_name}`"),
             pat_span,
         ))?
@@ -875,7 +875,7 @@ fn infer_enum_variant_pattern(
             .find(|(n, _)| n == field_name)
             .map(|(_, ty)| ty)
             .ok_or_else(|| GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("no field `{field_name}` on `{enum_name}::{variant_name}`"),
                 pat_span,
             ))?;

@@ -1,4 +1,4 @@
 fun bad_condition(x: Int) {
-    if (x) {  // ERROR[E0001]
+    if (x) {  // ERROR[T0001]
     }
 }

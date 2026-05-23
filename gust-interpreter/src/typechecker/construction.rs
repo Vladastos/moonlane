@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::error::{ErrorCode, GustError};
+use crate::error::{TypeErrorCode, GustError};
 use crate::typed_ast::*;
 use crate::typeinference::*;
 use crate::types::Type;
@@ -173,11 +173,11 @@ fn construct_fun_decl(fun: &FunDecl, ctx: &mut ConstructCtx) -> Result<TypedDecl
 
 fn construct_impl_decl(ib: &ImplBlock, ctx: &mut ConstructCtx) -> Result<TypedDecl, GustError> {
     if ib.trait_name.is_some() {
-        return Err(GustError::internal("trait impl blocks not yet supported"));
+        return Err(GustError::not_implemented("trait impl blocks not yet supported"));
     }
     let target_name = match &ib.target_type {
         TypeExpr::Named(name, _) => name.clone(),
-        _ => return Err(GustError::internal("generic impl blocks not yet supported")),
+        _ => return Err(GustError::not_implemented("generic impl blocks not yet supported")),
     };
     let methods = ib.methods.iter()
         .map(|m| construct_impl_method(m, &target_name, ctx))
@@ -204,7 +204,7 @@ fn construct_impl_method(
                 p.type_ann.as_ref()
                     .map(|ann| resolved_to_type(&type_expr_to_infer(ann), ctx.subst, &p.span))
                     .unwrap_or_else(|| Err(GustError::type_error(
-                        ErrorCode::E0002,
+                        TypeErrorCode::T0002,
                         format!("parameter `{}` needs a type annotation", p.name),
                         &p.span,
                     )))
@@ -329,7 +329,7 @@ fn construct_expr(
         }
         Expr::Ident(name, span) => {
             let ty = ctx.lookup(name).cloned().ok_or_else(|| GustError::type_error(
-                ErrorCode::E0003,
+                TypeErrorCode::T0003,
                 format!("undefined name `{name}`"),
                 span,
             ))?;
@@ -347,7 +347,7 @@ fn construct_expr(
         Expr::Array(elems, span) => {
             if elems.is_empty() {
                 let ty = expected_ty.cloned().ok_or_else(|| GustError::type_error(
-                    ErrorCode::E0002,
+                    TypeErrorCode::T0002,
                     "cannot infer element type of empty array; add a type annotation",
                     span,
                 ))?;
@@ -367,7 +367,7 @@ fn construct_expr(
             let elem_ty = match typed_obj.ty() {
                 Type::Array(elem) => *elem.clone(),
                 _ => return Err(GustError::type_error(
-                    ErrorCode::E0001,
+                    TypeErrorCode::T0001,
                     "indexed value is not an array",
                     span,
                 )),
@@ -505,7 +505,7 @@ fn construct_expr(
                 .map(|p| p.type_ann.as_ref()
                     .map(|ann| resolved_to_type(&type_expr_to_infer(ann), ctx.subst, &p.span))
                     .unwrap_or_else(|| Err(GustError::type_error(
-                        ErrorCode::E0002,
+                        TypeErrorCode::T0002,
                         format!("closure parameter `{}` needs a type annotation", p.name),
                         &p.span,
                     ))))
@@ -684,7 +684,7 @@ fn check_match_exhaustiveness(
     };
     if !exhaustive {
         return Err(GustError::type_error(
-            ErrorCode::E0008,
+            TypeErrorCode::T0008,
             "non-exhaustive match: not all cases are covered".to_string(),
             span,
         ));
@@ -769,14 +769,14 @@ fn construct_enum_literal_ty(
     // pattern as instantiate_scheme_for_call.
     let enum_info = ctx.enum_env.get(enum_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("unknown enum `{enum_name}`"),
             span,
         ))?;
     let variant = enum_info.variants.iter()
         .find(|v| v.name == variant_name)
         .ok_or_else(|| GustError::type_error(
-            ErrorCode::E0003,
+            TypeErrorCode::T0003,
             format!("no variant `{variant_name}` on enum `{enum_name}`"),
             span,
         ))?;
@@ -834,7 +834,7 @@ fn construct_enum_literal_ty(
             if matches!(resolved, InferType::Var(_)) {
                 hint_args.get(i).cloned()
                     .ok_or_else(|| GustError::type_error(
-                        ErrorCode::E0002,
+                        TypeErrorCode::T0002,
                         "cannot infer type; add a type annotation",
                         span,
                     ))
@@ -904,7 +904,7 @@ fn construct_call(
     let (typed_callee, fun_ty) = match callee {
         Expr::Ident(name, ident_span) if ctx.lookup(name).is_none() => {
             let scheme = ctx.scheme_env.get(name.as_str()).ok_or_else(|| {
-                GustError::type_error(ErrorCode::E0003, format!("undefined name `{name}`"), ident_span)
+                GustError::type_error(TypeErrorCode::T0003, format!("undefined name `{name}`"), ident_span)
             })?;
             let concrete = instantiate_scheme_for_call(scheme, &arg_types, span, &mut ctx.gen)?;
             let typed = TypedExpr::Ident(name.clone(), concrete.clone(), ident_span.clone());
@@ -921,7 +921,7 @@ fn construct_call(
         Type::Fun(params, ret) => {
             if params.len() != typed_args.len() {
                 return Err(GustError::type_error(
-                    ErrorCode::E0004,
+                    TypeErrorCode::T0004,
                     format!("expected {} argument(s), got {}", params.len(), typed_args.len()),
                     span,
                 ));
@@ -934,7 +934,7 @@ fn construct_call(
             })
         }
         _ => Err(GustError::type_error(
-            ErrorCode::E0001,
+            TypeErrorCode::T0001,
             "called a non-function value",
             span,
         )),
@@ -958,7 +958,7 @@ fn instantiate_scheme_for_call(
     for (param, arg_ty) in params.iter().zip(arg_types.iter()) {
         let arg_infer = type_to_infer(*arg_ty);
         let s = unify(&subst.apply(param), &arg_infer).map_err(|_| {
-            GustError::type_error(ErrorCode::E0001, "argument type mismatch", span)
+            GustError::type_error(TypeErrorCode::T0001, "argument type mismatch", span)
         })?;
         subst = subst.compose(&s);
     }
@@ -986,7 +986,7 @@ fn construct_literal_type(
         // construct_expr's expected_ty parameter). If no annotation, E0002 — but Pass 1
         // should have already caught the unannotated case via an unresolved type var.
         Literal::Nope     => expected_ty.cloned().ok_or_else(|| GustError::type_error(
-            ErrorCode::E0002,
+            TypeErrorCode::T0002,
             "cannot infer type of `nope`; add a type annotation",
             span,
         )),

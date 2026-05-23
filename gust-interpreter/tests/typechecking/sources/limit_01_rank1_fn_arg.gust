@@ -9,5 +9,5 @@
 
 fun apply_both(f, x: Int, y: Bool) {
     let a = f(x);
-    let b = f(y);  // ERROR[E0001]
+    let b = f(y);  // ERROR[T0001]
 }

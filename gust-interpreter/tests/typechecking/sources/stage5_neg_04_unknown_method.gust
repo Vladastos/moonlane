@@ -6,4 +6,4 @@ struct Point {
 }
 
 let p = Point { x: 1.0, y: 2.0 };
-let n = p.nonexistent(); // ERROR[E0003]
+let n = p.nonexistent(); // ERROR[T0003]

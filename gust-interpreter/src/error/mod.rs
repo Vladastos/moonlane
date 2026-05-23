@@ -1,66 +1,132 @@
-use thiserror::Error;
-
 use crate::ast::Span;
 
+// ── Error code enums, one per pipeline phase ──────────────────────────────────
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ErrorCode {
-    E0001, // Type mismatch
-    E0002, // Annotation required
-    E0003, // Undefined name
-    E0004, // Arity mismatch
-    E0005, // Invalid operand types
-    E0006, // Assignment to immutable binding
-    E0007, // Invalid cast
-    E0008, // Non-exhaustive match
+pub enum ParseErrorCode {
+    P0001, // Syntax error
+    P0002, // Invalid integer literal
+    P0003, // Invalid float literal
 }
 
-impl std::fmt::Display for ErrorCode {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TypeErrorCode {
+    T0001, // Type mismatch
+    T0002, // Annotation required
+    T0003, // Undefined name
+    T0004, // Arity mismatch
+    T0005, // Invalid operand types
+    T0006, // Assignment to immutable binding
+    T0007, // Invalid cast
+    T0008, // Non-exhaustive match
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeErrorCode {
+    R0001, // No `main` function defined
+    R0002, // `main` is not a valid entry point
+    R0003, // Undefined variable at runtime
+    R0004, // Index out of bounds
+    R0005, // Tuple index out of bounds
+    R0006, // Non-exhaustive match at runtime
+    R0007, // Arithmetic error (division or remainder by zero)
+    R0008, // Field not found
+    R0009, // Method not found
+    R0010, // Call on non-callable value
+    R0011, // Invalid for-in iterator
+    R0012, // Error propagation on non-Result value
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InternalErrorCode {
+    I0001, // Internal interpreter error (interpreter bug — should never happen)
+    I0002, // Not implemented (feature not yet supported in this version)
+}
+
+macro_rules! impl_display_via_debug {
+    ($t:ty) => {
+        impl std::fmt::Display for $t {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{self:?}")
+            }
+        }
+    };
+}
+
+impl_display_via_debug!(ParseErrorCode);
+impl_display_via_debug!(TypeErrorCode);
+impl_display_via_debug!(RuntimeErrorCode);
+impl_display_via_debug!(InternalErrorCode);
+
+// ── Error variants ────────────────────────────────────────────────────────────
+
+/// All errors that can be produced at any stage of the pipeline.
+#[derive(Debug)]
+pub enum GustError {
+    ParseError {
+        code: ParseErrorCode,
+        message: String,
+        start: usize,
+        end: usize,
+        filename: String,
+        /// Source line text, if available (from the pest grammar failure).
+        line: Option<String>,
+    },
+    TypeError {
+        code: TypeErrorCode,
+        message: String,
+        start: usize,
+        end: usize,
+        filename: String,
+    },
+    RuntimePanic {
+        code: RuntimeErrorCode,
+        message: String,
+        start: usize,
+        end: usize,
+        filename: String,
+    },
+    /// A bug in the interpreter or an unimplemented feature — never caused by user input.
+    Internal {
+        code: InternalErrorCode,
+        message: String,
+    },
+}
+
+impl std::fmt::Display for GustError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorCode::E0001 => write!(f, "E0001"),
-            ErrorCode::E0002 => write!(f, "E0002"),
-            ErrorCode::E0003 => write!(f, "E0003"),
-            ErrorCode::E0004 => write!(f, "E0004"),
-            ErrorCode::E0005 => write!(f, "E0005"),
-            ErrorCode::E0006 => write!(f, "E0006"),
-            ErrorCode::E0007 => write!(f, "E0007"),
-            ErrorCode::E0008 => write!(f, "E0008"),
+            GustError::ParseError { code, message, start, end, filename, line: None } =>
+                write!(f, "[{code}] parse error in {filename} at {start}..{end}: {message}"),
+            GustError::ParseError { code, message, start, end, filename, line: Some(line) } =>
+                write!(f, "[{code}] parse error in {filename} at {start}..{end} (`{line}`): {message}"),
+            GustError::TypeError { code, message, start, end, filename } =>
+                write!(f, "[{code}] type error in {filename} at {start}..{end}: {message}"),
+            GustError::RuntimePanic { code, message, start, end, filename } =>
+                write!(f, "[{code}] runtime error in {filename} at {start}..{end}: {message}"),
+            GustError::Internal { code, message } =>
+                write!(f, "[{code}] internal error: {message}"),
         }
     }
 }
 
-/// All errors that can be produced at any stage of the pipeline.
-#[derive(Debug, Error)]
-pub enum GustError {
-    #[error("Parse error in {filename} at {start}..{end}: {message}")]
-    ParseError { message: String, start: usize, end: usize, filename: String },
+impl std::error::Error for GustError {}
 
-    #[error("Parse error in {filename} at {start}..{end}, line {line}: {message}")]
-    ParseErrorWithLine { message: String, start: usize, end: usize, line: String, filename: String },
-
-    #[error("[{code}] type error in {filename} at {start}..{end}: {message}")]
-    TypeError { code: ErrorCode, message: String, start: usize, end: usize, filename: String },
-
-    #[error("Panic at {filename} {start}..{end}: {message}")]
-    RuntimePanic { message: String, start: usize, end: usize, filename: String },
-
-    /// A parser invariant was violated — this indicates a bug in the parser, not
-    /// invalid user input. The message names the function and what was expected.
-    #[error("internal error: {message}")]
-    Internal { message: String },
-}
+// ── Constructor helpers ───────────────────────────────────────────────────────
 
 impl GustError {
-    pub fn parse(msg: impl Into<String>, span: &Span) -> Self {
+    pub fn parse(code: ParseErrorCode, msg: impl Into<String>, span: &Span) -> Self {
         Self::ParseError {
+            code,
             message: msg.into(),
             start: span.start,
             end: span.end,
             filename: span.filename.clone(),
+            line: None,
         }
     }
 
-    pub fn type_error(code: ErrorCode, msg: impl Into<String>, span: &Span) -> Self {
+    pub fn type_error(code: TypeErrorCode, msg: impl Into<String>, span: &Span) -> Self {
         Self::TypeError {
             code,
             message: msg.into(),
@@ -70,8 +136,9 @@ impl GustError {
         }
     }
 
-    pub fn panic(msg: impl Into<String>, span: &Span) -> Self {
+    pub fn panic(code: RuntimeErrorCode, msg: impl Into<String>, span: &Span) -> Self {
         Self::RuntimePanic {
+            code,
             message: msg.into(),
             start: span.start,
             end: span.end,
@@ -79,7 +146,13 @@ impl GustError {
         }
     }
 
+    /// Interpreter bug — the typechecker should have prevented this state.
     pub fn internal(msg: impl Into<String>) -> Self {
-        Self::Internal { message: msg.into() }
+        Self::Internal { code: InternalErrorCode::I0001, message: msg.into() }
+    }
+
+    /// Feature not yet implemented in this version of the interpreter.
+    pub fn not_implemented(msg: impl Into<String>) -> Self {
+        Self::Internal { code: InternalErrorCode::I0002, message: msg.into() }
     }
 }

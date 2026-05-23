@@ -329,7 +329,7 @@ pub fn solve_constraints(constraints: Vec<Constraint>) -> Result<Substitution, G
         let lhs = subst.apply(&c.lhs);
         let rhs = subst.apply(&c.rhs);
         let s = unify(&lhs, &rhs).map_err(|_| {
-            GustError::type_error(crate::error::ErrorCode::E0001, format!("cannot unify {} with {}", lhs, rhs), &c.span)
+            GustError::type_error(crate::error::TypeErrorCode::T0001, format!("cannot unify {} with {}", lhs, rhs), &c.span)
         })?;
         subst = subst.compose(&s);
     }
@@ -609,12 +609,12 @@ impl InferContext {
     pub fn lookup_for_write(&self, name: &str, span: &Span) -> Result<InferType, GustError> {
         match self.mono_env.iter().rev().find_map(|scope| scope.get(name)) {
             None => Err(GustError::type_error(
-                crate::error::ErrorCode::E0003,
+                crate::error::TypeErrorCode::T0003,
                 format!("use of undeclared variable `{name}`"),
                 span,
             )),
             Some((_, false)) => Err(GustError::type_error(
-                crate::error::ErrorCode::E0006,
+                crate::error::TypeErrorCode::T0006,
                 format!("cannot assign to immutable binding `{name}`"),
                 span,
             )),

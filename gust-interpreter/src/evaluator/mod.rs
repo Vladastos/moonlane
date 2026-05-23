@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::{BinOp, Literal, Param, Pattern, Span, UnaryOp};
-use crate::error::GustError;
+use crate::error::{RuntimeErrorCode, GustError};
 use crate::typed_ast::{FunBody, TypedBlock, TypedDecl, TypedExpr, TypedForInit, TypedProgram, TypedStmt};
 
 // ── Runtime values ────────────────────────────────────────────────────────────
@@ -197,17 +197,16 @@ pub fn evaluate(program: TypedProgram) -> Result<(), GustError> {
     let main_body = match env.get("main") {
         Some(Value::Closure(rc)) => rc.body.clone(),
         Some(Value::Unit) =>
-            return Err(GustError::panic("main() is generic — not supported in v0.1", &dummy)),
+            return Err(GustError::panic(RuntimeErrorCode::R0002, "main() is generic — not supported in v0.1", &dummy)),
         Some(_) =>
-            return Err(GustError::panic("`main` is not a function", &dummy)),
+            return Err(GustError::panic(RuntimeErrorCode::R0002, "`main` is not a function", &dummy)),
         None =>
-            return Err(GustError::panic("no main() function defined", &dummy)),
+            return Err(GustError::panic(RuntimeErrorCode::R0001, "no main() function defined", &dummy)),
     };
     match eval_block(&main_body, &mut env)? {
         Signal::Value(_) | Signal::Return(_) => Ok(()),
-        other => Err(GustError::panic(
+        other => Err(GustError::internal(
             format!("unexpected signal from main(): {other:?}"),
-            &dummy,
         )),
     }
 }
@@ -254,7 +253,7 @@ fn eval_decl(decl: &TypedDecl, env: &mut Environment) -> Result<Signal, GustErro
         TypedDecl::Fun(f) => {
             let body = match &f.body {
                 FunBody::Typed(b) => b.clone(),
-                FunBody::Generic(_) => return Err(GustError::internal(
+                FunBody::Generic(_) => return Err(GustError::not_implemented(
                     "generic functions are not supported in v0.1",
                 )),
             };
@@ -312,8 +311,8 @@ pub fn eval_stmt(stmt: &TypedStmt, env: &mut Environment) -> Result<Signal, Gust
                 match eval_expr(&w.condition, env)? {
                     Signal::Value(Value::Bool(false)) => break,
                     Signal::Value(Value::Bool(true))  => {}
-                    Signal::Value(_) => return Err(GustError::panic(
-                        "while: expected Bool condition", &w.span,
+                    Signal::Value(_) => return Err(GustError::internal(
+                        "while: expected Bool condition (typechecker should have caught this)",
                     )),
                     other => return Ok(other), // Return / PropagateErr from condition
                 }
@@ -346,8 +345,8 @@ pub fn eval_stmt(stmt: &TypedStmt, env: &mut Environment) -> Result<Signal, Gust
                     match eval_expr(cond, env)? {
                         Signal::Value(Value::Bool(false)) => break Ok(Signal::Value(Value::Unit)),
                         Signal::Value(Value::Bool(true))  => {}
-                        Signal::Value(_) => break Err(GustError::panic(
-                            "for: expected Bool condition", &f.span,
+                        Signal::Value(_) => break Err(GustError::internal(
+                            "for: expected Bool condition (typechecker should have caught this)",
                         )),
                         other => break Ok(other),
                     }
@@ -392,7 +391,7 @@ fn eval_for_in(
             let e = range_field(fields, "end",   span)?;
             (s..=e).map(Value::Int).collect()
         }
-        _ => return Err(GustError::panic("for-in: expected Array or Range", span)),
+        _ => return Err(GustError::panic(RuntimeErrorCode::R0011, "for-in: expected Array or Range", span)),
     };
 
     for item in items {
@@ -411,10 +410,10 @@ fn eval_for_in(
     Ok(Signal::Value(Value::Unit))
 }
 
-fn range_field(fields: &HashMap<String, Value>, name: &str, span: &Span) -> Result<i64, GustError> {
+fn range_field(fields: &HashMap<String, Value>, name: &str, _span: &Span) -> Result<i64, GustError> {
     match fields.get(name) {
         Some(Value::Int(n)) => Ok(*n),
-        _ => Err(GustError::panic(format!("range: missing or non-Int field `{name}`"), span)),
+        _ => Err(GustError::internal(format!("range: missing or non-Int field `{name}`"))),
     }
 }
 
@@ -438,6 +437,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
             match env.get(name) {
                 Some(val) => Ok(Signal::Value(val)),
                 None => Err(GustError::panic(
+                    RuntimeErrorCode::R0003,
                     format!("undefined variable `{name}`"),
                     span,
                 )),
@@ -453,6 +453,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 match env.get(name) {
                     Some(val) => Ok(Signal::Value(val)),
                     None => Err(GustError::panic(
+                        RuntimeErrorCode::R0003,
                         format!("undefined variable `{name}`"),
                         span,
                     )),
@@ -491,7 +492,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 return match l {
                     Value::Bool(false) => Ok(Signal::Value(Value::Bool(false))),
                     Value::Bool(true)  => eval_expr(rhs, env),
-                    _ => Err(GustError::panic("&&: expected Bool", span)),
+                    _ => Err(GustError::internal("&&: expected Bool (typechecker should have caught this)")),
                 };
             }
             if matches!(op, BinOp::Or) {
@@ -499,7 +500,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 return match l {
                     Value::Bool(true)  => Ok(Signal::Value(Value::Bool(true))),
                     Value::Bool(false) => eval_expr(rhs, env),
-                    _ => Err(GustError::panic("||: expected Bool", span)),
+                    _ => Err(GustError::internal("||: expected Bool (typechecker should have caught this)")),
                 };
             }
 
@@ -508,19 +509,19 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
             eval_binop(op, lv, rv, span)
         }
 
-        TypedExpr::UnaryOp(op, operand, _, span) => {
+        TypedExpr::UnaryOp(op, operand, _, _span) => {
             let v = eval_expr(operand, env)?.into_value();
             let result = match (op, v) {
                 (UnaryOp::Neg, Value::Int(n))   => Value::Int(-n),
                 (UnaryOp::Neg, Value::Float(f)) => Value::Float(-f),
                 (UnaryOp::Not, Value::Bool(b))  => Value::Bool(!b),
-                (UnaryOp::Neg, _) => return Err(GustError::panic("unary `-`: expected Int or Float", span)),
-                (UnaryOp::Not, _) => return Err(GustError::panic("unary `!`: expected Bool", span)),
+                (UnaryOp::Neg, _) => return Err(GustError::internal("unary `-`: expected Int or Float (typechecker should have caught this)")),
+                (UnaryOp::Not, _) => return Err(GustError::internal("unary `!`: expected Bool (typechecker should have caught this)")),
             };
             Ok(Signal::Value(result))
         }
 
-        TypedExpr::Cast { expr: inner, target_type, span, .. } => {
+        TypedExpr::Cast { expr: inner, target_type, span: _, .. } => {
             // v0.1: only `Int as Float` (widening) and identity casts reach here —
             // the typechecker rejects all other forms before evaluation.
             // TODO(Epic 004, task 0002): replace with From<S> trait dispatch.
@@ -532,9 +533,8 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 // Identity casts
                 (Value::Int(_),   crate::ast::TypeExpr::Named(t, _)) if t == "Int"   => v,
                 (Value::Float(_), crate::ast::TypeExpr::Named(t, _)) if t == "Float" => v,
-                _ => return Err(GustError::panic(
+                _ => return Err(GustError::internal(
                     "cast: unsupported coercion (should have been caught by typechecker)",
-                    span,
                 )),
             };
             Ok(Signal::Value(result))
@@ -546,12 +546,13 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 Value::Tuple(elems) => {
                     elems.into_iter().nth(*index).map(Signal::Value).ok_or_else(|| {
                         GustError::panic(
+                            RuntimeErrorCode::R0005,
                             format!("tuple index {index} out of bounds"),
                             span,
                         )
                     })
                 }
-                _ => Err(GustError::panic("tuple access on non-tuple", span)),
+                _ => Err(GustError::internal("tuple access on non-tuple (typechecker should have caught this)")),
             }
         }
 
@@ -564,6 +565,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                     let len = borrowed.len() as i64;
                     if i < 0 || i >= len {
                         Err(GustError::panic(
+                            RuntimeErrorCode::R0004,
                             format!("index {i} out of bounds (len {len})"),
                             span,
                         ))
@@ -571,18 +573,18 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                         Ok(Signal::Value(borrowed[i as usize].clone()))
                     }
                 }
-                _ => Err(GustError::panic("index: expected Array[Int]", span)),
+                _ => Err(GustError::internal("index: expected Array[Int] (typechecker should have caught this)")),
             }
         }
 
-        TypedExpr::If { condition, then_branch, else_branch, span, .. } => {
+        TypedExpr::If { condition, then_branch, else_branch, .. } => {
             match eval_expr(condition, env)? {
                 Signal::Value(Value::Bool(true))  => eval_block(then_branch, env),
                 Signal::Value(Value::Bool(false)) => match else_branch {
                     Some(branch) => eval_block(branch, env),
                     None         => Ok(Signal::Value(Value::Unit)),
                 },
-                Signal::Value(_) => Err(GustError::panic("if: expected Bool condition", span)),
+                Signal::Value(_) => Err(GustError::internal("if: expected Bool condition (typechecker should have caught this)")),
                 other => Ok(other), // propagate Return / PropagateErr from condition
             }
         }
@@ -614,7 +616,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                     match guard_val {
                         Value::Bool(true)  => {}
                         Value::Bool(false) => continue,
-                        _ => return Err(GustError::panic("match guard: expected Bool", &arm.span)),
+                        _ => return Err(GustError::internal("match guard: expected Bool (typechecker should have caught this)")),
                     }
                 }
                 // Execute the arm body in a scope with pattern bindings.
@@ -624,7 +626,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 env.pop_scope();
                 return result;
             }
-            Err(GustError::panic("match: no arm matched scrutinee", &m.span))
+            Err(GustError::panic(RuntimeErrorCode::R0006, "match: no arm matched scrutinee", &m.span))
         }
 
         TypedExpr::Assign { target, op, value, span, .. } => {
@@ -636,13 +638,13 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                         rhs
                     } else {
                         let cur = env.get(name).ok_or_else(|| {
-                            GustError::panic(format!("assign: undefined `{name}`"), span)
+                            GustError::panic(RuntimeErrorCode::R0003, format!("assign: undefined `{name}`"), span)
                         })?;
                         apply_assign_op(op, cur, rhs, span)?
                     };
                     if !env.set(name, new_val) {
                         return Err(GustError::panic(
-                            format!("assign: undefined `{name}`"), span,
+                            RuntimeErrorCode::R0003, format!("assign: undefined `{name}`"), span,
                         ));
                     }
                     Ok(Signal::Value(Value::Unit))
@@ -651,20 +653,20 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 AssignTarget::Index { object, index, span: tspan } => {
                     let arr_name = match object.as_ref() {
                         Expr::Ident(n, _) => n,
-                        _ => return Err(GustError::panic(
-                            "index assign: only `ident[...]` supported in PoC", tspan,
+                        _ => return Err(GustError::internal(
+                            "index assign: only `ident[...]` supported in PoC",
                         )),
                     };
                     let i = eval_untyped_index(index, env, tspan)?;
                     let arr_val = env.get(arr_name).ok_or_else(|| {
-                        GustError::panic(format!("assign: `{arr_name}` not found"), tspan)
+                        GustError::panic(RuntimeErrorCode::R0003, format!("assign: `{arr_name}` not found"), tspan)
                     })?;
                     match arr_val {
                         Value::Array(rc) => {
                             let len = rc.borrow().len() as i64;
                             if i < 0 || i >= len {
                                 return Err(GustError::panic(
-                                    format!("index {i} out of bounds (len {len})"), span,
+                                    RuntimeErrorCode::R0004, format!("index {i} out of bounds (len {len})"), span,
                                 ));
                             }
                             let new_val = if matches!(op, AssignOp::Assign) {
@@ -676,8 +678,8 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                             rc.borrow_mut()[i as usize] = new_val;
                             Ok(Signal::Value(Value::Unit))
                         }
-                        _ => Err(GustError::panic(
-                            format!("index assign: `{arr_name}` is not an Array"), tspan,
+                        _ => Err(GustError::internal(
+                            format!("index assign: `{arr_name}` is not an Array (typechecker should have caught this)"),
                         )),
                     }
                 }
@@ -685,18 +687,18 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 AssignTarget::FieldAccess { object, field, span: tspan } => {
                     let obj_name = match object.as_ref() {
                         Expr::Ident(n, _) => n,
-                        _ => return Err(GustError::panic(
-                            "field assign: only `ident.field` supported in PoC", tspan,
+                        _ => return Err(GustError::internal(
+                            "field assign: only `ident.field` supported in PoC",
                         )),
                     };
                     let rc = env.get_rc(obj_name).ok_or_else(|| {
-                        GustError::panic(format!("assign: `{obj_name}` not found"), tspan)
+                        GustError::panic(RuntimeErrorCode::R0003, format!("assign: `{obj_name}` not found"), tspan)
                     })?;
                     let mut borrowed = rc.borrow_mut();
                     let fields = match &mut *borrowed {
                         Value::Struct { fields, .. } | Value::Enum { fields, .. } => fields,
-                        _ => return Err(GustError::panic(
-                            format!("field assign: `{obj_name}` is not a struct/enum"), tspan,
+                        _ => return Err(GustError::internal(
+                            format!("field assign: `{obj_name}` is not a struct/enum (typechecker should have caught this)"),
                         )),
                     };
                     let new_val = if matches!(op, AssignOp::Assign) {
@@ -704,7 +706,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                     } else {
                         let cur = fields.get(field).cloned().ok_or_else(|| {
                             GustError::panic(
-                                format!("field assign: no field `{field}`"), tspan,
+                                RuntimeErrorCode::R0008, format!("field assign: no field `{field}`"), tspan,
                             )
                         })?;
                         apply_assign_op(op, cur, rhs, span)?
@@ -715,7 +717,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
             }
         }
 
-        TypedExpr::StructLiteral { path, fields, span, .. } => {
+        TypedExpr::StructLiteral { path, fields, span: _, .. } => {
             let mut field_vals: HashMap<String, Value> = HashMap::new();
             for (name, expr) in fields {
                 field_vals.insert(name.clone(), eval_expr(expr, env)?.into_value());
@@ -729,7 +731,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                 }))
             } else {
                 let name = path.last().ok_or_else(|| {
-                    GustError::panic("struct literal: empty path", span)
+                    GustError::internal("struct literal: empty path")
                 })?.clone();
                 Ok(Signal::Value(Value::Struct { name, fields: field_vals }))
             }
@@ -739,10 +741,10 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
             let val = eval_expr(object, env)?.into_value();
             let fields = match &val {
                 Value::Struct { fields, .. } | Value::Enum { fields, .. } => fields,
-                _ => return Err(GustError::panic("field access on non-struct/enum", span)),
+                _ => return Err(GustError::internal("field access on non-struct/enum (typechecker should have caught this)")),
             };
             fields.get(field).cloned().map(Signal::Value).ok_or_else(|| {
-                GustError::panic(format!("no field `{field}` on value"), span)
+                GustError::panic(RuntimeErrorCode::R0008, format!("no field `{field}` on value"), span)
             })
         }
 
@@ -761,12 +763,13 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
             let type_name = match &recv_val {
                 Value::Struct { name, .. } | Value::Enum { name, .. } => name.clone(),
                 _ => return Err(GustError::panic(
+                    RuntimeErrorCode::R0009,
                     format!("method `{method}` not found on this value"), span,
                 )),
             };
             let key = format!("{type_name}::{method}");
             let func = env.get(&key).ok_or_else(|| {
-                GustError::panic(format!("no method `{method}` on `{type_name}`"), span)
+                GustError::panic(RuntimeErrorCode::R0009, format!("no method `{method}` on `{type_name}`"), span)
             })?;
             // Prepend receiver as first argument (the `self` param).
             let mut all_args = vec![recv_val];
@@ -801,22 +804,22 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Gust
                     match variant.as_str() {
                         "Ok" => {
                             let v = fields.get("value").cloned().ok_or_else(|| {
-                                GustError::panic("Result::Ok: missing `value` field", span)
+                                GustError::internal("Result::Ok: missing `value` field")
                             })?;
                             Ok(Signal::Value(v))
                         }
                         "Err" => {
                             let e = fields.get("error").cloned().ok_or_else(|| {
-                                GustError::panic("Result::Err: missing `error` field", span)
+                                GustError::internal("Result::Err: missing `error` field")
                             })?;
                             Ok(Signal::PropagateErr(e))
                         }
-                        v => Err(GustError::panic(
-                            format!("?: unknown Result variant `{v}`"), span,
+                        v => Err(GustError::internal(
+                            format!("?: unknown Result variant `{v}`"),
                         )),
                     }
                 }
-                _ => Err(GustError::panic("?: expected a Result value", span)),
+                _ => Err(GustError::panic(RuntimeErrorCode::R0012, "?: expected a Result value", span)),
             }
         }
     }
@@ -903,9 +906,10 @@ fn call_function(func: Value, args: Vec<Value>, span: &Span) -> Result<Signal, G
         }
 
         Value::Unit =>
-            Err(GustError::panic("call: target is a generic function (not supported in v0.1)", span)),
+            Err(GustError::panic(RuntimeErrorCode::R0002, "call: target is a generic function (not supported in v0.1)", span)),
 
         other => Err(GustError::panic(
+            RuntimeErrorCode::R0010,
             format!("call: expected a closure or builtin, got {:?}", std::mem::discriminant(&other)),
             span,
         )),
@@ -919,18 +923,18 @@ fn call_function(func: Value, args: Vec<Value>, span: &Span) -> Result<Signal, G
 fn eval_untyped_index(
     expr: &crate::ast::Expr,
     env: &Environment,
-    span: &Span,
+    _span: &Span,
 ) -> Result<i64, GustError> {
     use crate::ast::Expr;
     match expr {
         Expr::Literal(Literal::Int(n), _) => Ok(*n),
         Expr::Ident(name, _) => match env.get(name) {
             Some(Value::Int(n)) => Ok(n),
-            Some(_) => Err(GustError::panic(format!("`{name}` is not an Int"), span)),
-            None    => Err(GustError::panic(format!("undefined `{name}`"), span)),
+            Some(_) => Err(GustError::internal(format!("`{name}` is not an Int"))),
+            None    => Err(GustError::internal(format!("eval_untyped_index: undefined `{name}`"))),
         },
-        _ => Err(GustError::panic(
-            "index expression too complex for PoC; assign the index to a variable first", span,
+        _ => Err(GustError::internal(
+            "index expression too complex for PoC; assign the index to a variable first",
         )),
     }
 }
@@ -960,11 +964,11 @@ fn eval_binop(op: &BinOp, lv: Value, rv: Value, span: &Span) -> Result<Signal, G
         (BinOp::Sub, Value::Int(a), Value::Int(b)) => Value::Int(a - b),
         (BinOp::Mul, Value::Int(a), Value::Int(b)) => Value::Int(a * b),
         (BinOp::Div, Value::Int(a), Value::Int(b)) => {
-            if b == 0 { return Err(GustError::panic("division by zero", span)); }
+            if b == 0 { return Err(GustError::panic(RuntimeErrorCode::R0007, "division by zero", span)); }
             Value::Int(a / b)
         }
         (BinOp::Rem, Value::Int(a), Value::Int(b)) => {
-            if b == 0 { return Err(GustError::panic("remainder by zero", span)); }
+            if b == 0 { return Err(GustError::panic(RuntimeErrorCode::R0007, "remainder by zero", span)); }
             Value::Int(a % b)
         }
 
@@ -1019,9 +1023,8 @@ fn eval_binop(op: &BinOp, lv: Value, rv: Value, span: &Span) -> Result<Signal, G
             },
         },
 
-        (_, lv, rv) => return Err(GustError::panic(
-            format!("binop: unsupported operand types ({lv:?}, {rv:?})"),
-            span,
+        (_, lv, rv) => return Err(GustError::internal(
+            format!("binop: unsupported operand types ({lv:?}, {rv:?}) (typechecker should have caught this)"),
         )),
     };
     Ok(Signal::Value(result))
@@ -1033,81 +1036,81 @@ fn register_builtins(env: &mut Environment) {
     // Each builtin is a named function value pre-loaded into the root environment.
     // Signatures match the spec's built-in function table.
 
-    env.define("print", Value::Builtin("print".to_string(), |args, span| {
+    env.define("print", Value::Builtin("print".to_string(), |args, _span| {
         if let Some(Value::Str(s)) = args.first() {
             print!("{}", s);
             Ok(Value::Unit)
         } else {
-            Err(GustError::panic("print: expected String argument", span))
+            Err(GustError::internal("print: expected String argument"))
         }
     }));
 
-    env.define("println", Value::Builtin("println".to_string(), |args, span| {
+    env.define("println", Value::Builtin("println".to_string(), |args, _span| {
         if let Some(Value::Str(s)) = args.first() {
             println!("{}", s);
             Ok(Value::Unit)
         } else {
-            Err(GustError::panic("println: expected String argument", span))
+            Err(GustError::internal("println: expected String argument"))
         }
     }));
 
-    env.define("int_to_string", Value::Builtin("int_to_string".to_string(), |args, span| {
+    env.define("int_to_string", Value::Builtin("int_to_string".to_string(), |args, _span| {
         if let Some(Value::Int(n)) = args.first() {
             Ok(Value::Str(n.to_string()))
         } else {
-            Err(GustError::panic("int_to_string: expected Int argument", span))
+            Err(GustError::internal("int_to_string: expected Int argument"))
         }
     }));
 
-    env.define("float_to_string", Value::Builtin("float_to_string".to_string(), |args, span| {
+    env.define("float_to_string", Value::Builtin("float_to_string".to_string(), |args, _span| {
         if let Some(Value::Float(f)) = args.first() {
             Ok(Value::Str(f.to_string()))
         } else {
-            Err(GustError::panic("float_to_string: expected Float argument", span))
+            Err(GustError::internal("float_to_string: expected Float argument"))
         }
     }));
 
-    env.define("bool_to_string", Value::Builtin("bool_to_string".to_string(), |args, span| {
+    env.define("bool_to_string", Value::Builtin("bool_to_string".to_string(), |args, _span| {
         if let Some(Value::Bool(b)) = args.first() {
             Ok(Value::Str(if *b { "true" } else { "false" }.to_string()))
         } else {
-            Err(GustError::panic("bool_to_string: expected Bool argument", span))
+            Err(GustError::internal("bool_to_string: expected Bool argument"))
         }
     }));
 
-    env.define("string_len", Value::Builtin("string_len".to_string(), |args, span| {
+    env.define("string_len", Value::Builtin("string_len".to_string(), |args, _span| {
         if let Some(Value::Str(s)) = args.first() {
             Ok(Value::Int(s.chars().count() as i64))
         } else {
-            Err(GustError::panic("string_len: expected String argument", span))
+            Err(GustError::internal("string_len: expected String argument"))
         }
     }));
 
-    env.define("string_concat", Value::Builtin("string_concat".to_string(), |args, span| {
+    env.define("string_concat", Value::Builtin("string_concat".to_string(), |args, _span| {
         match (args.get(0), args.get(1)) {
             (Some(Value::Str(a)), Some(Value::Str(b))) => Ok(Value::Str(a.clone() + b)),
-            _ => Err(GustError::panic("string_concat: expected two String arguments", span)),
+            _ => Err(GustError::internal("string_concat: expected two String arguments")),
         }
     }));
 
-    env.define("array_push", Value::Builtin("array_push".to_string(), |args, span| {
+    env.define("array_push", Value::Builtin("array_push".to_string(), |args, _span| {
         if let Some(Value::Array(arr)) = args.first() {
             if let Some(val) = args.get(1) {
                 arr.borrow_mut().push(val.clone());
                 Ok(Value::Unit)
             } else {
-                Err(GustError::panic("array_push: missing value argument", span))
+                Err(GustError::internal("array_push: missing value argument"))
             }
         } else {
-            Err(GustError::panic("array_push: expected Array as first argument", span))
+            Err(GustError::internal("array_push: expected Array as first argument"))
         }
     }));
 
-    env.define("array_len", Value::Builtin("array_len".to_string(), |args, span| {
+    env.define("array_len", Value::Builtin("array_len".to_string(), |args, _span| {
         if let Some(Value::Array(arr)) = args.first() {
             Ok(Value::Int(arr.borrow().len() as i64))
         } else {
-            Err(GustError::panic("array_len: expected Array argument", span))
+            Err(GustError::internal("array_len: expected Array argument"))
         }
     }));
 

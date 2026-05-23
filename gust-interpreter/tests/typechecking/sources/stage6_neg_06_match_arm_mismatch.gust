@@ -2,5 +2,5 @@
 let x: Int = 42;
 let result = match x {
     0 => "zero",
-    _ => 42, // ERROR[E0001]
+    _ => 42, // ERROR[T0001]
 };

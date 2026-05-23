@@ -13,4 +13,4 @@
 let identity = fun(x) { x };
 
 let a = identity(42);
-let b = identity(true);  // ERROR[E0001]
+let b = identity(true);  // ERROR[T0001]
