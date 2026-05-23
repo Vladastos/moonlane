@@ -53,15 +53,60 @@ Sprints are the unit of shipping. All sprint work must live on a dedicated branc
 
 ### Closing a sprint
 
-1. **Ensure all planned issues are closed** and all tests pass on the branch.
-2. **Create the sprint review issue** (title: `Sprint N Review — <theme>`) summarising what was delivered, any debt carried forward, and architectural notes. Link it to the kickoff issue.
+**No sprint may be merged to `main` without passing the quality gate below.** This is not optional — skipping it defeats the purpose of the sprint process.
+
+#### Quality Gate (mandatory before PR)
+
+Run `/sprint-end` to execute the full checklist. It will not produce a PR until every gate passes. The gates are:
+
+1. **Test suite** — `cargo test` must pass with zero failures. Every single test, including those unrelated to the sprint's changes, must be green.
+
+2. **Code quality** — for every file touched in the sprint diff (`git diff main..HEAD --name-only`):
+   - No dead code that should have been cleaned up (unused variables, unreachable arms, stale comments).
+   - No `todo!()`, `unimplemented!()`, or `unreachable!()` added without a tracking issue.
+   - No `unwrap()` or `expect()` on paths that can realistically fail at runtime.
+   - Builtins registered in all required places (see issue #106 pattern — a builtin added to `registry.rs` must also appear in `construction.rs`).
+
+3. **Test coverage** — every feature or fix introduced in the sprint must have at least one test:
+   - New builtins → typechecking test in `tests/typechecking/sources/`.
+   - New grammar constructs → parsing test or typechecking test.
+   - New evaluator behaviour → evaluator test or integration test in `tests/`.
+   - Bug fixes → a regression test that would have caught the bug.
+   - If a case is genuinely untestable, document why in the review issue.
+
+4. **Spec accuracy** — for every language-visible change in the sprint:
+   - The feature or behaviour is described in `docs/public/spec/`. If it isn't there, it doesn't exist as far as users are concerned.
+   - The builtin table in `docs/public/spec/runtime.md` matches what `register_builtins` actually registers.
+   - Any accepted RFC implemented in the sprint has `status: incorporated` in its frontmatter.
+
+5. **Spec completeness** — read the full spec entry point (`docs/public/spec.md`) and every section it links to. Verify:
+   - No section refers to a feature that was removed or renamed during the sprint without updating the reference.
+   - No "TODO" or "TBD" markers were left behind by sprint work.
+   - The changelog (`docs/public/changelog.md`) has an entry for the sprint's version milestone.
+
+6. **Internal doc accuracy** — for every component touched:
+   - `tree-walk-interpreter/docs/architecture.md` still accurately describes the pipeline.
+   - `tree-walk-interpreter/docs/evaluator.md` reflects any new Value variants, signal types, or builtin behaviour.
+   - `tree-walk-interpreter/docs/typechecker.md` reflects any new passes, constraints, or inference rules.
+   - Decision records exist for any non-obvious architectural choice made during the sprint.
+
+If **any gate fails**, the sprint cannot close. Fix the issue, commit the fix to the sprint branch, and re-run the gate.
+
+#### Closing steps (after quality gate passes)
+
+1. **Update the kickoff issue** to reflect what was actually completed vs. deferred, as a factual record.
+2. **Create the sprint review issue** (title: `Sprint N Review — <theme>`) summarising what was delivered, what was deferred and why, architectural notes, and any quality gate findings that were resolved. Link it to the kickoff issue.
 3. **Open a PR** from `sprint/N` → `main`:
    ```bash
    gh pr create \
+     --repo gust-lang/gust \
      --base main \
      --head sprint/N \
      --title "Sprint N — <theme>" \
-     --body "Sprint review: #<review-issue-number>\n\nCloses #<kickoff-issue-number>"
+     --body "Sprint review: #<review-issue-number>
+
+   Closes #<review-issue-number>
+   Closes #<kickoff-issue-number>"
    ```
    The PR description must link the sprint review issue. The PR diff is the authoritative record of all changes made during the sprint.
 4. **Merge the PR** (squash or merge commit — no force-push). Close the kickoff issue if not auto-closed.
@@ -71,6 +116,7 @@ Sprints are the unit of shipping. All sprint work must live on a dedicated branc
 
 - The PR diff makes sprint reviews straightforward: reviewers see exactly what changed, in what files, without reconstructing it from individual commits.
 - `main` always reflects a completed, reviewed sprint — never mid-sprint state.
+- The quality gate ensures that `main` is always in a state where the spec, docs, tests, and code agree with each other. Drifting any one of these degrades the project over time.
 - Rollback of a sprint is a single revert if needed.
 
 ---

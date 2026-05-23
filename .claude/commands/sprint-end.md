@@ -1,92 +1,190 @@
 # /sprint-end
 
-Close a sprint: run tests, carry over incomplete issues, build and publish the sprint review issue and PR, then hand off to the user.
+Close a sprint: run the mandatory quality gate, then build and publish the sprint review issue and PR.
 
-**Arguments:** `$ARGUMENTS` — sprint number, e.g. `3`
+**Arguments:** `$ARGUMENTS` — sprint number, e.g. `1`
 
-## Steps
+**This skill will not produce a PR until every quality gate passes. See AGENTS.md § Quality Gate for the rationale.**
 
-1. **Fetch the sprint kickoff issue** to retrieve the sprint goal, planned issues, and kickoff issue number:
+---
+
+## Step 1 — Fetch sprint context
+
+Read the kickoff issue to get the sprint goal and planned issue list:
 ```bash
-wsl gh issue list --repo Vladastos/Gust \
-  --label "sprint:kickoff" \
-  --search "Sprint <N> Kickoff" \
-  --json number,title,body
+gh issue list --repo gust-lang/gust --search "Sprint $ARGUMENTS Kickoff" --state all --json number,title,body
 ```
 
-2. **Categorise planned issues** into completed and carried-over:
+Categorise all planned issues as completed (closed) or carried over (still open):
 ```bash
-wsl gh issue list --repo Vladastos/Gust \
-  --label "status:in-progress" \
-  --json number,title,state,milestone
+gh issue list --repo gust-lang/gust --milestone "v0.X" --state open --json number,title
 ```
-Issues still open → carried over. Issues closed during the sprint → completed.
 
-3. **Move carried-over issues back to backlog:**
+---
+
+## Step 2 — Quality Gate (mandatory — do not skip)
+
+Work through every gate in order. **If any gate fails, stop, report what failed, and do not proceed to the PR step.**
+
+### Gate 1: Test suite
+
 ```bash
-wsl gh issue edit <N> --repo Vladastos/Gust \
+cd gust-interpreter && cargo test
+```
+
+All tests must pass with zero failures. If any fail, fix them before continuing.
+
+### Gate 2: Code quality
+
+Inspect every file changed on the sprint branch relative to `main`:
+```bash
+git diff main..HEAD --name-only
+```
+
+For each changed Rust file, check:
+- No stale `todo!()`, `unimplemented!()`, or `unreachable!()` without a tracking issue linked in a comment.
+- No `unwrap()` or `expect()` on paths that can fail at runtime (parsing errors, env lookups on user input).
+- No unused imports, dead match arms, or commented-out code left behind.
+- Builtins are registered in **all** required places: `src/typechecker/registry.rs` (inference pass) **and** `src/typechecker/construction.rs` (construction pass). A builtin missing from construction.rs will typecheck but fail with "undefined name" at runtime.
+
+Report each finding. If a `todo!()`/`unreachable!()` is intentional (e.g. a placeholder variant per an RFC), verify a tracking issue exists and note it.
+
+### Gate 3: Test coverage
+
+For every feature or fix introduced in the sprint, verify a test exists:
+
+| Change type | Required test location |
+|---|---|
+| New builtin | `gust-interpreter/tests/typechecking/sources/stage*_*.gust` — positive and at least one negative (wrong arg type) |
+| New grammar construct | Parsing test or typechecking test |
+| New evaluator behaviour | Evaluator test in `gust-interpreter/tests/evaluator_tests.rs` or integration `.gust` file |
+| Bug fix | A regression test that would have caught the original bug |
+| New error code | A negative typechecking or evaluator test that triggers it |
+
+List each sprint change and confirm its test. Flag any untested changes — either add a test or document in the review issue why it is untestable.
+
+### Gate 4: Spec accuracy
+
+For every language-visible change in the sprint, verify the spec reflects it:
+
+1. Check `docs/public/spec/runtime.md` builtin table against `src/typechecker/registry.rs` — every `ctx.bind_poly(...)` call must have a matching row.
+2. Check `docs/public/spec/` for each new grammar construct — it must be described in the appropriate section (expressions, declarations, etc.).
+3. Check each RFC implemented this sprint — its frontmatter `status` must be `incorporated`.
+4. Check `docs/public/changelog.md` — the current version milestone must have an entry listing the sprint's shipped features.
+
+Report any spec/code divergence found.
+
+### Gate 5: Spec completeness
+
+Read `docs/public/spec.md` and every section it links to. Verify:
+- No section refers to a feature that was removed or renamed this sprint without updating the reference.
+- No `TODO`, `TBD`, or `(coming soon)` markers were introduced by sprint work.
+- All cross-references between spec sections are still valid.
+
+### Gate 6: Internal doc accuracy
+
+For every component touched during the sprint, check:
+
+| Component | Doc to verify |
+|---|---|
+| Evaluator (`src/evaluator/`) | `gust-interpreter/docs/evaluator.md` — Value variants, signals, builtins, known limitations |
+| Typechecker (`src/typechecker/`) | `gust-interpreter/docs/typechecker.md` — passes, constraints, inference rules |
+| Parser / grammar | `gust-interpreter/docs/architecture.md` — pipeline diagram still accurate |
+| Non-obvious design choice | `gust-interpreter/docs/decisions/` — decision record exists |
+
+Report any internal doc that is stale or missing.
+
+---
+
+## Step 3 — Fix findings before continuing
+
+For every failing gate from Step 2: fix the issue, commit to the sprint branch, and re-run the relevant gate check. Do not proceed until all gates are green.
+
+---
+
+## Step 4 — Move carried-over issues to backlog
+
+For each issue that is still open and was planned for this sprint:
+```bash
+gh issue edit <N> --repo gust-lang/gust \
   --remove-label "status:in-progress" \
   --add-label "status:backlog"
 ```
 
-4. **Ensure all tests pass on the sprint branch:**
-```bash
-cd tree-walk-interpreter && cargo test
-```
-If any tests fail, do not proceed — fix them first.
+---
 
-5. **Gather Epic Progress data.**
-Determine which milestone(s) the sprint issues belong to (from step 2). For each milestone, fetch its open and closed issue counts:
-```bash
-wsl gh api repos/Vladastos/Gust/milestones \
-  --jq '.[] | select(.title == "<milestone>") | {title: .title, open: .open_issues, closed: .closed_issues}'
-```
-Format as: `<milestone>: <closed>/<closed+open> issues closed`.
+## Step 5 — Update the kickoff issue
 
-6. **Gather Spec Notes.**
-Find all commits on the sprint branch that touched the `docs/` submodule:
+Edit the kickoff issue body to reflect what was actually completed vs. deferred (use checkboxes: `[x]` for done, `[ ]` for carried over). This is the factual record of the sprint.
+
+---
+
+## Step 6 — Gather epic and spec notes
+
+Epic progress — for each milestone touched this sprint:
+```bash
+gh api repos/gust-lang/gust/milestones --jq '.[] | select(.title == "<milestone>") | "\(.title): \(.closed_issues)/\(.open_issues + .closed_issues) issues closed"'
+```
+
+Spec changes — all commits on the sprint branch that touched `docs/`:
 ```bash
 git log main..HEAD --oneline -- docs/
 ```
-Also check for any RFC status changes committed during the sprint:
-```bash
-git log main..HEAD --oneline -- docs/internal/rfcs/
-```
-If there are no such commits, write "No spec changes this sprint."
 
-7. **Create the sprint review issue** using all data gathered above:
+---
+
+## Step 7 — Create the sprint review issue
+
 ```bash
-wsl gh issue create \
-  --repo Vladastos/Gust \
-  --title "Sprint <N> Review" \
-  --label "sprint:review" \
-  --body "## Sprint Goal
+gh issue create \
+  --repo gust-lang/gust \
+  --title "Sprint $ARGUMENTS Review" \
+  --body "$(cat <<'EOF'
+## Sprint Goal
 <goal from kickoff issue>
 
+## Quality Gate Results
+All gates passed. ✅
+
+### Code quality findings resolved
+<list any findings from Gate 2 that were fixed, or "None">
+
+### Test coverage gaps resolved
+<list any untested changes that had tests added, or "None">
+
+### Spec / doc fixes
+<list any spec or doc corrections made during gate checks, or "None">
+
 ## Completed
-<for each closed issue: - [x] #N Title>
+<- [x] #N Title for each closed issue>
 
 ## Carried Over
-<for each open issue: - [ ] #N Title>
+<- [ ] #N Title for each open issue, with reason>
 
 ## Epic Progress
-<milestone progress lines from step 5>
+<milestone progress lines>
 
 ## Spec Notes
-<doc commit summaries from step 6, or 'No spec changes this sprint.'>
+<doc commit summaries, or "No spec changes this sprint.">
 
 ## Next Sprint Seeds
-<!-- Add ideas for the next sprint here -->"
+<!-- Add ideas for the next sprint here -->
+EOF
+)"
 ```
-Note the issue number returned — it is needed for the PR body.
 
-8. **Open a pull request** from `sprint/<N>` → `main`:
+Note the issue number returned — needed for the PR.
+
+---
+
+## Step 8 — Open the pull request
+
 ```bash
 gh pr create \
-  --repo Vladastos/Gust \
+  --repo gust-lang/gust \
   --base main \
-  --head sprint/<N> \
-  --title "Sprint <N> — <theme>" \
+  --head sprint/$ARGUMENTS \
+  --title "Sprint $ARGUMENTS — <theme>" \
   --body "$(cat <<'EOF'
 Sprint review: #<review-issue-number>
 
@@ -95,18 +193,25 @@ Closes #<kickoff-issue-number>
 EOF
 )"
 ```
-Both `Closes` lines are required. On merge, GitHub automatically closes the sprint review issue and the kickoff issue.
 
-9. **Leave a note for the user:**
+Both `Closes` lines are required — on merge, GitHub automatically closes both the review issue and the kickoff issue.
 
-> **Sprint <N> is wrapped up.**
+---
+
+## Step 9 — Hand off to user
+
+> **Sprint $ARGUMENTS quality gate passed and PR is open.**
 >
-> - Review issue: #<review-issue-number> — all sections are filled in. Add **Next Sprint Seeds** if you have ideas.
-> - **Merge the PR** on GitHub — this automatically closes the review issue and the kickoff issue.
-> - After merging, delete the `sprint/<N>` branch on GitHub.
+> - All 6 quality gates: ✅
+> - Review issue: #<N> — add **Next Sprint Seeds** if you have ideas.
+> - **Merge the PR** on GitHub — this automatically closes the review and kickoff issues.
+> - After merging, delete the `sprint/$ARGUMENTS` branch on GitHub.
+
+---
 
 ## Notes
-- A sprint with 0 completed issues should still produce a review issue — record why in Completed.
-- Do not close the kickoff or review issues manually — both close via `Closes #N` on PR merge.
-- If spec ambiguities surfaced (visible in Spec Notes), prompt the user to open a `/new-rfc`.
+
+- Do not create the PR until every quality gate in Step 2 passes. This is enforced by the skill structure — Step 3 must be completed before Step 8.
+- A sprint with 0 completed issues still produces a review issue — record why in Completed.
+- If spec ambiguities surfaced (visible in Gate 5 or Spec Notes), prompt the user to open a `/new-rfc`.
 - The sprint branch must not be deleted until after the PR is merged.
