@@ -98,6 +98,18 @@ fn error_format_p0002_file_line_col() {
     );
 }
 
+// neg_03_float_invalid.gust: exponent float (unsupported syntax) at line 1, col 17
+// The grammar does not support exponent notation so this triggers a P0001 mid-line.
+
+#[test]
+fn error_format_mid_line_column() {
+    let msg = parse_error_message("neg_03_float_invalid.gust");
+    assert!(
+        msg.contains("neg_03_float_invalid.gust:1:17"),
+        "expected 'file:1:17' in message, got: {msg}"
+    );
+}
+
 // neg_04_error_at_line_10.gust: `@@@` on line 10 — verifies line counting past line 9
 
 #[test]
