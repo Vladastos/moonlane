@@ -450,6 +450,16 @@ mod tests {
         check_file(&format!("{}/stage8_neg_02_ascribe_type_mismatch.gust", test_dir()));
     }
 
+    #[test]
+    fn stage8_neg_ascribe_bool_as_int() {
+        check_file(&format!("{}/stage8_neg_03_ascribe_bool_as_int.gust", test_dir()));
+    }
+
+    #[test]
+    fn stage8_neg_ascribe_wrong_struct() {
+        check_file(&format!("{}/stage8_neg_04_ascribe_wrong_struct.gust", test_dir()));
+    }
+
     // ── Known-limitation tests ─────────────────────────────────────────────────
 
     #[test]

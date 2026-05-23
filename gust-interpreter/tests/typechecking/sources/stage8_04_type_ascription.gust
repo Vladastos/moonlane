@@ -3,12 +3,49 @@
 // Empty array element type resolved via ascription
 let n: Int[] = [] : Int[];
 
-// Identity ascription
+// Identity ascription on a literal
 let x: Int = 1 : Int;
+
+// Ascription on a variable reference
+fun check_var() {
+    let v: Bool = true;
+    let w: Bool = v : Bool;
+}
 
 // Ascription in argument position
 fun take_ints(arr: Int[]) -> Int { array_len(arr) }
 let _: Int = take_ints([] : Int[]);
 
-// as conversion still works
+// Ascription disambiguates two empty-array arguments
+fun two_arrays(a: Int[], b: Float[]) -> Int { array_len(a) }
+let _: Int = two_arrays([] : Int[], [] : Float[]);
+
+// Ascription on a struct literal
+struct Point { x: Int, y: Int }
+fun check_struct() {
+    let p: Point = Point { x: 1, y: 2 } : Point;
+}
+
+// Ascription on a tuple
+fun check_tuple() {
+    let t: (Int, Bool) = (1, true) : (Int, Bool);
+}
+
+// Ascription as the tail expression of a function body
+fun returns_ascribed() -> Int {
+    42 : Int
+}
+
+// Ascription resolves the type of an unannotated let binding
+fun check_inferred() {
+    let arr = [] : Int[];
+    let _: Int = array_len(arr);
+}
+
+// Ascription inside a binary expression operand
+fun check_binop() {
+    let _: Bool = (1 : Int) == 1;
+}
+
+// as conversion still works alongside ascription
 let f: Float = 1 as Float;
