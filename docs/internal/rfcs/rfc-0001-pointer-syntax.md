@@ -2,7 +2,7 @@
 id: rfc-0001
 title: "Pointer Syntax and Semantics"
 date: '2026-05-19'
-status: draft
+status: deferred
 ---
 
 ## Summary
@@ -304,7 +304,7 @@ Complete the PoC evaluator. Resolve the RFC after the PoC ships. Grammar/AST/typ
 
 ## Decision
 
-**Outcome:** *(pending)*  
-**Target:** *(blank until accepted)*
+**Outcome:** Deferred  
+**Target:** v0.3
 
-*(Decision rationale goes here when the RFC is evaluated.)*
+Pointer syntax is out of scope for v0.2 (generics + traits). The evaluator already uses `Rc<RefCell<Value>>` internally, so there is no structural debt to incur by deferring. Before this RFC is closed, a placeholder `Value::Pointer(Rc<RefCell<Value>>)` variant will be added to the evaluator's `Value` enum so the shape is correct from the start — tracked in a separate issue. The open questions (auto-deref, mutability syntax, pointer equality) will be resolved with concrete implementation experience from the v0.2 evaluator before this RFC is re-evaluated for v0.3.
