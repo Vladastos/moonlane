@@ -2,7 +2,7 @@
 id: rfc-0002
 title: "Trait Bound Syntax"
 date: '2026-05-19'
-status: draft
+status: accepted
 ---
 
 ## Summary
@@ -384,18 +384,18 @@ Options C and D additionally require:
 
 ## Recommendation
 
-**Adopt Option C (where-first, comma-separated) with Swift's associated type model for open question 4, and introduce both `type` aliases (for concrete types and generic instantiations) and `trait` aliases (for constraint bundles).**
+**Adopt Option C (where-first, comma-separated) with Swift's associated type model for open question 4, and introduce both `type` aliases (for concrete types and generic instantiations) and `aspect` aliases (for constraint bundles).**
 
 Rationale:
 - Eliminating inline multi-bound removes the dual-syntax problem permanently
 - `where T: Display, T: Clone` is verbose but unambiguous — each constraint is a standalone statement
 - No new separator character needed at call sites (no `+` / `&` decision for the common case)
-- `trait Sortable = Comparable + Display` localises the separator decision to alias definitions, where a conjunction operator is unavoidable; `+` is acceptable there because it is a definition form, not a usage form
+- `aspect Sortable = Comparable + Display` localises the separator decision to alias definitions, where a conjunction operator is unavoidable; `+` is acceptable there because it is a definition form, not a usage form
 - Constraint aliases give authors an ergonomic escape from long `where` clauses for repeated bound combinations, without compromising the call-site clarity that Option C provides
 - Consistent with `where` already being a keyword
 - Associated type as `Iterable<String>` rather than `Iterator<Item = String>` is simpler and consistent with `Perhaps<T>`, `Result<T, E>` conventions already in the spec
-
-For anonymous type params (open question 3), defer to a follow-up RFC — the semantics (monomorphic vs opaque) are independent of the bound syntax question.
+- `Self` inside an aspect definition refers to the implementing type; call sites use the bare aspect name with no type parameter repetition — consistent with Rust and Swift, and avoids Java/Kotlin-style F-bounded verbosity (`T: Comparable<T>`)
+- `impl Aspect` syntax adopted for anonymous type parameters
 
 ---
 
@@ -411,7 +411,20 @@ For anonymous type params (open question 3), defer to a follow-up RFC — the se
 
 ## Decision
 
-**Outcome:** *(pending)*  
-**Target:** *(blank until accepted)*
+**Outcome:** Accepted  
+**Target:** v0.2
 
-*(Decision rationale goes here when the RFC is evaluated.)*
+Resolved questions:
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Separator for multiple bounds | Option C — no inline multi-bound; `where` clause, one bound per line |
+| 2 | Inline multi-bound vs `where`-only | `where`-only for multiple bounds; single bound may be inline |
+| 3 | Anonymous type parameters | `impl Aspect` syntax |
+| 4 | Associated type constraints | Swift-style primary associated type — `Iterable<String>`, not `Iterable<Item = String>` |
+| 5 | `where` vs `requires` | `where` keyword |
+| 6 | Self-referential bounds | Implicit `Self` — aspects define `Self`, call sites use bare aspect name |
+| 7 | Constraint bundles | `aspect` alias — `aspect Sortable = Comparable + Display + Clone` |
+| 8 | Async/concurrency bounds | Deferred — no action until concurrency model is designed |
+
+The combination of `where`-only multi-bounds, implicit Self, and `aspect` aliases gives a clean, unambiguous syntax without any of Rust's dual-syntax problems or Java/Kotlin's F-bounded verbosity. The `+` separator is confined to `aspect` alias definitions, where a conjunction operator is unavoidable — it does not appear at call sites.
