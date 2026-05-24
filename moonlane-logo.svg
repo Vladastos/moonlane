@@ -33,13 +33,12 @@
         stroke="#8B3DFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Divider -->
-  <line x1="560" y1="70" x2="560" y2="250" stroke="#FFFFFF" stroke-width="6" stroke-opacity="0.12" stroke-linecap="round"/>
   <line x1="560" y1="70" x2="560" y2="250" stroke="#111111" stroke-width="4" stroke-linecap="round"/>
 
   <!-- Wordmark -->
   <text x="620" y="195" font-family="Inter, Arial, Helvetica, sans-serif"
       font-size="88" font-weight="700" fill="#0A0A14" letter-spacing="-3"
-      stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.12" stroke-linejoin="round">
+      stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.18" stroke-linejoin="round">
   moonlane
 </text>
 
