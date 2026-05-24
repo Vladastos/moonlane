@@ -17,28 +17,30 @@
     <circle cx="288" cy="160" r="70" fill="#F7A1E8" mask="url(#crescent-mask)"/>
   </g>
 
-  <!-- Star (moved 12px left) -->
-  <path d="M363 66
-           L371 90
-           L395 98
-           L371 106
-           L363 130
-           L355 106
-           L331 98
-           L355 90 Z"
+  <!-- Star  -->
+  <path d="M351 66
+           L359 90
+           L383 98
+           L359 106
+           L351 130
+           L343 106
+           L319 98
+           L343 90 Z"
         fill="#F38AEF"/>
 
-  <!-- Right chevron -->
-  <path d="M445 125 L480 160 M445 195 L480 160"
+  <!-- Right chevron  -->
+  <path d="M433 125 L468 160 M433 195 L468 160"
         stroke="#8B3DFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Divider -->
-  <line x1="560" y1="70" x2="560" y2="250" stroke="#111111" stroke-width="4"/>
+  <line x1="560" y1="70" x2="560" y2="250" stroke="#FFFFFF" stroke-width="6" stroke-opacity="0.12" stroke-linecap="round"/>
+  <line x1="560" y1="70" x2="560" y2="250" stroke="#111111" stroke-width="4" stroke-linecap="round"/>
 
   <!-- Wordmark -->
   <text x="620" y="195" font-family="Inter, Arial, Helvetica, sans-serif"
-        font-size="88" font-weight="700" fill="#0A0A14" letter-spacing="-3">
-    moonlane
-  </text>
+      font-size="88" font-weight="700" fill="#0A0A14" letter-spacing="-3"
+      stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.12" stroke-linejoin="round">
+  moonlane
+</text>
 
 </svg>
