@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="moonlane-logo.svg" alt="Moonlane" width="600"/>
+  <img src="media/moonlane-logo.svg" alt="Moonlane" width="600"/>
 </p>
 
 A statically typed, expression-oriented language that runs in two first-class modes: a production-quality interpreter and a native compiler. The same source file, the same type checker, both targets permanently supported.

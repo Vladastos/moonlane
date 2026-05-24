@@ -5,52 +5,52 @@
   <rect x="32" y="32" width="1100" height="256" rx="24" ry="24" fill="#eaeafc"/>
 
   <!-- Left chevron -->
-  <path d="M110 160 L145 125 M110 160 L145 195"
+  <path d="M90 160 L125 125 M90 160 L125 195"
         stroke="#8B3DFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 
     <!-- Mask that subtracts the cutout circle -->
   <mask id="crescent-mask">
     <rect x="0" y="0" width="1200" height="320" fill="white"/>
-    <circle cx="312" cy="144" r="70" fill="black"/>
+    <circle cx="272" cy="144" r="70" fill="black"/>
   </mask>
 
   <!-- Crescent moon (thicker) -->
   <g>
-    <circle cx="290" cy="160" r="86" fill="#F7A1E8" mask="url(#crescent-mask)"/>
+    <circle cx="250" cy="160" r="86" fill="#D94FCC" mask="url(#crescent-mask)"/>
   </g>
 
   <!-- Star  -->
-  <path d="M351 66
-           L359 90
-           L383 98
-           L359 106
-           L351 130
-           L343 106
-           L319 98
-           L343 90 Z"
+  <path d="M311 66
+           L319 90
+           L343 98
+           L319 106
+           L311 130
+           L303 106
+           L279 98
+           L303 90 Z"
         fill="#8B3DFF"/>
 
 <!-- Small star (moved further down) -->
-<path d="M310 124
-         L314 133
-         L323 136
-         L314 139
-         L310 148
-         L306 139
-         L297 136
-         L306 133 Z"
-      fill="#F38AEF"/>
+<path d="M270 124
+         L274 133
+         L283 136
+         L274 139
+         L270 148
+         L266 139
+         L257 136
+         L266 133 Z"
+      fill="#D94FCC"/>
 
 
   <!-- Right chevron  -->
-  <path d="M433 125 L468 160 M433 195 L468 160"
+  <path d="M368 125 L403 160 M368 195 L403 160"
         stroke="#8B3DFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- Divider -->
-  <line x1="560" y1="70" x2="560" y2="250" stroke="#111111" stroke-width="4" stroke-linecap="round"/>
+  <line x1="470" y1="70" x2="470" y2="250" stroke="#111111" stroke-width="4" stroke-linecap="round"/>
 
   <!-- Wordmark -->
-  <text x="620" y="195" font-family="Inter, Arial, Helvetica, sans-serif"
+  <text x="570" y="195" font-family="Inter, Arial, Helvetica, sans-serif"
       font-size="88" font-weight="700" fill="#0A0A14" letter-spacing="-3">
   moonlane
 </text>
