@@ -336,7 +336,7 @@ fn eval_decl(decl: &TypedDecl, env: &mut Environment) -> Result<Signal, Moonlane
         }
         TypedDecl::Stmt(s) => eval_stmt(s, env),
         // Type-level declarations have no runtime representation.
-        TypedDecl::Struct(_) | TypedDecl::Enum(_) | TypedDecl::Impl(_) | TypedDecl::Trait(_) => {
+        TypedDecl::Struct(_) | TypedDecl::Enum(_) | TypedDecl::Impl(_) | TypedDecl::Aspect(_) => {
             Ok(Signal::Value(Value::Unit))
         }
     }
@@ -534,7 +534,7 @@ fn eval_untyped_decl(decl: &Decl, env: &mut Environment) -> Result<Signal, Moonl
             env.set(&f.name, closure);
             Ok(Signal::Value(Value::Unit))
         }
-        Decl::Struct(_) | Decl::Enum(_) | Decl::Impl(_) | Decl::Trait(_) => {
+        Decl::Struct(_) | Decl::Enum(_) | Decl::Impl(_) | Decl::Aspect(_) => {
             Ok(Signal::Value(Value::Unit))
         }
         Decl::Stmt(stmt) => eval_untyped_stmt(stmt, env),

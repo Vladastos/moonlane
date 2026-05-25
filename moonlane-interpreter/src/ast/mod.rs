@@ -49,7 +49,7 @@ pub enum Decl {
     Struct(StructDecl),
     Enum(EnumDecl),
     Impl(ImplBlock),
-    Trait(TraitDecl),
+    Aspect(AspectDecl),
     Stmt(Stmt),
 }
 
@@ -105,16 +105,16 @@ pub struct EnumDecl {
 
 #[derive(Debug, Clone)]
 pub struct ImplBlock {
-    pub trait_name:  Option<String>,
+    pub aspect_name: Option<String>,
     pub target_type: TypeExpr,
     pub methods:     Vec<FunDecl>,
     pub span:        Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct TraitDecl {
+pub struct AspectDecl {
     pub name:    String,
-    pub methods: Vec<TraitMethod>,
+    pub methods: Vec<AspectMethod>,
     pub span:    Span,
 }
 
@@ -153,7 +153,7 @@ pub struct VariantDef {
 }
 
 #[derive(Debug, Clone)]
-pub struct TraitMethod {
+pub struct AspectMethod {
     pub name:         String,
     pub generics:     Vec<GenericParam>,
     pub params:       Vec<Param>,

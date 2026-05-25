@@ -197,7 +197,7 @@ fn construct_decl(decl: &Decl, ctx: &mut ConstructCtx) -> Result<TypedDecl, Moon
             variants: ed.variants.clone(), span: ed.span.clone(),
         })),
         Decl::Impl(ib)   => construct_impl_decl(ib, ctx),
-        Decl::Trait(td)  => Ok(TypedDecl::Trait(TypedTraitDecl {
+        Decl::Aspect(td) => Ok(TypedDecl::Aspect(TypedAspectDecl {
             name: td.name.clone(), methods: td.methods.clone(), span: td.span.clone(),
         })),
         Decl::Stmt(stmt) => Ok(TypedDecl::Stmt(construct_stmt(stmt, ctx)?)),
@@ -241,8 +241,8 @@ fn construct_fun_decl(fun: &FunDecl, ctx: &mut ConstructCtx) -> Result<TypedDecl
 }
 
 fn construct_impl_decl(ib: &ImplBlock, ctx: &mut ConstructCtx) -> Result<TypedDecl, MoonlaneError> {
-    if ib.trait_name.is_some() {
-        return Err(MoonlaneError::not_implemented("trait impl blocks not yet supported"));
+    if ib.aspect_name.is_some() {
+        return Err(MoonlaneError::not_implemented("aspect impl blocks not yet supported"));
     }
     let target_name = match &ib.target_type {
         TypeExpr::Named(name, _) => name.clone(),
@@ -252,7 +252,7 @@ fn construct_impl_decl(ib: &ImplBlock, ctx: &mut ConstructCtx) -> Result<TypedDe
         .map(|m| construct_impl_method(m, &target_name, ctx))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(TypedDecl::Impl(TypedImplBlock {
-        trait_name:  ib.trait_name.clone(),
+        aspect_name: ib.aspect_name.clone(),
         target_type: ib.target_type.clone(),
         methods,
         span: ib.span.clone(),

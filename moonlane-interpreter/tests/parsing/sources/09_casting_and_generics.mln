@@ -1,9 +1,9 @@
 // 09 — Casting and generics
 // Covers: as (Int->Float, Float->Int truncation), generic structs,
 //         generic functions with multiple type params, where clauses,
-//         inline trait bounds.
+//         inline aspectbounds.
 
-trait Display {
+aspectDisplay {
     fun display(self) -> String;
 }
 
