@@ -91,7 +91,7 @@ fun count_where<T>(arr: T[], pred: fun(T) -> Bool) -> Int {
 }
 
 fun map_array<T, U>(arr: T[], f: fun(T) -> U) -> U[] {
-    mut out = [];
+    mut out: U[] = [];
     for (let x in arr) { array_push(out, f(x)); }
     out
 }
