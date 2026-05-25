@@ -701,16 +701,8 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
                 }
 
                 AssignTarget::Index { object, index, span: tspan } => {
-                    let arr_name = match object.as_ref() {
-                        Expr::Ident(n, _) => n,
-                        _ => return Err(MoonlaneError::internal(
-                            "index assign: only `ident[...]` supported in PoC",
-                        )),
-                    };
                     let i = eval_untyped_index(index, env, tspan)?;
-                    let arr_val = env.get(arr_name).ok_or_else(|| {
-                        MoonlaneError::panic(RuntimeErrorCode::R0003, format!("assign: `{arr_name}` not found"), tspan)
-                    })?;
+                    let arr_val = eval_untyped_lvalue_value(object, env, tspan)?;
                     match arr_val {
                         Value::Array(rc) => {
                             let len = rc.borrow().len() as i64;
@@ -729,26 +721,36 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
                             Ok(Signal::Value(Value::Unit))
                         }
                         _ => Err(MoonlaneError::internal(
-                            format!("index assign: `{arr_name}` is not an Array (typechecker should have caught this)"),
+                            "index assign: receiver is not an Array (typechecker should have caught this)",
                         )),
                     }
                 }
 
                 AssignTarget::FieldAccess { object, field, span: tspan } => {
-                    let obj_name = match object.as_ref() {
-                        Expr::Ident(n, _) => n,
-                        _ => return Err(MoonlaneError::internal(
-                            "field assign: only `ident.field` supported in PoC",
-                        )),
-                    };
-                    let rc = env.get_rc(obj_name).ok_or_else(|| {
-                        MoonlaneError::panic(RuntimeErrorCode::R0003, format!("assign: `{obj_name}` not found"), tspan)
+                    let (root, path) = extract_lvalue_path(object, tspan)?;
+                    let rc = env.get_rc(root).ok_or_else(|| {
+                        MoonlaneError::panic(RuntimeErrorCode::R0003, format!("assign: `{root}` not found"), tspan)
                     })?;
                     let mut borrowed = rc.borrow_mut();
-                    let fields = match &mut *borrowed {
+                    // Navigate intermediate path segments to reach the parent struct.
+                    let mut cur: &mut Value = &mut *borrowed;
+                    for segment in &path {
+                        cur = match cur {
+                            Value::Struct { fields, .. } | Value::Enum { fields, .. } => {
+                                fields.get_mut(*segment).ok_or_else(|| {
+                                    MoonlaneError::panic(RuntimeErrorCode::R0008,
+                                        format!("field assign: no field `{segment}`"), tspan)
+                                })?
+                            }
+                            _ => return Err(MoonlaneError::internal(
+                                format!("field assign: `{segment}` is not a struct/enum"),
+                            )),
+                        };
+                    }
+                    let fields = match cur {
                         Value::Struct { fields, .. } | Value::Enum { fields, .. } => fields,
                         _ => return Err(MoonlaneError::internal(
-                            format!("field assign: `{obj_name}` is not a struct/enum (typechecker should have caught this)"),
+                            "field assign: receiver is not a struct/enum (typechecker should have caught this)",
                         )),
                     };
                     let new_val = if matches!(op, AssignOp::Assign) {
@@ -989,9 +991,69 @@ fn eval_untyped_index(
             None    => Err(MoonlaneError::internal(format!("eval_untyped_index: undefined `{name}`"))),
         },
         _ => Err(MoonlaneError::internal(
-            "index expression too complex for PoC; assign the index to a variable first",
+            "index expression too complex; assign the index to a variable first",
         )),
     }
+}
+
+/// Evaluate an lvalue receiver expression to a Value.
+/// Supports bare identifiers and field-access chains — sufficient for array index
+/// assignment since Value::Array is Rc-backed (the returned Rc shares data with the env).
+fn eval_untyped_lvalue_value(
+    expr: &crate::ast::Expr,
+    env: &Environment,
+    span: &Span,
+) -> Result<Value, MoonlaneError> {
+    use crate::ast::Expr;
+    match expr {
+        Expr::Ident(name, _) => env.get(name).ok_or_else(|| {
+            MoonlaneError::panic(RuntimeErrorCode::R0003, format!("assign: `{name}` not found"), span)
+        }),
+        Expr::FieldAccess { object, field, span: fspan } => {
+            let parent = eval_untyped_lvalue_value(object, env, fspan)?;
+            match parent {
+                Value::Struct { fields, .. } | Value::Enum { fields, .. } => {
+                    fields.get(field).cloned().ok_or_else(|| {
+                        MoonlaneError::panic(RuntimeErrorCode::R0008,
+                            format!("field access: no field `{field}`"), fspan)
+                    })
+                }
+                _ => Err(MoonlaneError::internal(format!(
+                    "field access: `{field}` receiver is not a struct/enum"
+                ))),
+            }
+        }
+        _ => Err(MoonlaneError::internal(
+            "assign receiver too complex; assign to a variable first",
+        )),
+    }
+}
+
+/// Walk an untyped lvalue Expr chain (Ident or FieldAccess) and return
+/// (root_name, [intermediate_field_path]) for use with env.get_rc + borrow_mut navigation.
+fn extract_lvalue_path<'a>(
+    expr: &'a crate::ast::Expr,
+    span: &Span,
+) -> Result<(&'a str, Vec<&'a str>), MoonlaneError> {
+    use crate::ast::Expr;
+    fn walk<'a>(expr: &'a Expr, path: &mut Vec<&'a str>, span: &Span) -> Result<&'a str, MoonlaneError> {
+        match expr {
+            Expr::Ident(name, _) => Ok(name.as_str()),
+            Expr::FieldAccess { object, field, .. } => {
+                let root = walk(object, path, span)?;
+                path.push(field.as_str());
+                Ok(root)
+            }
+            _ => Err(MoonlaneError::panic(
+                RuntimeErrorCode::R0003,
+                "field assign: receiver must be a variable or field access chain",
+                span,
+            )),
+        }
+    }
+    let mut path = Vec::new();
+    let root = walk(expr, &mut path, span)?;
+    Ok((root, path))
 }
 
 fn apply_assign_op(
