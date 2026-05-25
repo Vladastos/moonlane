@@ -512,11 +512,11 @@ impl Default for TypeRegistry {
 ///
 /// `mono_env` is a scope stack: call `push_scope`/`pop_scope` in matched pairs
 /// when entering and leaving lexical scopes (function bodies, blocks).
-/// `poly_env` is flat — polymorphic bindings are top-level only.
+/// `poly_env` is scoped like `mono_env`; each `push_scope`/`pop_scope` adds/removes a layer.
 pub struct InferContext {
     var_gen: TypeVarGenerator,
     mono_env: Vec<HashMap<String, (InferType, bool)>>,
-    poly_env: HashMap<String, TypeScheme>,
+    poly_env: Vec<HashMap<String, TypeScheme>>,
     constraints: Vec<Constraint>,
     current_return_type: Option<InferType>,
     current_break_type:  Option<InferType>,
@@ -531,7 +531,7 @@ impl InferContext {
         Self {
             var_gen: gen,
             mono_env: vec![HashMap::new()],  // root scope pre-pushed
-            poly_env: HashMap::new(),
+            poly_env: vec![HashMap::new()],  // root scope pre-pushed
             constraints: Vec::new(),
             current_return_type: None,
             current_break_type:  None,
@@ -586,6 +586,7 @@ impl InferContext {
     /// Must be matched with a call to `pop_scope`.
     pub fn push_scope(&mut self) {
         self.mono_env.push(HashMap::new());
+        self.poly_env.push(HashMap::new());
     }
 
     /// Exit the current lexical scope, discarding all bindings introduced in it.
@@ -593,6 +594,8 @@ impl InferContext {
     pub fn pop_scope(&mut self) {
         assert!(self.mono_env.len() > 1, "pop_scope called at root scope");
         self.mono_env.pop();
+        assert!(self.poly_env.len() > 1, "pop_scope called at root scope");
+        self.poly_env.pop();
     }
 
     /// Generate a fresh type variable.
@@ -606,16 +609,16 @@ impl InferContext {
         self.mono_env.last_mut().unwrap().insert(name.into(), (ty, is_mutable));
     }
 
-    /// Bind a name to a polymorphic type scheme (e.g. a let-binding).
+    /// Bind a name to a polymorphic type scheme in the current scope.
     pub fn bind_poly(&mut self, name: impl Into<String>, scheme: TypeScheme) {
-        self.poly_env.insert(name.into(), scheme);
+        self.poly_env.last_mut().unwrap().insert(name.into(), scheme);
     }
 
     /// Look up a name. Polymorphic bindings are automatically instantiated with
     /// fresh variables; monomorphic bindings are searched innermost-scope-first.
-    /// Poly env takes precedence over mono env. Returns the type only (not mutability).
+    /// Poly env takes precedence over mono env within each scope level.
     pub fn lookup(&mut self, name: &str) -> Option<InferType> {
-        if let Some(scheme) = self.poly_env.get(name).cloned() {
+        if let Some(scheme) = self.poly_env.iter().rev().find_map(|s| s.get(name)).cloned() {
             Some(instantiate(&scheme, &mut self.var_gen))
         } else {
             self.mono_env.iter().rev()

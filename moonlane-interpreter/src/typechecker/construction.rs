@@ -134,6 +134,27 @@ pub(super) fn construct_program(
 fn construct_decl(decl: &Decl, ctx: &mut ConstructCtx) -> Result<TypedDecl, MoonlaneError> {
     match decl {
         Decl::Let(ld) => {
+            // Let-polymorphism: if a closure is in scheme_env with quantified vars,
+            // store it as GenericClosure. The name stays absent from ctx.env so call
+            // sites use scheme_env instantiation in construct_call.
+            if let Expr::Closure { params, return_type, body, span: cls_span } = &ld.value {
+                if let Some(scheme) = ctx.scheme_env.get(ld.name.as_str()) {
+                    if !scheme.quantified_vars.is_empty() {
+                        return Ok(TypedDecl::Let(TypedLetDecl {
+                            name:     ld.name.clone(),
+                            type_ann: ld.type_ann.clone(),
+                            value: TypedExpr::GenericClosure {
+                                params:      params.clone(),
+                                return_type: return_type.clone(),
+                                body:        body.clone(),
+                                ty:          Type::Unit,
+                                span:        cls_span.clone(),
+                            },
+                            span: ld.span.clone(),
+                        }));
+                    }
+                }
+            }
             let expected_ty = ld.type_ann.as_ref()
                 .map(|ann| resolved_to_type(&type_expr_to_infer(ann), ctx.subst, &ld.span))
                 .transpose()?;
@@ -671,7 +692,7 @@ fn find_break_in_expr(expr: &TypedExpr) -> Option<Type> {
         // break inside a nested loop exits the inner loop, not the outer
         TypedExpr::Loop { .. } => None,
         // break inside a closure doesn't escape to the enclosing loop
-        TypedExpr::Closure { .. } => None,
+        TypedExpr::Closure { .. } | TypedExpr::GenericClosure { .. } => None,
         _ => None,
     }
 }

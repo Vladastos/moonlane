@@ -543,16 +543,16 @@ mod tests {
         check_file(&format!("{}/stage10_neg_02_return_type_conflict.mln", test_dir()));
     }
 
+    #[test]
+    fn stage10_let_polymorphism() {
+        check_file(&format!("{}/limit_02_let_closure_mono.mln", test_dir()));
+    }
+
     // ── Known-limitation tests ─────────────────────────────────────────────────
 
     #[test]
     fn limit_rank1_fn_arg() {
         check_file(&format!("{}/limit_01_rank1_fn_arg.mln", test_dir()));
-    }
-
-    #[test]
-    fn limit_let_closure_mono() {
-        check_file(&format!("{}/limit_02_let_closure_mono.mln", test_dir()));
     }
 
     #[test]

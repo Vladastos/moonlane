@@ -1364,6 +1364,16 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
             }))))
         }
 
+        TypedExpr::GenericClosure { params, body, .. } => {
+            let captured = env.clone();
+            Ok(Signal::Value(Value::Closure(Rc::new(ClosureValue {
+                name:     None,
+                params:   params.clone(),
+                body:     ClosureBody::Untyped(body.clone()),
+                captured,
+            }))))
+        }
+
         TypedExpr::PropagateError { expr, span, .. } => {
             let val = eval_expr(expr, env)?.into_value();
             match val {
