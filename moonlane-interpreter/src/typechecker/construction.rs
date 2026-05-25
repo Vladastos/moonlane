@@ -933,8 +933,23 @@ fn construct_call(
     span:   &Span,
     ctx:    &mut ConstructCtx,
 ) -> Result<TypedExpr, MoonlaneError> {
+    // For monomorphic callee identifiers already in scope, extract param types as hints so
+    // inherently ambiguous args (bare `[]`, `nope`) can resolve without requiring ascription.
+    // Generic (scheme-based) callees need arg types first for instantiation — no hints there.
+    let param_hints: Vec<Option<Type>> = match callee {
+        Expr::Ident(name, _) => {
+            match ctx.lookup(name) {
+                Some(Type::Fun(params, _)) if params.len() == args.len() =>
+                    params.iter().map(|p| Some(p.clone())).collect(),
+                _ => vec![None; args.len()],
+            }
+        }
+        _ => vec![None; args.len()],
+    };
+
     let typed_args: Vec<TypedExpr> = args.iter()
-        .map(|a| construct_expr(a, None, ctx))
+        .zip(param_hints.iter())
+        .map(|(a, hint)| construct_expr(a, hint.as_ref(), ctx))
         .collect::<Result<_, _>>()?;
     let arg_types: Vec<&Type> = typed_args.iter().map(|a| a.ty()).collect();
 
