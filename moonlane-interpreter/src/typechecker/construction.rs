@@ -683,8 +683,10 @@ fn construct_expr(
                             Type::Named(n, _) => Some(n.as_str()),
                             _ => None,
                         };
+                        // Emit "Target::From<Source>::from" — matches the key that
+                        // impl_method_key() uses when registering From<T> impls.
                         match (tgt, &e1) {
-                            (Some(t), Type::Named(src, _)) => Some(format!("{t}::from_{src}")),
+                            (Some(t), Type::Named(src, _)) => Some(format!("{t}::From<{src}>::from")),
                             (Some(t), _) => Some(format!("{t}::from")),
                             _ => None,
                         }
