@@ -268,6 +268,9 @@ mod tests {
     #[test]
     fn generic_enum_infer_context() { check("57_generic_enum_infer_context.mln"); }
 
+    #[test]
+    fn aspect_dispatch() { check("58_aspect_dispatch.mln"); }
+
     // ── Integration tests ─────────────────────────────────────────────────────
 
     #[test]
@@ -351,4 +354,7 @@ mod tests {
 
     #[test]
     fn neg_generic_type_conflict() { check("neg_21_generic_type_conflict.mln"); }
+
+    #[test]
+    fn neg_missing_aspect_method() { check("neg_22_missing_aspect_method.mln"); }
 }
