@@ -478,8 +478,8 @@ mod tests {
     }
 
     #[test]
-    fn stage8_neg_ascription_two_args_bare() {
-        check_file(&format!("{}/stage8_neg_06_ascription_two_args_bare.mln", test_dir()));
+    fn stage8_ascription_two_args_bare() {
+        check_file(&format!("{}/stage8_06_ascription_two_args_bare.mln", test_dir()));
     }
 
     #[test]
@@ -488,8 +488,8 @@ mod tests {
     }
 
     #[test]
-    fn stage8_neg_ascription_nope_arg_bare() {
-        check_file(&format!("{}/stage8_neg_07_ascription_nope_arg_bare.mln", test_dir()));
+    fn stage8_ascription_nope_arg_bare() {
+        check_file(&format!("{}/stage8_07_ascription_nope_arg_bare.mln", test_dir()));
     }
 
     // ── Known-limitation tests ─────────────────────────────────────────────────
