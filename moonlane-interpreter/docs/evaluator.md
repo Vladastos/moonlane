@@ -188,10 +188,6 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 
 ## Known Limitations
 
-### Field and index assignment — receiver must be a bare identifier
-
-`obj.field = val` and `arr[i] = val` require a bare identifier on the receiver side (`foo.bar = 1` and `arr[complex_expr] = 1` work; `get_foo().bar = 1` and `get_array()[0] = 1` panic). The index expression may be arbitrary (fixed in v0.2), but the receiver must be a name the evaluator can look up directly. The typechecker does not validate the receiver shape, so a well-typed program can reach this panic. Fixing it requires the evaluator to support lvalue paths rather than just names.
-
 ### Generic functions — not callable
 
 Generic functions produce `Value::Unit` and calling them panics. This is intentional until v0.3 (generics). No test calls a generic function at the value level.

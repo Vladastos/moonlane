@@ -214,6 +214,9 @@ mod tests {
     #[test]
     fn trailing_commas() { check("44_trailing_commas.mln"); }
 
+    #[test]
+    fn lvalue_paths() { check("45_lvalue_paths.mln"); }
+
     // ── Integration tests ─────────────────────────────────────────────────────
 
     #[test]
