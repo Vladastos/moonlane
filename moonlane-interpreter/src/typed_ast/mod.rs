@@ -4,7 +4,7 @@
 
 use crate::ast::{
     Literal, BinOp, UnaryOp, AssignTarget, AssignOp, Pattern, Span,
-    Param, TypeExpr, FieldDef, GenericParam, TraitMethod, VariantDef, Block,
+    Param, TypeExpr, FieldDef, GenericParam, AspectMethod, VariantDef, Block,
 };
 use crate::types::Type;
 
@@ -24,7 +24,7 @@ pub enum TypedDecl {
     Struct(TypedStructDecl),
     Enum(TypedEnumDecl),
     Impl(TypedImplBlock),
-    Trait(TypedTraitDecl),
+    Aspect(TypedAspectDecl),
     Stmt(TypedStmt),
 }
 
@@ -84,16 +84,16 @@ pub struct TypedEnumDecl {
 
 #[derive(Debug, Clone)]
 pub struct TypedImplBlock {
-    pub trait_name:  Option<String>,
+    pub aspect_name: Option<String>,
     pub target_type: TypeExpr,
     pub methods:     Vec<TypedFunDecl>,
     pub span:        Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct TypedTraitDecl {
+pub struct TypedAspectDecl {
     pub name:    String,
-    pub methods: Vec<TraitMethod>,
+    pub methods: Vec<AspectMethod>,
     pub span:    Span,
 }
 

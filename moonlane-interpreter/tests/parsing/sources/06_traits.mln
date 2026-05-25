@@ -1,12 +1,12 @@
 // 06 — Traits
-// Covers: trait definition, impl Trait for Type, default methods, trait bounds
+// Covers: aspectdefinition, impl Trait for Type, default methods, aspectbounds
 //         in generic functions, Self type.
 
-trait Describable {
+aspectDescribable {
     fun describe(self) -> String;
 }
 
-trait Comparable {
+aspectComparable {
     fun compare(self, other: Self) -> Int;  // <0 less, 0 equal, >0 greater
 
     // default method built on top of compare
@@ -76,7 +76,7 @@ impl Comparable for Score {
     }
 }
 
-// --- generic functions with trait bounds ---
+// --- generic functions with aspectbounds ---
 
 fun print_description<T: Describable>(item: T) {
     println(item.describe());
@@ -94,11 +94,11 @@ fun main() {
     let boiling  = Temperature::new(100.0);
     let body     = Temperature::new(37.0);
 
-    // --- trait method ---
+    // --- aspectmethod ---
     print_description(freezing);          // 0.0°C
     print_description(boiling);           // 100.0°C
 
-    // --- default trait methods ---
+    // --- default aspectmethods ---
     println(bool_to_string(freezing.is_less_than(boiling)));   // true
     println(bool_to_string(boiling.is_less_than(freezing)));   // false
     println(bool_to_string(freezing.is_equal_to(freezing)));   // true

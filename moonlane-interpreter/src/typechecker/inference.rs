@@ -86,10 +86,10 @@ fn infer_decl(
             Ok(InferType::unit())
         }
         Decl::Fun(fd) => { infer_fun_decl(fd, ctx, fun_generalizations)?; Ok(InferType::unit()) }
-        Decl::Struct(_) | Decl::Enum(_) | Decl::Trait(_) => Ok(InferType::unit()),
+        Decl::Struct(_) | Decl::Enum(_) | Decl::Aspect(_) => Ok(InferType::unit()),
         Decl::Impl(ib) => {
-            if ib.trait_name.is_some() {
-                return Err(MoonlaneError::internal("trait impl blocks not yet supported"));
+            if ib.aspect_name.is_some() {
+                return Err(MoonlaneError::internal("aspect impl blocks not yet supported"));
             }
             let target_name = match &ib.target_type {
                 TypeExpr::Named(name, args) if args.is_empty() => name.clone(),

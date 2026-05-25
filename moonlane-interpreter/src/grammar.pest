@@ -27,7 +27,7 @@ decl = {
   | struct_decl
   | enum_decl
   | impl_block
-  | trait_decl
+  | aspect_decl
   | stmt
 }
 
@@ -46,8 +46,8 @@ enum_variant  = { ident ~ ("{" ~ struct_fields ~ "}")? }
 
 impl_block  = { "impl" ~ (type_path ~ "for")? ~ type_expr ~ "{" ~ fun_decl* ~ "}" }
 
-trait_decl  = { "trait" ~ ident ~ "{" ~ trait_method* ~ "}" }
-trait_method = { "fun" ~ ident ~ generic_params? ~ "(" ~ param_list? ~ ")" ~ ("->" ~ type_expr)? ~ (block | ";") }
+aspect_decl  = { "aspect" ~ ident ~ "{" ~ aspect_method* ~ "}" }
+aspect_method = { "fun" ~ ident ~ generic_params? ~ "(" ~ param_list? ~ ")" ~ ("->" ~ type_expr)? ~ (block | ";") }
 
 // ── Parameters ────────────────────────────────────────────────────────────────
 
@@ -214,7 +214,7 @@ ident = @{
 keyword = @{
     ("and" | "as" | "break" | "continue" | "else" | "enum" | "false" |
      "for" | "fun" | "if" | "impl" | "let" | "loop" | "match" |
-     "mut" | "nope" | "or" | "return" | "struct" | "trait" | "true" |
+     "mut" | "nope" | "or" | "return" | "struct" | "aspect" | "true" |
      "use" | "where" | "while")
     ~ !(ASCII_ALPHANUMERIC | "_")
 }

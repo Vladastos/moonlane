@@ -66,7 +66,7 @@ fn parse_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<Decl,
         Rule::struct_decl => Ok(Decl::Struct(parse_struct_decl(inner, filename)?)),
         Rule::enum_decl   => Ok(Decl::Enum(parse_enum_decl(inner, filename)?)),
         Rule::impl_block  => Ok(Decl::Impl(parse_impl_block(inner, filename)?)),
-        Rule::trait_decl  => Ok(Decl::Trait(parse_trait_decl(inner, filename)?)),
+        Rule::aspect_decl => Ok(Decl::Aspect(parse_aspect_decl(inner, filename)?)),
         Rule::stmt        => Ok(Decl::Stmt(parse_stmt(inner, filename)?)),
         r => Err(MoonlaneError::internal(format!("decl: unexpected rule {r:?}"))),
     }
@@ -183,7 +183,7 @@ fn parse_enum_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<
 fn parse_impl_block(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<ImplBlock, MoonlaneError> {
     let span = Span::of(&pair, filename);
     let inner       = pair.into_inner();
-    let mut trait_name  = None;
+    let mut aspect_name = None;
     let target_type;
     let mut methods     = vec![];
 
@@ -213,7 +213,7 @@ fn parse_impl_block(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result
                 .filter(|p| p.as_rule() == Rule::ident)
                 .map(|p| p.as_str().to_string())
                 .collect();
-            trait_name = Some(path.join("::"));
+            aspect_name = Some(path.join("::"));
             target_type = Some(parse_type_expr(it.next().unwrap(), filename)?);
         }
         n => return Err(MoonlaneError::internal(format!("impl_block: unexpected {n} type pairs"))),
@@ -225,7 +225,7 @@ fn parse_impl_block(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result
         }
     }
 
-    Ok(ImplBlock { trait_name, target_type: target_type.unwrap(), methods, span })
+    Ok(ImplBlock { aspect_name, target_type: target_type.unwrap(), methods, span })
 }
 
 
@@ -291,11 +291,11 @@ fn parse_enum_variant(pair: pest::iterators::Pair<Rule>, filename: &str) -> Resu
     Ok(VariantDef { name, fields, span })
 }
 
-fn parse_trait_method(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<TraitMethod, MoonlaneError> {
+fn parse_aspect_method(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<AspectMethod, MoonlaneError> {
     let span = Span::of(&pair, filename);
     let mut inner       = pair.into_inner();
     let name = inner.next()
-        .ok_or_else(|| MoonlaneError::internal("trait_method: expected name"))?
+        .ok_or_else(|| MoonlaneError::internal("aspect_method: expected name"))?
         .as_str().to_string();
     let mut generics    = vec![];
     let mut params      = vec![];
@@ -310,7 +310,7 @@ fn parse_trait_method(pair: pest::iterators::Pair<Rule>, filename: &str) -> Resu
             _ => {}
         }
     }
-    Ok(TraitMethod { name, generics, params, return_type, default_body, span })
+    Ok(AspectMethod { name, generics, params, return_type, default_body, span })
 }
 
 
@@ -1103,19 +1103,19 @@ fn parse_generic_params(pair: pest::iterators::Pair<Rule>, filename: &str) -> Re
     Ok(params)
 }
 
-fn parse_trait_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<TraitDecl, MoonlaneError> {
+fn parse_aspect_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<AspectDecl, MoonlaneError> {
     let span = Span::of(&pair, filename);
     let mut inner = pair.into_inner();
     let name = inner.next()
-        .ok_or_else(|| MoonlaneError::internal("trait_decl: expected name"))?
+        .ok_or_else(|| MoonlaneError::internal("aspect_decl: expected name"))?
         .as_str().to_string();
     let mut methods = vec![];
     for p in inner {
-        if p.as_rule() == Rule::trait_method {
-            methods.push(parse_trait_method(p, filename)?);
+        if p.as_rule() == Rule::aspect_method {
+            methods.push(parse_aspect_method(p, filename)?);
         }
     }
-    Ok(TraitDecl { name, methods, span })
+    Ok(AspectDecl { name, methods, span })
 }
 
 

@@ -107,7 +107,7 @@ pub(super) fn build_registry(program: &Program, gen: &mut TypeVarGenerator) -> T
                     variants,
                 });
             }
-            Decl::Impl(ib) if ib.trait_name.is_none() => {
+            Decl::Impl(ib) if ib.aspect_name.is_none() => {
                 let target_name = match &ib.target_type {
                     TypeExpr::Named(name, args) if args.is_empty() => name.clone(),
                     _ => continue,
