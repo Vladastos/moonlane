@@ -265,6 +265,15 @@ mod tests {
     // ── Integration tests ─────────────────────────────────────────────────────
 
     #[test]
+    fn int_generic_option_chain() { check("int_03_generic_option_chain.mln"); }
+
+    #[test]
+    fn int_generic_algorithms() { check("int_04_generic_algorithms.mln"); }
+
+    #[test]
+    fn int_generic_data_pipeline() { check("int_05_generic_data_pipeline.mln"); }
+
+    #[test]
     fn int_statistics() { check("int_01_statistics.mln"); }
 
     #[test]
