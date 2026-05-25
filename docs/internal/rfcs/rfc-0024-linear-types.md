@@ -2,13 +2,17 @@
 id: rfc-0024
 title: "Linear Types"
 date: '2026-05-24'
-status: draft
-target:
+status: superseded
+superseded_by: rfc-0028
 ---
+
+> **Superseded by RFC-0028 (Memory and Reference Model).** This document is kept as historical record. All decisions and open questions have been carried forward into RFC-0028. Note: the read reference syntax was updated from `&T` / `&x` to `@T` / `@x` before supersession (see cluster report D1).
+
+
 
 ## Summary
 
-Add opt-in linear types to Moonlane. A value whose type is declared `linear` must be used **exactly once** — not silently dropped, not used twice. Linearity is checked statically as a second pass after type inference, with no runtime overhead. A narrow read-reference form `&T` (expression-only, non-storable) allows inspection without consumption. The default runtime-managed memory model is unchanged.
+Add opt-in linear types to Moonlane. A value whose type is declared `linear` must be used **exactly once** — not silently dropped, not used twice. Linearity is checked statically as a second pass after type inference, with no runtime overhead. A narrow read-reference form `@T` (expression-only, non-storable) allows inspection without consumption. The default runtime-managed memory model is unchanged.
 
 ---
 
@@ -80,26 +84,28 @@ f3.close();
 f3.close();  // ERROR: f3 already consumed
 ```
 
-### 3. Read references — `&T`
+### 3. Read references — `@T`
 
-Without a way to inspect a linear value without consuming it, every method call would destroy the value. Full lifetime-tracked borrow checking is deliberately out of scope for this RFC. Instead, a minimal read reference `&T` is introduced with strict placement rules that make lifetimes unnecessary:
+Without a way to inspect a linear value without consuming it, every method call would destroy the value. Full lifetime-tracked borrow checking is deliberately out of scope for this RFC. Instead, a minimal read reference `@T` is introduced with strict placement rules that make lifetimes unnecessary:
 
-- `&T` is formed with the `&` prefix operator: `&expr`
-- `&T` may only appear in **expression position** — it cannot be bound to a `let`, stored in a struct field, or appear in a function return type
-- `&T` is not itself linear — it may be used any number of times within its expression scope
-- A function that accepts `&T` may read from the value but cannot consume it (it does not own it)
+- `@T` is formed with the `@` prefix operator: `@expr`
+- `@T` may only appear in **expression position** — it cannot be bound to a `let`, stored in a struct field, or appear in a function return type
+- `@T` is not itself linear — it may be used any number of times within its expression scope
+- A function that accepts `@T` may read from the value but cannot consume it (it does not own it)
 
 ```moonlane
 linear struct Buffer { ptr: Int, len: Int }
 
-fun buf_len(b: &Buffer) -> Int { b.len }
+fun buf_len(b: @Buffer) -> Int { b.len }
 
 let buf = Buffer::alloc(1024);
-let len = buf_len(&buf);   // buf is not consumed; &buf is a temporary read view
+let len = buf_len(@buf);   // buf is not consumed; @buf is a temporary read view
 buf.free();                // consumed here
 ```
 
-Because `&T` cannot be stored, it cannot outlive the expression it appears in. No lifetime annotations are needed.
+Because `@T` cannot be stored, it cannot outlive the expression it appears in. No lifetime annotations are needed.
+
+The `@` sigil is distinct from `&` (address-of, RFC-0001): `&x` always produces a storable RC-backed `*T`; `@x` produces a non-storable read reference with no runtime representation. The two operators are unambiguous — `&` is for non-linear pointer semantics, `@` is for linear read access.
 
 Mutable references are out of scope for this RFC. Mutation of a linear value is done by consuming it and producing a new one (or by methods that take `self` and return `Self`).
 
@@ -193,7 +199,7 @@ Rules:
 |---|---|
 | `let x = <linear expr>` | Add `x → Unconsumed` to `LinearEnv` |
 | Use of `x` where `x` is linear | If `Unconsumed`: mark `Consumed(here)`. If `Consumed`: error — double use |
-| `&x` (read reference) | Do not mark consumed; verify `x` is `Unconsumed` |
+| `@x` (read reference) | Do not mark consumed; verify `x` is `Unconsumed` |
 | Scope exit | For each linear binding in scope: error if still `Unconsumed` |
 | `if`/`match` merge | Verify `LinearEnv` state is identical across all branches |
 | Loop body entry | Snapshot linear bindings from outer scope; forbid consuming any of them inside the body |
@@ -224,7 +230,7 @@ Gate raw memory operations behind an `unsafe` boundary, as in Rust. Rejected as 
 
 1. **Destructor protocol.** Should the language define a `Drop` trait with a `drop(self)` method that is called automatically when a linear value would otherwise go out of scope unconsumed — converting a compile error into an implicit call? This would ease migration but weakens the "must be explicit" guarantee.
 
-2. **`&T` mutability.** This RFC introduces only read references. Should a future RFC add `&mut T` with the restriction that only one `&mut` may exist at a time (enforced at the call site, not via lifetimes)? This would allow in-place mutation without consuming and reconstructing the value.
+2. **`@T` mutability.** This RFC introduces only read references. A mutable form `@mut T` is explicitly out of scope — mutation of a linear value is done by consuming and returning, which avoids the exclusive-lock tracking that `@mut T` would require. If this proves too restrictive in practice, a future RFC may revisit it.
 
 3. **Linear type parameters.** Can a generic type parameter be constrained to linear: `fun<T: Linear>(val: T)`? This RFC assumes yes (it is needed for `drop`), but the interaction with v0.2 generics needs careful design.
 
@@ -240,7 +246,7 @@ Gate raw memory operations behind an `unsafe` boundary, as in Rust. Rejected as 
 
 ## Timing Recommendation
 
-Linear types depend on generics (v0.2, RFC-0024 needs `fun<T: Linear>`). Target **v0.3** after generics and traits are stable. The `&T` read reference form should be designed in coordination with any future mutable reference RFC to avoid syntax conflicts.
+Linear types depend on generics (v0.2, RFC-0024 needs `fun<T: Linear>`). Target **v0.3** after generics and traits are stable. The `@T` read reference form is syntactically resolved (see Conflict 1 in the cluster report — D1 decided). The `@` sigil is distinct from `&` (RFC-0001 address-of).
 
 ---
 

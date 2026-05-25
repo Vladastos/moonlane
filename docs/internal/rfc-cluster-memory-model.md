@@ -2,7 +2,7 @@
 
 **Status:** Under resolution  
 **Tracking issue:** #118  
-**RFCs in scope:** RFC-0001, RFC-0003, RFC-0006, RFC-0024, RFC-0025, RFC-0026
+**RFCs in scope:** RFC-0028, RFC-0003, RFC-0006, RFC-0025, RFC-0026
 
 ---
 
@@ -14,12 +14,13 @@ The four RFCs:
 
 | RFC | Title | Status | Current target |
 |---|---|---|---|
-| RFC-0001 | Pointer Syntax and Semantics | Deferred | v0.3 |
+| RFC-0028 | Memory and Reference Model | Draft | v0.3 |
 | RFC-0003 | Concurrency Model | Draft | v0.4 |
 | RFC-0006 | Closure Capture Semantics | Draft | — |
-| RFC-0024 | Linear Types | Draft | v0.3 |
 | RFC-0025 | Region Allocation | Draft | v0.4 |
 | RFC-0026 | Unsafe Blocks | Draft | v0.4 |
+| ~~RFC-0001~~ | ~~Pointer Syntax and Semantics~~ | Superseded by RFC-0028 | — |
+| ~~RFC-0024~~ | ~~Linear Types~~ | Superseded by RFC-0028 | — |
 
 ---
 
@@ -70,13 +71,13 @@ let len = buf_len(&buf);   // &buf is a temporary — cannot be stored, cannot o
 
 The same sigil means different things with incompatible semantics. This is not a minor syntactic overlap — `*T` (RFC-0001) is reference-counted and storable, `&T` (RFC-0024) is non-storable and has no runtime representation. Shipping both independently creates a language where `&x` means two different things depending on context.
 
-**Decision required:** choose one of:
+**Decision:** Option A — differentiate the sigils.
 
-- **Option A — Differentiate the sigils.** Keep `&` for RFC-0001's address-of. Give RFC-0024's read reference a distinct sigil (e.g. `@T`, `ref T`, or a keyword like `peek(x)`).
-- **Option B — Unify under `&`.** Drop RFC-0001's `*T` / `*mut T` entirely for linear types. `&x` always means "a non-owning view"; for non-linear types, `&x` is still RC-backed and storable; for linear types, `&x` is expression-only. The type system distinguishes based on whether the target type is linear.
-- **Option C — Restrict RFC-0001 to non-linear types only.** `&x` produces `*T` for non-linear `x`, and a RFC-0024-style read reference for linear `x`. The same sigil, but the result type differs. This is implicit and potentially confusing.
+- **Option A — Differentiate the sigils.** ✓ **Adopted.** Keep `&` for RFC-0001's address-of; `&x` always produces `*T`, always RC-backed and storable. RFC-0024's read reference uses `@x` / `@T` — a distinct sigil, unused elsewhere in the language, visually unambiguous.
+- **Option B — Unify under `&`.** Rejected. `&x` would produce `*T` for non-linear targets and `@T` for linear targets — different result types behind the same operator. Type-dependent operator behavior behind a single sigil is at odds with Moonlane's no-implicit-conversions principle and makes generic code difficult to reason about.
+- **Option C — Restrict RFC-0001 to non-linear types only.** Rejected for the same reason as Option B — same syntax, incompatible result types depending on linearity.
 
-Option B is the most coherent: the `&` sigil consistently means "non-owning view," and the distinction between storable (non-linear) and non-storable (linear) falls out of the type system rather than from different syntax.
+`&x` is now unambiguous across the entire language: it always means address-of and always produces `*T`. RFC-0024's read reference operator is `@x` / `@T` throughout.
 
 ---
 
@@ -86,7 +87,7 @@ RFC-0001's mechanism for sharing state between closures is: take a pointer, then
 
 Linear types require the opposite: a linear value has exactly one owner. A second alias is a violation of the invariant — two aliases mean two potential consumers, breaking the exactly-once guarantee.
 
-**Consequence:** `*T` and `*mut T` cannot point to linear values. Attempting to take `&x` where `x` is linear must be a type error under RFC-0001's semantics. This is not a small restriction — it means the two features operate in completely separate worlds: pointers for non-linear (RC-managed) values, and RFC-0024's narrow `&T` for linear values.
+**Consequence:** `*T` and `*mut T` cannot point to linear values. Attempting to take `&x` where `x` is linear must be a type error under RFC-0001's semantics. This is not a small restriction — it means the two features operate in completely separate worlds: pointers for non-linear (RC-managed) values, and RFC-0024's `@T` read reference for linear values.
 
 **Decision required:** whether this hard separation is acceptable or whether a unified mechanism (e.g. "tracked unique pointer" — a `*T` that the type system knows is the only alias) is needed. A tracked unique pointer would be a significant addition; the hard separation is simpler but means linear types cannot use any of RFC-0001's infrastructure.
 
@@ -132,13 +133,13 @@ For a linear `T`, this is unsound: `Arc<LinearT>` would allow the same linear va
 
 The RFCs must be resolved in a specific order because later decisions depend on earlier ones.
 
-### Step 1 — Resolve the `&` syntax conflict (RFC-0001 × RFC-0024)
+### Step 1 — Resolve the `&` syntax conflict (RFC-0001 × RFC-0024) ✓ Done
 
-This is the foundational decision. All other conflicts depend on knowing what `&x` means. Until this is resolved, neither RFC-0001 nor RFC-0024 can be written in their final form.
+This was the foundational decision. All other conflicts depend on knowing what `&x` means.
 
-**Recommended decision:** Option B from Conflict 1 — unify under `&`. The `&` sigil means "non-owning view." For non-linear types, `&x` is RC-backed and storable (`*T`). For linear types, `&x` is non-storable (RFC-0024's read reference). The type system distinguishes based on linearity. This keeps one mental model for `&` across the entire language.
+**Decision:** Option A — differentiate the sigils. `&x` always means address-of and always produces `*T` (RFC-0001 semantics). RFC-0024's read reference uses `@x` / `@T` — a distinct sigil with no other meaning in the language.
 
-**Output:** An amendment to both RFC-0001 and RFC-0024 documenting the unified semantics.
+**Output:** RFC-0001 and RFC-0024 superseded by RFC-0028, which incorporates all resolved decisions and carries forward all open questions in unified form.
 
 ### Step 2 — Establish the linear/pointer boundary (RFC-0001 amendment)
 
@@ -193,7 +194,7 @@ All four RFCs can then be formally accepted. Their targets:
 
 | # | Decision | Status |
 |---|---|---|
-| D1 | `&` syntax: unify under one sigil or differentiate | **Open** |
+| D1 | `&` syntax: unify under one sigil or differentiate | **Resolved** — Option A: `&x` always address-of (`*T`); RFC-0024 read reference uses `@x` / `@T` |
 | D2 | Tracked unique pointers: in or out of scope for v0.3 | **Open** |
 | D3 | Move capture: linear-only automatic, or explicit `move` qualifier | **Open** |
 | D4 | `Mutex<LinearT>`: forbidden or permitted with restrictions | **Proposed forbidden** — pending review |
@@ -205,9 +206,10 @@ All four RFCs can then be formally accepted. Their targets:
 
 ## References
 
-- RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md`
+- RFC-0028: `docs/internal/rfcs/rfc-0028-memory-and-reference-model.md` ← primary reference for pointers and linear types
 - RFC-0003: `docs/internal/rfcs/rfc-0003-concurrency-model.md`
 - RFC-0006: `docs/internal/rfcs/rfc-0006-closure-capture-semantics.md`
-- RFC-0024: `docs/internal/rfcs/rfc-0024-linear-types.md`
 - RFC-0025: `docs/internal/rfcs/rfc-0025-region-allocation.md`
 - RFC-0026: `docs/internal/rfcs/rfc-0026-unsafe-blocks.md`
+- RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` (superseded — historical record)
+- RFC-0024: `docs/internal/rfcs/rfc-0024-linear-types.md` (superseded — historical record)
