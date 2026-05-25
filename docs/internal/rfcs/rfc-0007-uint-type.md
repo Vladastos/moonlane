@@ -25,7 +25,7 @@ Blocked until added: `Int ↔ UInt` casting via `as`, `TryFrom`/`Into` for falli
 - **Overflow semantics**: wrapping, panicking, or saturating? Should this match RFC-0013's decision on `Int` overflow?
 - **`as` casting**: `Int → UInt` truncates or panics on negative? `UInt → Int` truncates or panics on overflow?
 - **Array indexing**: should `UInt` become the canonical index type, with `Int` requiring an explicit cast? Or keep `Int` for ergonomics?
-- **`TryFrom`/`Into`**: does adding `UInt` motivate a fallible cast trait alongside `From`/`as`?
+- **`TryFrom`/`Into`**: does adding `UInt` motivate a fallible cast aspect alongside `From`/`as`?
 
 ---
 

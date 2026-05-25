@@ -33,7 +33,7 @@ to terminate the program cleanly" — a subtle but meaningful distinction.
 
 Rust's experience is instructive: `fn main() -> Result<(), Box<dyn Error>>` was added
 in Rust 1.26 precisely because the ergonomic cost of not having it was high. The
-`Termination` trait lets the runtime print the error and exit with a non-zero code,
+`Termination` aspect lets the runtime print the error and exit with a non-zero code,
 giving programs a clean, informative exit path without boilerplate.
 
 The question is whether the same trade-off applies to Moonlane, and if so, how to
@@ -95,7 +95,7 @@ Moonlane values.
 1. **Error type for `main`** — if `main` returns `Result<(), E>`, what is `E`? A
    concrete type forces a single error type; a type variable requires inference at the
    declaration site; a built-in "any error" erasure type (like `Box<dyn Error>`) needs
-   the trait system (v0.2+).
+   the aspect system (v0.2+).
 
 2. **Runtime output format** — if the runtime exits via `Err(e)`, what gets printed?
    Just `e` via some `Display`-equivalent? A fixed prefix like `"error: "`?

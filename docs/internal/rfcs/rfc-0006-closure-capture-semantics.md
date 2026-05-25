@@ -218,7 +218,7 @@ Eliminate `Rc` entirely. Use `Arc` everywhere (atomic reference count, `Send`-sa
 |---|---|
 | RFC-0001 (Pointers) | This RFC depends on `*T`/`*mut T` for the explicit-sharing proposal. RFC-0001 must be accepted before this RFC can be closed. In particular, RFC-0001's open question about `&x` on non-variable expressions (Q3) affects whether `&mut counter` inside a closure definition is valid. |
 | RFC-0003 (Concurrency) | This RFC depends on RFC-0003's `Send` marker for the `spawn { }` constraint. The rule "`*T`/`*mut T` are not `Send`" is defined there and referenced here. RFC-0003 should be accepted first. |
-| RFC-0002 (Trait Bounds) | `send fun` as a generic type parameter bound (`<F: send fun(T) -> R>`) requires RFC-0002's bound syntax to support the `send` qualifier on function types. Not blocking for capture semantics themselves, but must be resolved before the generics implementation. |
+| RFC-0002 (Aspect Bounds) | `send fun` as a generic type parameter bound (`<F: send fun(T) -> R>`) requires RFC-0002's bound syntax to support the `send` qualifier on function types. Not blocking for capture semantics themselves, but must be resolved before the generics implementation. |
 
 ---
 
@@ -281,7 +281,7 @@ RFC-0003 (concurrency) is informative here but not blocking for the capture sema
 - Language spec: [`spec/functions.md#closures`](../../public/spec/functions.md#closures), [`spec/runtime.md#panics`](../../public/spec/runtime.md#panics)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` — `*T`/`*mut T`, `Rc<RefCell<Value>>` evaluator backing, non-`Send` classification
 - RFC-0003: `docs/internal/rfcs/rfc-0003-concurrency-model.md` — `Send` marker, `spawn { }` capture constraints, `Arc<Mutex<T>>`
-- RFC-0002: `docs/internal/rfcs/rfc-0002-trait-bound-syntax.md` — trait bounds on `fun` types (open question 1 and 4)
+- RFC-0002: `docs/internal/rfcs/rfc-0002-aspect-bound-syntax.md` — aspect bounds on `fun` types (open question 1 and 4)
 - RFC-0024: `docs/internal/rfcs/rfc-0024-linear-types.md` — linear values cannot be clone-captured; move capture (`move fun`) is required; linear values can be passed as explicit closure parameters
 - RFC-0025: `docs/internal/rfcs/rfc-0025-region-allocation.md` — `Region` handles are linear; move capture or explicit parameter passing required
 - RFC-0026: `docs/internal/rfcs/rfc-0026-unsafe-blocks.md` — inside an `unsafe fun` closure, the linear capture restriction is relaxed; `unsafe fun` closures are never inferred as `send fun`

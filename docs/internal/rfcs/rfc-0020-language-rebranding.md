@@ -7,13 +7,13 @@ status: incorporated
 
 ## Summary
 
-Rename a set of language keywords and builtin identifiers to align with the Moonlane wind theme. This is a **breaking change** targeting v0.2 — no edition gating. Three changes are accepted: `nope` → `None`, `trait` → `aspect`, and `mod` → `harness` (reserved for the future module system). One item is deferred: the `.yolo()` builtin rename, pending the stdlib migration of `Result` and `Perhaps`.
+Rename a set of language keywords and builtin identifiers to align with the Moonlane wind theme. This is a **breaking change** targeting v0.2 — no edition gating. Three changes are accepted: `nope` → `None`, `aspect` → `aspect`, and `mod` → `harness` (reserved for the future module system). One item is deferred: the `.yolo()` builtin rename, pending the stdlib migration of `Result` and `Perhaps`.
 
 ---
 
 ## Motivation
 
-The language is named **Moonlane**. The current keyword set is a mix of Rust-influenced names (`trait`) and prototype-era playful names (`nope`) from an earlier development phase. A coherent naming strategy signals the language's identity and removes misleading familiarity: `trait` in Moonlane does not carry Rust's semantics (no orphan rules, no lifetime bounds, no `dyn` dispatch by default), so using the same word invites incorrect assumptions.
+The language is named **Moonlane**. The current keyword set is a mix of Rust-influenced names (`aspect`) and prototype-era playful names (`nope`) from an earlier development phase. A coherent naming strategy signals the language's identity and removes misleading familiarity: `aspect` in Moonlane does not carry Rust's semantics (no orphan rules, no lifetime bounds, no `dyn` dispatch by default), so using the same word invites incorrect assumptions.
 
 ---
 
@@ -35,13 +35,13 @@ let x: Perhaps<Int> = None;
 
 ---
 
-### 2. `trait` → `aspect`
+### 2. `aspect` → `aspect`
 
-Behaviour contracts are declared with `aspect` instead of `trait`.
+Behaviour contracts are declared with `aspect` instead of `aspect`.
 
 ```moonlane
 // Before
-trait Comparable {
+aspect Comparable {
     fun compare(other: Self) -> Int;
 }
 
@@ -55,9 +55,9 @@ aspect Comparable {
 impl Comparable for Point { ... }
 ```
 
-**Rationale:** `aspect` is thematically grounded (an aspect of the wind, a facet of a surface facing the wind) and distinct enough from Rust's `trait` to signal semantic differences. It is also unambiguous — unlike `face`, `vane`, or `current`, it does not collide with common field names or control-flow vocabulary.
+**Rationale:** `aspect` is thematically grounded (an aspect of the wind, a facet of a surface facing the wind) and distinct enough from Rust's `aspect` to signal semantic differences. It is also unambiguous — unlike `face`, `vane`, or `current`, it does not collide with common field names or control-flow vocabulary.
 
-**Impact on RFC-0002:** All `trait` occurrences in the trait bound syntax proposal become `aspect`.
+**Impact on RFC-0002:** All `aspect` occurrences in the aspect bound syntax proposal become `aspect`.
 
 ---
 
@@ -105,7 +105,7 @@ All other keywords remain as-is: `fun`, `let`, `mut`, `struct`, `enum`, `type`, 
 | Item | Change | When |
 |---|---|---|
 | `nope` / `Perhaps::Nope` | → `None` / `Perhaps::None` | v0.2 (breaking) |
-| `trait` keyword | → `aspect` | v0.2 (breaking) |
+| `aspect` keyword | → `aspect` | v0.2 (breaking) |
 | `harness` | reserved keyword | v0.2 (reserved, activated in RFC-0009) |
 | `.yolo()` | deferred | stdlib migration phase |
 | File extension `.mln` | adopted | v0.1 |

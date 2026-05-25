@@ -7,7 +7,7 @@ status: draft
 
 ## Summary
 
-Define Moonlane's concurrency model: language-native fibers, typed channels as the primary communication primitive, a `select` expression for multiplexing, and a single `Send` marker trait to prevent data races at the type level without ownership semantics. The design follows Go's philosophy — concurrency is transparent syntactically, managed by the runtime, and idiomatic code communicates through channels rather than shared memory.
+Define Moonlane's concurrency model: language-native fibers, typed channels as the primary communication primitive, a `select` expression for multiplexing, and a single `Send` marker aspect to prevent data races at the type level without ownership semantics. The design follows Go's philosophy — concurrency is transparent syntactically, managed by the runtime, and idiomatic code communicates through channels rather than shared memory.
 
 ---
 
@@ -165,12 +165,12 @@ fun merge<T: Send>(a: RecvChan<T>, b: RecvChan<T>) -> Perhaps<T> {
 
 ---
 
-### The `Send` marker trait
+### The `Send` marker aspect
 
-`Send` is a marker trait — no methods, no implementations to write. A type that is `Send` can be moved across fiber boundaries (passed through a channel or captured by a `spawn { }` block).
+`Send` is a marker aspect — no methods, no implementations to write. A type that is `Send` can be moved across fiber boundaries (passed through a channel or captured by a `spawn { }` block).
 
 ```moonlane
-trait Send {}
+aspect Send {}
 ```
 
 **Default implementations:**
@@ -235,7 +235,7 @@ For Moonlane's first concurrency implementation, **unstructured fibers** (`spawn
 
 ## Interaction with RFC-0001 (Pointers)
 
-The `Send` marker trait resolves RFC-0001's remaining ambiguity about pointer semantics in a concurrent world:
+The `Send` marker aspect resolves RFC-0001's remaining ambiguity about pointer semantics in a concurrent world:
 
 1. **`*T` and `*mut T` are not `Send`** — pointers are local-fiber tools. Self-referential structs, tree nodes, and in-place mutation within a single fiber are the intended use cases. Cross-fiber sharing goes through channels (moving values) or `Mutex<T>` (protecting shared state).
 
@@ -249,13 +249,13 @@ The recommended sequencing remains RFC-0001's Option B: resolve RFC-0001 (pointe
 
 ---
 
-## Interaction with RFC-0002 (Trait Bounds)
+## Interaction with RFC-0002 (Aspect Bounds)
 
-`Send` is the first marker trait in the language. Its introduction has two implications for RFC-0002:
+`Send` is the first marker aspect in the language. Its introduction has two implications for RFC-0002:
 
-1. **Marker traits need a representation in the AST and type system.** A trait with no methods is valid under the current spec — it is simply a trait with an empty body. No new language feature is required.
+1. **Marker aspects need a representation in the AST and type system.** A aspect with no methods is valid under the current spec — it is simply a aspect with an empty body. No new language feature is required.
 
-2. **Fiber closure capture bounds:** A `spawn { }` block that captures a variable from the enclosing scope requires that variable's type to be `Send`. This is a use-site constraint, not a function signature bound — it is checked at the `spawn { }` site, not at the function declaration. The trait bound syntax RFC (RFC-0002) does not need to cover this case; it is a compiler rule, not a programmer-written bound.
+2. **Fiber closure capture bounds:** A `spawn { }` block that captures a variable from the enclosing scope requires that variable's type to be `Send`. This is a use-site constraint, not a function signature bound — it is checked at the `spawn { }` site, not at the function declaration. The aspect bound syntax RFC (RFC-0002) does not need to cover this case; it is a compiler rule, not a programmer-written bound.
 
 ---
 
@@ -286,11 +286,11 @@ This model eliminates data races entirely — there is no shared memory to race 
 
 ### Rust's `Send`/`Sync` system
 
-Rust has two marker traits:
+Rust has two marker aspects:
 - `Send` — type can be moved to another thread
 - `Sync` — type can be shared (via `&T`) across threads (`T: Sync` iff `&T: Send`)
 
-The `Sync` trait is what makes `Arc<T>` safe: `Arc<T>` is `Send` only if `T: Sync`.
+The `Sync` aspect is what makes `Arc<T>` safe: `Arc<T>` is `Send` only if `T: Sync`.
 
 For Moonlane, `Sync` would be needed if `*T` (read-only shared pointer) could be made `Send` when `T: Sync`. This mirrors Rust's treatment of `Arc<T>`.
 
@@ -333,7 +333,7 @@ Named-process addressing enables supervision, restart, and distributed messaging
    `WaitGroup` is the standard Go pattern for "wait for N goroutines to finish." An alternative is a first-class `join` expression that waits for a set of fibers and collects their channel results. This would be more ergonomic than explicit `WaitGroup.add` / `WaitGroup.done` / `WaitGroup.wait` calls but requires fibers to have a first-class handle — which conflicts with the fire-and-forget model. Deferred.
 
 7. **`Arc<T>` and `Sync`**
-   If read-only shared pointers across fibers are needed (e.g. a large read-only data structure accessed from many fibers), neither `*T` (non-`Send`) nor channels (copy semantics) are efficient. `Arc<T>` (atomic reference count, `Send` when `T: Sync`) is the standard solution. Introducing `Arc<T>` requires the `Sync` marker trait. Defer to a follow-up RFC after the evaluator PoC, consistent with RFC-0001's timing recommendation.
+   If read-only shared pointers across fibers are needed (e.g. a large read-only data structure accessed from many fibers), neither `*T` (non-`Send`) nor channels (copy semantics) are efficient. `Arc<T>` (atomic reference count, `Send` when `T: Sync`) is the standard solution. Introducing `Arc<T>` requires the `Sync` marker aspect. Defer to a follow-up RFC after the evaluator PoC, consistent with RFC-0001's timing recommendation.
 
 ---
 
@@ -347,7 +347,7 @@ Do not implement concurrency primitives in the current PoC evaluator (v0.1). The
 
 **Minimum action from this RFC:** update the spec overview ([`spec.md`](../../public/spec.md#overview)) to name concurrency as a first-class design principle and note that language-native fibers and channels are planned. This sets expectations and prevents spec-inconsistent implementation choices in the PoC.
 
-**Implementation target:** v0.4 (Concurrency), to be scoped after v0.1–v0.3 complete. Prior to that version, open a follow-up RFC for `Arc<T>` and `Sync` (depends on the pointer and trait implementations from v0.3–v0.4 to reason about concretely).
+**Implementation target:** v0.4 (Concurrency), to be scoped after v0.1–v0.3 complete. Prior to that version, open a follow-up RFC for `Arc<T>` and `Sync` (depends on the pointer and aspect implementations from v0.3–v0.4 to reason about concretely).
 
 ---
 
@@ -355,7 +355,7 @@ Do not implement concurrency primitives in the current PoC evaluator (v0.1). The
 
 - Language spec: [`spec.md`](../../public/spec.md#overview) (overview and design principles)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` — `*T`/`*mut T` as non-`Send`; timing interaction
-- RFC-0002: `docs/internal/rfcs/rfc-0002-trait-bound-syntax.md` — `Send` as marker trait; fiber capture bounds
+- RFC-0002: `docs/internal/rfcs/rfc-0002-aspect-bound-syntax.md` — `Send` as marker aspect; fiber capture bounds
 - v0.1: #1–#4 (Evaluator — PoC must complete before concurrency implementation begins)
 - RFC-0024: `docs/internal/rfcs/rfc-0024-linear-types.md` — linear types are `Send` if all fields are `Send`; channel send is a natural consumption point for linear values; `Arc<LinearT>` and `Mutex<LinearT>` are forbidden
 - RFC-0025: `docs/internal/rfcs/rfc-0025-region-allocation.md` — `Region` is not `Send`; region allocation is a single-fiber primitive
