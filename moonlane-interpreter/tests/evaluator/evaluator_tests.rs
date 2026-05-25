@@ -27,6 +27,12 @@ mod tests {
 
     fn parse_annotation(source: &str) -> Option<(String, String)> {
         for line in source.lines() {
+            if let Some(pos) = line.find("// PARSE_ERROR[") {
+                let rest = &line[pos + 15..];
+                if let Some(end) = rest.find(']') {
+                    return Some(("parse".into(), rest[..end].to_string()));
+                }
+            }
             if let Some(pos) = line.find("// RUNTIME_ERROR[") {
                 let rest = &line[pos + 17..];
                 if let Some(end) = rest.find(']') {
@@ -47,6 +53,15 @@ mod tests {
         let source = load_source(path);
         let filename = Path::new(path).file_name().unwrap().to_str().unwrap();
         match parse_annotation(&source) {
+            Some((kind, expected)) if kind == "parse" => {
+                let err = parser::parse(&source, filename)
+                    .expect_err("expected parse error, but parsing succeeded")
+                    .to_string();
+                assert!(
+                    err.contains(&expected),
+                    "expected error containing '{expected}', got: {err}"
+                );
+            }
             Some((kind, expected)) if kind == "runtime" => {
                 let ast = parser::parse(&source, filename).expect("parse error");
                 let prog = typechecker::check(ast).expect("typecheck error");
@@ -220,6 +235,9 @@ mod tests {
     #[test]
     fn local_struct_scope() { check("46_local_struct_scope.mln"); }
 
+    #[test]
+    fn braceless_if() { check("47_braceless_if.mln"); }
+
     // ── Integration tests ─────────────────────────────────────────────────────
 
     #[test]
@@ -285,4 +303,10 @@ mod tests {
 
     #[test]
     fn neg_stack_closure_frame() { check("neg_18_stack_closure_frame.mln"); }
+
+    #[test]
+    fn neg_braceless_if_dangling_else() { check("neg_19_braceless_if_dangling_else.mln"); }
+
+    #[test]
+    fn neg_braceless_if_mixed_arms() { check("neg_20_braceless_if_mixed_arms.mln"); }
 }

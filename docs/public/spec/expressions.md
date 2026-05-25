@@ -101,6 +101,24 @@ if (condition) {
 let label = if (x > 0) { "positive" } else { "non-positive" };
 ```
 
+**Braceless bodies.** A single expression may be used as the branch body without braces:
+
+```moonlane
+if (debug) print_state();                    // statement position
+let x = if (flag) value_a else value_b;     // expression position
+```
+
+The braceless form desugars to a single-expression block. Three restrictions apply:
+
+1. **Arm style must be consistent.** Both the `then` and `else` arms must use the same style — either both braced or both braceless. Mixing is a parse error.
+2. **Dangling-else is forbidden.** If the outer body is braceless, the body expression must not itself be an `if–else`. Use braces on the outer body to resolve the ambiguity.
+   ```moonlane
+   if (a) if (b) expr;          // ok: inner if has no else
+   if (a) if (b) x; else y;    // parse error: wrap outer body in braces
+   if (a) { if (b) x; else y; } // ok
+   ```
+3. **No semicolon between braceless arms.** Write `if (c) a else b;`, not `if (c) a; else b;` — the `;` terminates the statement before the `else`.
+
 ### While
 
 ```moonlane
