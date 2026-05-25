@@ -6,13 +6,13 @@ An exploration in type-driven memory management.
 
 ## Why?
 
-You surely know as well as I do that the world does not need yet another amateur Rust clone, so let's not beat around the bush - the main answer to the *why* question is: I wanted to create my own programming language.
+You surely know as well as I do that the world does not need yet another amateur Rust clone, so let's not beat around the bush: I built this because I wanted to.
 
 It began as "Yoloscript," a silly experiment based on Lox from Crafting Interpreters. But somewhere along the way, it got ambitious. Statically typed? Sure. Written in Rust? Why not. Operator overloads, pointers, concurrency? Let's try it all.
 
 The current frontier is linear types—baked in as an opt-in pillar of the memory model. The mission: discover what this system can express and where it breaks.
 
-> Fair warning: this project is powered by some serious AI machinery. I get it if that's not your cup of tea, but there's no other way around it.
+> Fair warning: this project is powered by some serious AI machinery. I get it if that's not your cup of tea, but it's become part of how we build things now.
 
 ## What?
 
