@@ -2,7 +2,7 @@
   <img src="media/moonlane-logo.svg" alt="Moonlane" width="600"/>
 </p>
 
-A statically typed, expression-oriented language that runs in two first-class modes: a production-quality interpreter and a native compiler. The same source file, the same type checker, both targets permanently supported.
+A statically typed, expression-oriented language that runs in two first-class modes.
 
 ## Why?
 
@@ -14,16 +14,19 @@ The mechanism is opt-in linear types instead of mandatory ownership. The goal is
 
 ## What?
 
-### Available now (v0.2)
+### Available now (v0.4.0)
 
 - **Strong static typing** with local type inference (Hindley-Milner)
 - **Algebraic data types** — structs and enums with data-carrying variants
 - **Exhaustive pattern matching**
 - **Explicit nullability** via `Perhaps<T>` (no null pointers)
-- **Explicit error handling** via `Result<T, E>` with `?` propagation
+- **Explicit error handling** via `Result<T, E>` with `?` propagation — including cross-type coercion via `From<E>`
 - **First-class functions** and closures
-- **Generics** with trait bounds
-- **Traits** for ad-hoc polymorphism
+- **Generics** — generic functions, structs, and enums with full monomorphisation
+- **Aspects** — user-defined interfaces (`aspect Foo { ... }`) with `impl Aspect for Type` dispatch
+- **`Iterable<T>`** — implement `for-in` on your own types
+- **`From<T>`** — implement `as` casts between any two types
+- **`Display`** — `.to_string()` on all built-in types; polymorphic `print`/`println`
 - **Runtime memory management** via reference counting
 
 ### Planned
@@ -125,7 +128,6 @@ Moonlane/
 ## Resources
 
 - **Language Specification:** [`docs/public/spec.md`](docs/public/spec.md)
-- **Project Vision:** [`docs/internal/vision.md`](docs/internal/vision.md)
 - **Typechecker Architecture:** [`moonlane-interpreter/docs/typechecker.md`](moonlane-interpreter/docs/typechecker.md)
 - **Evaluator Design:** [`moonlane-interpreter/docs/evaluator.md`](moonlane-interpreter/docs/evaluator.md)
 - **RFCs:** [`docs/internal/rfcs/`](docs/internal/rfcs/) — language change proposals and decisions
