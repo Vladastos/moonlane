@@ -510,31 +510,70 @@ fn parse_array_lit(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<
     Ok(Expr::Array(elems, span))
 }
 
+fn wrap_expr_as_block(expr: Expr) -> Block {
+    let s = expr.span().clone();
+    Block { stmts: vec![], tail: Some(Box::new(expr)), span: s }
+}
+
 fn parse_if_expr(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<Expr, MoonlaneError> {
     let span = Span::of(&pair, filename);
     let mut inner = pair.into_inner();
+
     let condition = parse_expr(
         inner.next().ok_or_else(|| MoonlaneError::internal("if_expr: expected condition"))?,
         filename,
     )?;
-    let then_branch = parse_block(
-        inner.next().ok_or_else(|| MoonlaneError::internal("if_expr: expected then block"))?,
-        filename,
-    )?;
+
+    let then_pair = inner.next().ok_or_else(|| MoonlaneError::internal("if_expr: expected then body"))?;
+    let then_is_block = then_pair.as_rule() == Rule::block;
+    let then_branch = if then_is_block {
+        parse_block(then_pair, filename)?
+    } else {
+        let expr = parse_expr(then_pair, filename)?;
+        // Braceless body that is itself an if–else creates dangling-else ambiguity.
+        if let Expr::If { else_branch: Some(_), .. } = &expr {
+            return Err(MoonlaneError::parse(
+                ParseErrorCode::P0001,
+                "braceless if body may not contain an if–else expression; wrap the outer body in braces",
+                &span,
+            ));
+        }
+        wrap_expr_as_block(expr)
+    };
+
     let else_branch = match inner.next() {
         None => None,
-        Some(p) => Some(match p.as_rule() {
-            Rule::block   => parse_block(p, filename)?,
-            // `else if` — wrap the nested if_expr in a synthetic block so that
-            // Expr::If.else_branch is always Option<Block>.
-            Rule::if_expr => {
-                let nested = parse_if_expr(p, filename)?;
-                let else_span = nested.span().clone();
-                Block { stmts: vec![], tail: Some(Box::new(nested)), span: else_span }
+        Some(p) => {
+            let else_is_block = p.as_rule() == Rule::block;
+            let else_is_if    = p.as_rule() == Rule::if_expr;
+            // Mixed arm styles are not allowed.
+            if then_is_block && !else_is_block && !else_is_if {
+                return Err(MoonlaneError::parse(
+                    ParseErrorCode::P0001,
+                    "mismatched if arm styles: then branch uses braces but else branch does not",
+                    &span,
+                ));
             }
-            r => return Err(MoonlaneError::internal(format!("if_expr: unexpected else rule {r:?}"))),
-        }),
+            if !then_is_block && else_is_block {
+                return Err(MoonlaneError::parse(
+                    ParseErrorCode::P0001,
+                    "mismatched if arm styles: then branch is braceless but else branch uses braces",
+                    &span,
+                ));
+            }
+            Some(match p.as_rule() {
+                Rule::block => parse_block(p, filename)?,
+                // `else if` — wrap the nested if_expr in a synthetic block so that
+                // Expr::If.else_branch is always Option<Block>.
+                Rule::if_expr => {
+                    let nested = parse_if_expr(p, filename)?;
+                    wrap_expr_as_block(nested)
+                }
+                _ => wrap_expr_as_block(parse_expr(p, filename)?),
+            })
+        }
     };
+
     Ok(Expr::If { condition: Box::new(condition), then_branch, else_branch, span })
 }
 

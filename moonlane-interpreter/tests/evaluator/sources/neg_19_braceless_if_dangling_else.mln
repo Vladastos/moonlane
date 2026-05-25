@@ -1,0 +1,5 @@
+// PARSE_ERROR[braceless if body may not contain an if–else expression]
+// Outer body is braceless and contains an inner if–else — dangling-else ambiguity.
+fun main() {
+    if (true) if (false) 1 else 2;
+}
