@@ -250,6 +250,9 @@ mod tests {
     #[test]
     fn generic_nested_types() { check("51_generic_nested_types.mln"); }
 
+    #[test]
+    fn let_polymorphism() { check("52_let_polymorphism.mln"); }
+
     // ── Integration tests ─────────────────────────────────────────────────────
 
     #[test]

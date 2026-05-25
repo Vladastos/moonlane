@@ -240,6 +240,15 @@ pub enum TypedExpr {
         ty: Type,
         span: Span,
     },
+    /// A let-bound polymorphic closure (let-polymorphism).
+    /// The body is kept untyped for runtime re-evaluation at each call site's concrete type.
+    GenericClosure {
+        params:      Vec<Param>,
+        return_type: Option<TypeExpr>,
+        body:        Block,
+        ty:          Type,
+        span:        Span,
+    },
     StructLiteral {
         path: Vec<String>,
         fields: Vec<(String, TypedExpr)>,
@@ -274,6 +283,7 @@ impl TypedExpr {
             | TypedExpr::If { ty, .. }
             | TypedExpr::Loop { ty, .. }
             | TypedExpr::Closure { ty, .. }
+            | TypedExpr::GenericClosure { ty, .. }
             | TypedExpr::StructLiteral { ty, .. }
             | TypedExpr::PropagateError { ty, .. } => ty,
             TypedExpr::Match(m) => &m.expr_type,
@@ -300,6 +310,7 @@ impl TypedExpr {
             | TypedExpr::If { span, .. }
             | TypedExpr::Loop { span, .. }
             | TypedExpr::Closure { span, .. }
+            | TypedExpr::GenericClosure { span, .. }
             | TypedExpr::StructLiteral { span, .. }
             | TypedExpr::PropagateError { span, .. } => span,
             TypedExpr::Match(m) => &m.span,

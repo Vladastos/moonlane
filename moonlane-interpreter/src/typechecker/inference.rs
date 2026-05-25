@@ -39,9 +39,27 @@ fn infer_decl(
 ) -> Result<InferType, MoonlaneError> {
     match decl {
         Decl::Let(ld) => {
+            let env_fvs = ctx.env_free_vars();
             let val_ty = infer_expr(&ld.value, ctx, fun_generalizations)?;
             if let Some(ann) = &ld.type_ann {
                 ctx.add_constraint(val_ty.clone(), type_expr_to_infer(ann), ld.span.clone());
+            }
+            // Let-polymorphism: generalize unannotated closure-valued let bindings.
+            // If the resolved type still has free variables, they are quantified into a
+            // polymorphic scheme so each call site gets a fresh instantiation.
+            if matches!(&ld.value, Expr::Closure { .. }) && ld.type_ann.is_none() {
+                let partial_subst = ctx.solve()?;
+                let resolved_ty = partial_subst.apply(&val_ty);
+                let scheme = generalize(resolved_ty.clone(), &env_fvs);
+                if !scheme.quantified_vars.is_empty() {
+                    ctx.bind_poly(&ld.name, scheme);
+                    fun_generalizations.push(FunGeneralization {
+                        name:    ld.name.clone(),
+                        fun_ty:  resolved_ty,
+                        env_fvs,
+                    });
+                    return Ok(InferType::unit());
+                }
             }
             ctx.bind_mono(&ld.name, val_ty, false);
             Ok(InferType::unit())
