@@ -139,7 +139,7 @@ drop(buf);   // consumed; satisfies the linearity checker
 
 `drop` has the signature `fun<T: Linear>(val: T)`. It does not call a destructor method — the programmer must call the destructor explicitly before dropping if needed.
 
-**Open question:** whether a `Drop` trait with automatic call on unconsumed scope exit should be introduced. See OQ-5.
+**Open question:** whether a `Drop` aspect with automatic call on unconsumed scope exit should be introduced. See OQ-5.
 
 #### 1.8 Destructuring
 
@@ -306,7 +306,7 @@ When a non-annotated struct becomes implicitly linear because of a linear field,
 
 ### OQ-5 — Destructor protocol
 
-Should the language define a `Drop` trait with a `drop(self)` method called automatically when a linear value goes out of scope unconsumed — converting a compile error into an implicit destructor call? This eases migration but weakens the "must be explicit" guarantee.
+Should the language define a `Drop` aspect with a `drop(self)` method called automatically when a linear value goes out of scope unconsumed — converting a compile error into an implicit destructor call? This eases migration but weakens the "must be explicit" guarantee.
 
 Related: should `#[auto_drop]` be available as an opt-in per type?
 

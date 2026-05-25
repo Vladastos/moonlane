@@ -1,19 +1,19 @@
 ---
 id: rfc-0002
-title: "Trait Bound Syntax"
+title: "Aspect Bound Syntax"
 date: '2026-05-19'
 status: accepted
 ---
 
 ## Summary
 
-Define the syntax for expressing trait bounds on generic type parameters. The current spec sketches Rust-style syntax (`T: Trait`, `where` clause) without fully specifying multi-bound forms, anonymous type parameters, or associated type constraints. This RFC evaluates alternatives from other languages and proposes a design that is expressive, readable, and internally consistent with Moonlane's existing syntax.
+Define the syntax for expressing aspect bounds on generic type parameters. The current spec sketches Rust-style syntax (`T: Aspect`, `where` clause) without fully specifying multi-bound forms, anonymous type parameters, or associated type constraints. This RFC evaluates alternatives from other languages and proposes a design that is expressive, readable, and internally consistent with Moonlane's existing syntax.
 
 ---
 
 ## The Problem with Rust
 
-Rust's trait bound syntax has several friction points that compound as code grows:
+Rust's aspect bound syntax has several friction points that compound as code grows:
 
 ### 1. The `+` separator reads like addition
 
@@ -35,14 +35,14 @@ fn foo<T>(x: T) -> T where T: Display + Clone
 
 Both are legal. Neither is deprecated. Projects develop their own conventions. When bounds grow long, inline becomes unreadable and you migrate to `where`, but now the type parameter declaration (`<T>`) and its constraints (`where T: ...`) are separated by the entire parameter list and return type.
 
-### 3. `impl Trait` and `<T: Trait>` are two ways to say the same thing
+### 3. `impl Aspect` and `<T: Aspect>` are two ways to say the same thing
 
 ```rust
 fn bar(x: impl Display) -> impl Display        // anonymous type param
 fn bar<T: Display>(x: T) -> T                  // explicit type param
 ```
 
-Both compile to the same monomorphized code for parameters. They have subtle differences at return position (`impl Trait` in return is opaque; `T` in return is named). This duality forces every Rust programmer to learn two mental models for one concept.
+Both compile to the same monomorphized code for parameters. They have subtle differences at return position (`impl Aspect` in return is opaque; `T` in return is named). This duality forces every Rust programmer to learn two mental models for one concept.
 
 ### 4. Associated type syntax is unusual
 
@@ -210,7 +210,7 @@ fun foo<T, U>(x: T, y: U) -> T
 
 ---
 
-### Option B: `&` for trait composition
+### Option B: `&` for aspect composition
 
 Replace `+` with `&` as the multi-bound separator. `&` has precedent in TypeScript, Swift, and Scala for type intersection / protocol composition.
 
@@ -246,7 +246,7 @@ fun foo<T, U>(x: T, y: U) -> T
 fun bar(x: impl Display) -> impl Display
 ```
 
-**Pros:** One canonical place for multi-bound constraints. No `+` / `&` decision. Comma-separated per-trait reads as a list.  
+**Pros:** One canonical place for multi-bound constraints. No `+` / `&` decision. Comma-separated per-aspect reads as a list.  
 **Cons:** Multi-bound functions always require a `where` clause; more vertical space. `T: Display, T: Clone` repeats `T`.
 
 ---
@@ -300,7 +300,7 @@ pub struct GenericParam {
 }
 ```
 
-All options require changing `bound` to support multiple traits. The least-invasive change:
+All options require changing `bound` to support multiple aspects. The least-invasive change:
 
 ```rust
 pub struct GenericParam {
@@ -331,8 +331,8 @@ Options C and D additionally require:
 2. **Should inline multi-bound be allowed at all?**  
    Kotlin bans it; everything goes in `where`. Rust allows both. Allowing both creates the dual-syntax problem. If inline multi-bound is forbidden, bounds on a single-constraint param can be inline (`<T: Comparable>`) but two+ bounds always require `where`.
 
-3. **Anonymous type params — `impl Trait` or something else?**  
-   `impl Trait` for parameter position is a known Rust tension (why `impl` — what does it implement?). Swift's `some` is semantically clear. Should Moonlane introduce a keyword, or require explicit `<T: Trait>` for all generic positions?
+3. **Anonymous type params — `impl Aspect` or something else?**  
+   `impl Aspect` for parameter position is a known Rust tension (why `impl` — what does it implement?). Swift's `some` is semantically clear. Should Moonlane introduce a keyword, or require explicit `<T: Aspect>` for all generic positions?
 
 4. **Associated type constraints — how to express them?**  
    Rust: `Iterator<Item = String>`. Swift: `Collection<String>` (primary associated type). Moonlane's `Iterable<T>` could adopt Swift's model — `Iterable<String>` constrains the element type directly without named-argument syntax.  
@@ -342,9 +342,9 @@ Options C and D additionally require:
    `where` is already a keyword. `requires` reads more declaratively ("this function requires...") and is less likely to be confused with the SQL/query connotation of `where`. If both are allowed, another dual-syntax problem emerges.
 
 6. **Self-referential bounds — `T: Comparable<T>` vs `T: Comparable`?**  
-   Rust's `PartialOrd<Rhs = Self>` is complex. Kotlin's `Comparable<T>` is explicit but repetitive. The Moonlane spec already shows `Comparable` without a self-type parameter. This should be codified: bounds use the simple name (`Comparable`), and `Self` in the trait definition refers to the implementing type. This avoids `T: Comparable<T>` entirely.
+   Rust's `PartialOrd<Rhs = Self>` is complex. Kotlin's `Comparable<T>` is explicit but repetitive. The Moonlane spec already shows `Comparable` without a self-type parameter. This should be codified: bounds use the simple name (`Comparable`), and `Self` in the aspect definition refers to the implementing type. This avoids `T: Comparable<T>` entirely.
 
-7. **Type aliases for constraint bundles — `type` or `trait` alias?**
+7. **Type aliases for constraint bundles — `type` or `aspect` alias?**
 
    Type aliases let you name a compound bound and use it as a single inline constraint, directly relieving Option C's main ergonomic cost:
 
@@ -357,28 +357,28 @@ Options C and D additionally require:
 
    The alias definition is where you pay the verbosity cost; every call site stays clean. This mirrors Swift's `typealias` for protocol compositions.
 
-   **The catch:** alias definitions cannot use Option C's `where`-style comma-per-trait form (there is no `T` to repeat). They need a conjunction operator in the definition — which reintroduces the separator question that Option C sidesteps at call sites:
+   **The catch:** alias definitions cannot use Option C's `where`-style comma-per-aspect form (there is no `T` to repeat). They need a conjunction operator in the definition — which reintroduces the separator question that Option C sidesteps at call sites:
 
    ```moonlane
    type Sortable = Comparable & Display & Clone   // & separator in definition
    type Sortable = Comparable + Display + Clone   // + separator in definition
    ```
 
-   Alternatively, a separate `trait alias` keyword scopes the separator decision to a distinct syntactic form, making it visually unambiguous:
+   Alternatively, a separate `aspect alias` keyword scopes the separator decision to a distinct syntactic form, making it visually unambiguous:
 
    ```moonlane
-   trait Sortable = Comparable + Display + Clone  // trait alias — not a type alias
+   aspect Sortable = Comparable + Display + Clone  // aspect alias — not a type alias
    ```
 
-   This matters because a `type` alias is broadly useful beyond constraints (aliasing function signatures, generic instantiations, etc.), while a `trait alias` is specifically for bundling bounds. The two may warrant different syntax.
+   This matters because a `type` alias is broadly useful beyond constraints (aliasing function signatures, generic instantiations, etc.), while a `aspect alias` is specifically for bundling bounds. The two may warrant different syntax.
 
    **Sub-questions:**
-   - Is a constraint alias a `type` alias or a `trait` alias (or both)?
+   - Is a constraint alias a `type` alias or a `aspect` alias (or both)?
    - Does the conjunction separator in alias definitions need to match the separator used at call sites (if any)?
-   - Should constraint aliases be usable anywhere a trait bound appears, including `where` clauses?
+   - Should constraint aliases be usable anywhere a aspect bound appears, including `where` clauses?
 
-8. **Forward reference — async/concurrency trait bounds**  
-   If Moonlane ever gains async or multithreading support, the trait system will need `Send`/`Sync`-like marker traits to express thread-safety constraints, and the pointer RFC (`*mut T`) will need corresponding bounds to prevent unsound shared mutable access across threads. No design is needed now — defer until after the evaluator PoC and traits implementation give enough implementation experience to make concrete choices. Noted here to avoid designing the trait system into a corner.
+8. **Forward reference — async/concurrency aspect bounds**  
+   If Moonlane ever gains async or multithreading support, the aspect system will need `Send`/`Sync`-like marker aspects to express thread-safety constraints, and the pointer RFC (`*mut T`) will need corresponding bounds to prevent unsound shared mutable access across threads. No design is needed now — defer until after the evaluator PoC and aspects implementation give enough implementation experience to make concrete choices. Noted here to avoid designing the aspect system into a corner.
 
 ---
 
@@ -401,10 +401,10 @@ Rationale:
 
 ## References
 
-- Language spec: [`spec/declarations.md#traits`](../../public/spec/declarations.md#traits), [`spec/types.md#generics`](../../public/spec/types.md#generics)
+- Language spec: [`spec/declarations.md#aspects`](../../public/spec/declarations.md#aspects), [`spec/types.md#generics`](../../public/spec/types.md#generics)
 - RFC-0001: `docs/internal/rfcs/rfc-0001-pointer-syntax.md` (`&` operator — tension with Option B)
 - v0.3: #5–#10 (type variables, generics, monomorphization)
-- v0.3: #11–#13 (traits and method dispatch)
+- v0.3: #11–#13 (aspects and method dispatch)
 - AST: `src/ast/mod.rs` — `GenericParam`, `TraitDecl`, `TraitMethod`
 
 ---

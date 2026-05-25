@@ -29,7 +29,7 @@ This is verbose for a common operation. Most modern languages provide interpolat
   - Backtick template literals: `` `hello ${name}` ``
   - Brace-in-double-quote: `"hello {name}"`
   - Sigil prefix: `f"hello {name}"` (Python/Rust style)
-- **What's interpolatable**: any expression? Only types implementing a `Display` / `ToString` trait? The latter requires the trait system (v0.2) as a prerequisite.
+- **What's interpolatable**: any expression? Only types implementing a `Display` / `ToString` aspect? The latter requires the aspect system (v0.2) as a prerequisite.
 - **Nested quotes**: how are quotes inside an interpolated expression handled?
 - **Escape**: how is the interpolation delimiter escaped when needed literally (e.g. a literal `{` in the string)?
 - **Multi-line strings**: does interpolation interact with multi-line string syntax (if that's ever added)?

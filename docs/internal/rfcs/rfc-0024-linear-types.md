@@ -228,7 +228,7 @@ Gate raw memory operations behind an `unsafe` boundary, as in Rust. Rejected as 
 
 ## Open Questions
 
-1. **Destructor protocol.** Should the language define a `Drop` trait with a `drop(self)` method that is called automatically when a linear value would otherwise go out of scope unconsumed — converting a compile error into an implicit call? This would ease migration but weakens the "must be explicit" guarantee.
+1. **Destructor protocol.** Should the language define a `Drop` aspect with a `drop(self)` method that is called automatically when a linear value would otherwise go out of scope unconsumed — converting a compile error into an implicit call? This would ease migration but weakens the "must be explicit" guarantee.
 
 2. **`@T` mutability.** This RFC introduces only read references. A mutable form `@mut T` is explicitly out of scope — mutation of a linear value is done by consuming and returning, which avoids the exclusive-lock tracking that `@mut T` would require. If this proves too restrictive in practice, a future RFC may revisit it.
 
@@ -246,7 +246,7 @@ Gate raw memory operations behind an `unsafe` boundary, as in Rust. Rejected as 
 
 ## Timing Recommendation
 
-Linear types depend on generics (v0.2, RFC-0024 needs `fun<T: Linear>`). Target **v0.3** after generics and traits are stable. The `@T` read reference form is syntactically resolved (see Conflict 1 in the cluster report — D1 decided). The `@` sigil is distinct from `&` (RFC-0001 address-of).
+Linear types depend on generics (v0.2, RFC-0024 needs `fun<T: Linear>`). Target **v0.3** after generics and aspects are stable. The `@T` read reference form is syntactically resolved (see Conflict 1 in the cluster report — D1 decided). The `@` sigil is distinct from `&` (RFC-0001 address-of).
 
 ---
 

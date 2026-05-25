@@ -60,7 +60,7 @@ The v0.1 built-in functions (`print`, `println`, `int_to_string`, `float_to_stri
 | Built-in          | Stdlib destination            |
 |-------------------|-------------------------------|
 | `print`, `println`| `std::io`                     |
-| `int_to_string`, `float_to_string`, `bool_to_string` | superseded by the `Display` trait (RFC-0012) |
+| `int_to_string`, `float_to_string`, `bool_to_string` | superseded by the `Display` aspect (RFC-0012) |
 | `string_len`, `string_concat` | `std::string`    |
 | `array_push`, `array_len`     | `std::array` / `std::collections` |
 | `clock`           | `std::time`                   |
@@ -70,7 +70,7 @@ This is not a backwards-compatibility question — built-ins are not a stable AP
 ## Open Questions
 
 - **Module path convention**: `std::math` or `std/math` or something else? Depends on RFC-0009.
-- **Generic stdlib functions** (`min`, `max`, `List<T>`): require the trait system for bounds (`T: Comparable`). Does stdlib ship in phases alongside language versions?
+- **Generic stdlib functions** (`min`, `max`, `List<T>`): require the aspect system for bounds (`T: Comparable`). Does stdlib ship in phases alongside language versions?
 - **Versioning**: does the stdlib follow the same language version as the spec, or does it version independently?
 
 ---
