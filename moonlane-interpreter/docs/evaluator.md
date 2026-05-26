@@ -35,7 +35,7 @@ pub enum Value {
     Closure(Rc<ClosureValue>),
     Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, MoonlaneError>),
     Perhaps(Option<Box<Value>>),
-    YoloResult(Result<Box<Value>, Box<Value>>),
+    Result(Result<Box<Value>, Box<Value>>),
     Pointer(Rc<RefCell<Value>>),        // RFC-0001 placeholder — never constructed
     MutPointer(Rc<RefCell<Value>>),     // RFC-0001 placeholder — never constructed
 }
@@ -49,7 +49,7 @@ pub enum Value {
 - Passing an array to a function gives the function its own copy; `array_push` inside the function does not mutate the caller's array.
 - `array_push` applied to the binding itself mutates through the `Rc<RefCell>` as expected.
 
-**Note:** `Value::Perhaps` and `Value::YoloResult` are currently unused at runtime — `Perhaps<T>` values are represented as `Value::Enum { name: "Perhaps", variant: "Some"/"Nope", .. }` and `Result<T,E>` as `Value::Enum { name: "Result", variant: "Ok"/"Err", .. }`. These variants are relics of an earlier design. They can be removed when the evaluator is rewritten.
+**`Value::Perhaps` and `Value::Result`** are the canonical runtime representations for the built-in `Perhaps<T>` and `Result<T,E>` types. All construction paths route through these variants — `Perhaps::Some { value: v }` struct literals produce `Value::Perhaps(Some(Box::new(v)))`, `nope` produces `Value::Perhaps(None)`, `Result::Ok { value: v }` produces `Value::Result(Ok(Box::new(v)))`, and `Result::Err { error: e }` produces `Value::Result(Err(Box::new(e)))`. Pattern matching and the `?` operator match against these dedicated variants, not `Value::Enum`.
 
 ### Range representation
 
@@ -185,7 +185,7 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 `call_function(func, args, span)` handles three cases:
 
 - `Value::Builtin(_, f)` — calls the function pointer directly.
-- `Value::Closure(rc)` — clones the captured environment, pushes a parameter scope, evaluates the body, and converts `Signal::Return` to `Signal::Value` at the boundary. `Signal::PropagateErr` is also converted: it wraps the error value in `Value::Enum { name: "Result", variant: "Err", .. }` and returns `Signal::Value` of that — so the `?` error appears as a `Result::Err` value to the caller.
+- `Value::Closure(rc)` — clones the captured environment, pushes a parameter scope, evaluates the body, and converts `Signal::Return` to `Signal::Value` at the boundary. `Signal::PropagateErr` is also converted: it wraps the error value in `Value::Result(Err(Box::new(e)))` and returns `Signal::Value` — so the `?` error appears as a `Result::Err` value to the caller.
 - `Value::Closure(rc)` where `rc.body` is `ClosureBody::Untyped(block)` — a polymorphic generic function or let-bound closure. The evaluator re-runs the construction pass on the untyped block at the concrete argument types, producing a `TypedBlock` that is evaluated immediately. This is the monomorphization path.
 
 ---
@@ -196,9 +196,11 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 
 Generic functions and let-polymorphic closures re-run the construction pass at every call site. This is correct but not optimal: for hot generic functions, monomorphization at a higher level (pre-compiling all instantiation sites) would be faster. Acceptable for the tree-walk interpreter.
 
-### `Perhaps` and `YoloResult` variants unused
+### `call_function_mut_self` — non-standard calling convention for iterators
 
-`Value::Perhaps` and `Value::YoloResult` are defined but never constructed by the evaluator. `Perhaps` values are `Value::Enum { name: "Perhaps", .. }` at runtime. These dead variants should be removed when the evaluator is rewritten.
+`call_function_mut_self` returns `(Signal, updated_self)` instead of just `Signal`. This exists because the language currently has no mutable references — when `next(&mut self)` is called on a user-defined iterator, mutations to `self` are local to the call frame and invisible to the caller. Returning `updated_self` threads the mutated iterator forward to the next loop iteration.
+
+This function goes away when RFC-0001 (memory model with mutable references) is implemented. At that point, `next` can take `&mut self` and mutate in place, and `eval_for_in` can call `call_function` directly.
 
 ### Closure/scope mutation semantics unspecified
 

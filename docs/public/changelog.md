@@ -4,6 +4,22 @@ title: "Moonlane Language Changelog"
 
 # Changelog
 
+## v0.4.1
+
+Technical debt, bug fixes, and internal cleanup. Shipped by Sprint 7 (`sprint/7`).
+
+**Bug fixes:**
+- `TypeErrorCode::T0005` ("Invalid operand types") is now emitted for arithmetic operators (`+`, `-`, `*`, `/`, `%`) applied to non-numeric types (e.g. `true + false` is now a type error)
+- Unary negation (`-`) on non-numeric types is now a type error
+- Ordering comparisons (`<`, `<=`, `>`, `>=`) on non-comparable types (non-Int, non-Float, non-String) are now type errors
+- `Pattern::Nope` latent bug eliminated — `nope` values are now exclusively `Value::Perhaps(None)`, so the pattern can no longer silently miss the `Value::Enum { name: "Perhaps", variant: "Nope" }` form
+
+**Internal improvements:**
+- `Value::YoloResult` renamed to `Value::Result`; `Perhaps` and `Result` values are now first-class runtime variants — no longer stored as `Value::Enum`
+- Large enum variants boxed in `Decl`, `Stmt`, `TypedDecl`, `TypedStmt` (stack frame sizes reduced from 896–1040 bytes to 8 bytes)
+- Dead utility methods removed (`Program::new`, `Type::is_numeric`, `Type::is_unit`); reserved fields annotated with `#[allow(dead_code)]`
+- All clippy style/idiom warnings resolved
+
 ## v0.4.0
 
 Aspects and upgraded builtins. Shipped by Sprint 6 (`sprint/6`).
