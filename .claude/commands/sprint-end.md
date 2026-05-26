@@ -182,12 +182,7 @@ Edit the kickoff issue body to reflect what was actually completed vs. deferred 
 
 ---
 
-## Step 8 — Gather epic and spec notes
-
-Epic progress — for each milestone touched this sprint:
-```bash
-gh api repos/moonlane-lang/moonlane/milestones --jq '.[] | select(.title == "<milestone>") | "\(.title): \(.closed_issues)/\(.open_issues + .closed_issues) issues closed"'
-```
+## Step 8 — Gather spec notes
 
 Spec changes — all commits on the sprint branch that touched `docs/`:
 ```bash
@@ -230,9 +225,6 @@ All gates passed. ✅
 
 ## Carried Over
 <- [ ] #N Title for each open issue, with reason>
-
-## Epic Progress
-<milestone progress lines>
 
 ## Spec Notes
 <doc commit summaries, or "No spec changes this sprint.">
