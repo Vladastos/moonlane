@@ -46,7 +46,7 @@ pub enum Value {
     Closure(Rc<ClosureValue>),
     Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, MoonlaneError>),
     Perhaps(Option<Box<Value>>),
-    YoloResult(Result<Box<Value>, Box<Value>>),
+    Result(Result<Box<Value>, Box<Value>>),
     /// Read-only pointer placeholder — never constructed in v0.2; reserved for RFC-0001.
     Pointer(Rc<RefCell<Value>>),
     /// Writable pointer placeholder — never constructed in v0.2; reserved for RFC-0001.
@@ -516,17 +516,8 @@ fn eval_for_in(
         iter_val = updated_self;
         let result = result_sig.into_value();
         let maybe_item: Option<Value> = match result {
-            Value::Perhaps(None) => None,
+            Value::Perhaps(None)    => None,
             Value::Perhaps(Some(v)) => Some(*v),
-            Value::Enum { ref name, ref variant, ref fields } if name == "Perhaps" => {
-                match variant.as_str() {
-                    "Nope" => None,
-                    "Some" => Some(fields.get("value").cloned().ok_or_else(|| {
-                        MoonlaneError::internal("Iterable::next: Perhaps::Some missing `value`")
-                    })?),
-                    _ => return Err(MoonlaneError::internal("Iterable::next: unexpected Perhaps variant")),
-                }
-            }
             _ => return Err(MoonlaneError::internal("Iterable::next: expected Perhaps value")),
         };
         match maybe_item {
@@ -764,6 +755,9 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Moonl
                 }
                 let name    = segments[segments.len() - 2].clone();
                 let variant = segments[segments.len() - 1].clone();
+                if name == "Perhaps" && variant == "Nope" {
+                    return Ok(Signal::Value(Value::Perhaps(None)));
+                }
                 Ok(Signal::Value(Value::Enum { name, variant, fields: HashMap::new() }))
             }
         }
@@ -983,7 +977,22 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Moonl
                 field_vals.insert(name.clone(), eval_untyped_expr(expr, env)?.into_value());
             }
             if path.len() == 2 {
-                Ok(Signal::Value(Value::Enum { name: path[0].clone(), variant: path[1].clone(), fields: field_vals }))
+                match (path[0].as_str(), path[1].as_str()) {
+                    ("Perhaps", "Some") => {
+                        let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Perhaps::Some: missing `value` field"))?;
+                        Ok(Signal::Value(Value::Perhaps(Some(Box::new(v)))))
+                    }
+                    ("Perhaps", "Nope") => Ok(Signal::Value(Value::Perhaps(None))),
+                    ("Result", "Ok") => {
+                        let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Result::Ok: missing `value` field"))?;
+                        Ok(Signal::Value(Value::Result(Ok(Box::new(v)))))
+                    }
+                    ("Result", "Err") => {
+                        let e = field_vals.remove("error").ok_or_else(|| MoonlaneError::internal("Result::Err: missing `error` field"))?;
+                        Ok(Signal::Value(Value::Result(Err(Box::new(e)))))
+                    }
+                    _ => Ok(Signal::Value(Value::Enum { name: path[0].clone(), variant: path[1].clone(), fields: field_vals })),
+                }
             } else {
                 let name = path.last().ok_or_else(|| MoonlaneError::internal("struct literal: empty path"))?.clone();
                 Ok(Signal::Value(Value::Struct { name, fields: field_vals }))
@@ -1043,21 +1052,8 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Moonl
         Expr::PropagateError { expr, span } => {
             let val = eval_untyped_expr(expr, env)?.into_value();
             match val {
-                Value::YoloResult(Ok(v))  => Ok(Signal::Value(*v)),
-                Value::YoloResult(Err(e)) => Ok(Signal::PropagateErr(*e)),
-                Value::Enum { ref name, ref variant, ref fields } if name == "Result" => {
-                    match variant.as_str() {
-                        "Ok" => {
-                            let v = fields.get("value").cloned().ok_or_else(|| MoonlaneError::internal("Result::Ok: missing `value` field"))?;
-                            Ok(Signal::Value(v))
-                        }
-                        "Err" => {
-                            let e = fields.get("error").cloned().ok_or_else(|| MoonlaneError::internal("Result::Err: missing `error` field"))?;
-                            Ok(Signal::PropagateErr(e))
-                        }
-                        v => Err(MoonlaneError::internal(format!("?: unknown Result variant `{v}`"))),
-                    }
-                }
+                Value::Result(Ok(v))  => Ok(Signal::Value(*v)),
+                Value::Result(Err(e)) => Ok(Signal::PropagateErr(*e)),
                 _ => Err(MoonlaneError::panic(RuntimeErrorCode::R0012, "?: expected a Result value", span)),
             }
         }
@@ -1114,6 +1110,9 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
                 }
                 let name    = segments[segments.len() - 2].clone();
                 let variant = segments[segments.len() - 1].clone();
+                if name == "Perhaps" && variant == "Nope" {
+                    return Ok(Signal::Value(Value::Perhaps(None)));
+                }
                 Ok(Signal::Value(Value::Enum {
                     name,
                     variant,
@@ -1384,12 +1383,26 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
                 field_vals.insert(name.clone(), eval_expr(expr, env)?.into_value());
             }
             if path.len() == 2 {
-                // Enum variant with named fields: `Enum::Variant { field: val, .. }`
-                Ok(Signal::Value(Value::Enum {
-                    name:    path[0].clone(),
-                    variant: path[1].clone(),
-                    fields:  field_vals,
-                }))
+                match (path[0].as_str(), path[1].as_str()) {
+                    ("Perhaps", "Some") => {
+                        let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Perhaps::Some: missing `value` field"))?;
+                        Ok(Signal::Value(Value::Perhaps(Some(Box::new(v)))))
+                    }
+                    ("Perhaps", "Nope") => Ok(Signal::Value(Value::Perhaps(None))),
+                    ("Result", "Ok") => {
+                        let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Result::Ok: missing `value` field"))?;
+                        Ok(Signal::Value(Value::Result(Ok(Box::new(v)))))
+                    }
+                    ("Result", "Err") => {
+                        let e = field_vals.remove("error").ok_or_else(|| MoonlaneError::internal("Result::Err: missing `error` field"))?;
+                        Ok(Signal::Value(Value::Result(Err(Box::new(e)))))
+                    }
+                    _ => Ok(Signal::Value(Value::Enum {
+                        name:    path[0].clone(),
+                        variant: path[1].clone(),
+                        fields:  field_vals,
+                    })),
+                }
             } else {
                 let name = path.last().ok_or_else(|| {
                     MoonlaneError::internal("struct literal: empty path")
@@ -1473,30 +1486,15 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
         TypedExpr::PropagateError { expr, coercion, span, .. } => {
             let val = eval_expr(expr, env)?.into_value();
             match val {
-                Value::YoloResult(Ok(v))  => Ok(Signal::Value(*v)),
-                Value::YoloResult(Err(e)) => Ok(Signal::PropagateErr(*e)),
-                Value::Enum { ref name, ref variant, ref fields } if name == "Result" => {
-                    match variant.as_str() {
-                        "Ok" => {
-                            let v = fields.get("value").cloned().ok_or_else(|| {
-                                MoonlaneError::internal("Result::Ok: missing `value` field")
-                            })?;
-                            Ok(Signal::Value(v))
-                        }
-                        "Err" => {
-                            let e = fields.get("error").cloned().ok_or_else(|| {
-                                MoonlaneError::internal("Result::Err: missing `error` field")
-                            })?;
-                            // Apply From coercion if needed.
-                            let coerced = if let Some(key) = coercion {
-                                if let Some(from_fn) = env.get(key) {
-                                    call_function(from_fn, vec![e], span)?.into_value()
-                                } else { e }
-                            } else { e };
-                            Ok(Signal::PropagateErr(coerced))
-                        }
-                        v => Err(MoonlaneError::internal(format!("?: unknown Result variant `{v}`"))),
-                    }
+                Value::Result(Ok(v))  => Ok(Signal::Value(*v)),
+                Value::Result(Err(e)) => {
+                    // Apply From coercion if needed.
+                    let coerced = if let Some(key) = coercion {
+                        if let Some(from_fn) = env.get(key) {
+                            call_function(from_fn, vec![*e], span)?.into_value()
+                        } else { *e }
+                    } else { *e };
+                    Ok(Signal::PropagateErr(coerced))
                 }
                 _ => Err(MoonlaneError::panic(RuntimeErrorCode::R0012, "?: expected a Result value", span)),
             }
@@ -1540,9 +1538,29 @@ fn match_pattern(pattern: &Pattern, value: &Value, out: &mut HashMap<String, Val
         },
 
         Pattern::EnumVariant { path, fields, .. } => {
+            let type_name   = if path.len() >= 2 { path[path.len() - 2].as_str() } else { "" };
             let variant_name = path.last().map(String::as_str).unwrap_or("");
-            match value {
-                Value::Enum { variant, fields: enum_fields, .. } if variant == variant_name => {
+            match (type_name, variant_name, value) {
+                ("Perhaps", "Some", Value::Perhaps(Some(v))) => {
+                    if let Some(field_name) = fields.first() {
+                        out.insert(field_name.clone(), *v.clone());
+                    }
+                    true
+                }
+                ("Perhaps", "Nope", Value::Perhaps(None)) => true,
+                ("Result", "Ok", Value::Result(Ok(v))) => {
+                    if let Some(field_name) = fields.first() {
+                        out.insert(field_name.clone(), *v.clone());
+                    }
+                    true
+                }
+                ("Result", "Err", Value::Result(Err(e))) => {
+                    if let Some(field_name) = fields.first() {
+                        out.insert(field_name.clone(), *e.clone());
+                    }
+                    true
+                }
+                (_, variant_name, Value::Enum { variant, fields: enum_fields, .. }) if variant == variant_name => {
                     for field_name in fields {
                         match enum_fields.get(field_name) {
                             Some(v) => { out.insert(field_name.clone(), v.clone()); }
@@ -1583,11 +1601,7 @@ fn call_function(func: Value, args: Vec<Value>, span: &Span) -> Result<Signal, M
             let sig = result?;
             Ok(match sig {
                 Signal::Return(v) => Signal::Value(v),
-                Signal::PropagateErr(e) => Signal::Value(Value::Enum {
-                    name:    "Result".to_string(),
-                    variant: "Err".to_string(),
-                    fields:  { let mut m = HashMap::new(); m.insert("error".to_string(), e); m },
-                }),
+                Signal::PropagateErr(e) => Signal::Value(Value::Result(Err(Box::new(e)))),
                 other => other,
             })
         }
@@ -1637,11 +1651,7 @@ fn call_function_mut_self(func: Value, args: Vec<Value>, span: &Span) -> Result<
             let sig = result?;
             let sig = match sig {
                 Signal::Return(v) => Signal::Value(v),
-                Signal::PropagateErr(e) => Signal::Value(Value::Enum {
-                    name:    "Result".to_string(),
-                    variant: "Err".to_string(),
-                    fields:  { let mut m = HashMap::new(); m.insert("error".to_string(), e); m },
-                }),
+                Signal::PropagateErr(e) => Signal::Value(Value::Result(Err(Box::new(e)))),
                 other => other,
             };
             Ok((sig, updated_self))
@@ -2032,8 +2042,8 @@ fn format_value(val: &Value) -> String {
         Value::Builtin(name, _) => format!("<builtin:{}>", name),
         Value::Perhaps(Some(v)) => format!("Some({})", format_value(v)),
         Value::Perhaps(None) => "None".to_string(),
-        Value::YoloResult(Ok(v)) => format!("Ok({})", format_value(v)),
-        Value::YoloResult(Err(e)) => format!("Err({})", format_value(e)),
+        Value::Result(Ok(v)) => format!("Ok({})", format_value(v)),
+        Value::Result(Err(e)) => format!("Err({})", format_value(e)),
         // RFC-0001 (pointer syntax) placeholder variants — not constructed until that RFC is implemented.
         Value::Pointer(_) | Value::MutPointer(_) => unreachable!("pointer values not constructed until RFC-0001 is implemented"),
     }
