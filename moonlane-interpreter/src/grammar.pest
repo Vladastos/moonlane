@@ -26,22 +26,22 @@ block_comment = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 
 // ── Program ───────────────────────────────────────────────────────────────────
 
-program = { SOI ~ mod_decl* ~ use_decl* ~ decl* ~ EOI }
+program = { SOI ~ (import_decl | export_decl)* ~ decl* ~ EOI }
 
-// ── Declarations ──────────────────────────────────────────────────────────────
+// ── Module header ─────────────────────────────────────────────────────────────
 
-mod_decl = { pub_kw? ~ "mod" ~ ident ~ ";" }
-
-use_decl = { pub_kw? ~ "use" ~ use_path ~ ";" }
-use_path = { path_root ~ "::" ~ use_tree }
-path_root = { root_kw | std_kw | self_kw | super_kw | ident }
-use_tree = {
+import_decl = { "import" ~ import_path ~ ";" }
+export_decl = { "export" ~ import_path ~ ";" }
+import_path = { path_root ~ "::" ~ import_tree }
+path_root   = { root_kw | std_kw | self_kw | super_kw | ident }
+import_tree = {
     ident ~ "as" ~ ident
-  | ident ~ "::" ~ use_tree
-  | "{" ~ use_tree ~ ("," ~ use_tree)* ~ ","? ~ "}"
+  | ident ~ "::" ~ import_tree
+  | "{" ~ import_item ~ ("," ~ import_item)* ~ ","? ~ "}"
   | "*"
   | ident
 }
+import_item = { ident ~ ("as" ~ ident)? }
 
 decl = {
     fun_decl
@@ -241,9 +241,9 @@ ident = @{
 }
 
 keyword = @{
-    ("and" | "as" | "break" | "continue" | "else" | "enum" | "false" |
-     "for" | "fun" | "if" | "impl" | "let" | "loop" | "match" |
-     "mod" | "mut" | "or" | "pub" | "return" | "root" | "self" |
+    ("and" | "as" | "break" | "continue" | "else" | "enum" | "export" |
+     "false" | "for" | "fun" | "if" | "impl" | "import" | "let" | "loop" |
+     "match" | "mod" | "mut" | "or" | "pub" | "return" | "root" | "self" |
      "std" | "struct" | "super" | "aspect" | "true" | "use" |
      "where" | "while")
     ~ !(ASCII_ALPHANUMERIC | "_")
