@@ -120,42 +120,58 @@ fn get_export(ctx: &mut GlobalCtx, path: &[String], name: &str) -> Option<Scheme
 
 **Option A** is the recommended approach for v0.6.0.
 
-The `typechecker::check` signature changes from:
+### Output type: `TypedModuleGraph`
+
+`check_graph` returns a `TypedModuleGraph` — a per-module typed AST — rather than a merged `TypedProgram`. The evaluator is updated in the same sprint to accept `TypedModuleGraph` as its entry point.
 
 ```rust
-pub fn check(program: Program) -> Result<TypedProgram, MoonlaneError>
+pub struct TypedModule {
+    pub module_path: Vec<String>,
+    pub decls: Vec<TypedDecl>,
+}
+
+pub struct TypedModuleGraph {
+    pub root: Vec<String>,
+    pub modules: Vec<TypedModule>,  // topological order
+}
+
+pub fn check_graph(graph: ModuleGraph) -> Result<TypedModuleGraph, MoonlaneError>
+pub fn evaluate_graph(graph: TypedModuleGraph) -> Result<(), MoonlaneError>
 ```
 
-to:
+The old `check(Program)` and `evaluate(TypedProgram)` are kept as compatibility wrappers (single-module synthetic graph) until all callers are migrated, then deleted alongside the flat-merge hack.
 
-```rust
-pub fn check_graph(graph: ModuleGraph) -> Result<TypedProgram, MoonlaneError>
-```
-
-The old `check` is kept as a compatibility wrapper (passes a synthetic single-module graph) until all callers are updated, then removed alongside the flat-merge hack.
+### Type-checking loop
 
 Each module produces a `ModuleExports { scheme_env: SchemeEnv, type_env: HashMap<String, Type> }` bundle that is accumulated into a `GlobalExports` registry. When typechecking module M, the inference context is pre-seeded with:
 1. M's own declarations.
 2. For each `import mod::name`, the corresponding entry from `GlobalExports[mod]`.
 3. For `import mod::*`, all `pub` entries from `GlobalExports[mod]`.
 
+### Private-item error: `T0009`
+
+Accessing a name that exists but is not `pub` in the source module produces error code `T0009`. The message names the item and the module it belongs to:
+
+```
+error[T0009]: `Token` is private in module `lexer`
+```
+
+This is distinct from `T0003` (undefined name) — the name is known; it is merely inaccessible.
+
 ## Migration Path
 
-1. Implement `check_graph` alongside the existing `check` (Issue #172).
-2. Wire `ResolvedNames` from the `ModuleGraph` into each module's inference scope (Issue #173).
-3. Enforce `pub_surface` in glob and named imports (Issues #174, #176).
-4. Add alias resolution (Issue #175).
-5. Add conflict detection (Issue #177).
-6. Add re-export propagation (Issue #178).
-7. Remove the flat-merge `load_program` and all ADR-0019/ADR-0020 fallback code (Issue #179).
-8. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
+1. Implement `check_graph` (returns `TypedModuleGraph`) alongside the existing `check` (Issue #172).
+2. Implement `evaluate_graph` alongside the existing `evaluate` (Issue #183).
+3. Wire `ResolvedNames` from the `ModuleGraph` into each module's inference scope (Issue #173).
+4. Enforce `pub_surface` in glob and named imports; introduce `T0009` (Issues #174, #176).
+5. Add alias resolution (Issue #175).
+6. Add conflict detection (Issue #177).
+7. Add re-export propagation (Issue #178).
+8. Remove the flat-merge `load_program`, `check(Program)`, `evaluate(TypedProgram)`, and all ADR-0019/ADR-0020 fallback code (Issue #179).
+9. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
 
-## Open Questions
+## Resolved Questions
 
-1. Should `check_graph` return a `Vec<TypedModule>` or a single merged `TypedProgram`? The evaluator currently expects a flat `TypedProgram`. If we return a merged program, we re-introduce the flat structure at the typed-AST level. The cleaner design is a `TypedModuleGraph`, but that requires updating the evaluator — which is out of scope for v0.6.0.
+1. **Output shape:** `check_graph` returns `TypedModuleGraph`. The evaluator is updated in the same sprint. The flat `TypedProgram` path is deleted when the migration is complete (Issue #179).
 
-   *Proposed resolution:* Return a merged `TypedProgram` for v0.6.0 (the evaluator is unchanged). Split `TypedProgram` into `TypedModuleGraph` in a future sprint when the evaluator is also updated.
-
-2. What error should be produced when a private item is accessed? A dedicated error code (`T00xx: name is private`) or reuse the existing "undefined name" error with an explanatory suffix?
-
-   *Proposed resolution:* New error code. "undefined name" is misleading — the name exists but is inaccessible. The error message should name the module and the visibility level.
+2. **Private-item error code:** New code `T0009` — "name is private in module X". Using `T0003` ("undefined name") would be misleading since the name is known to the typechecker.
