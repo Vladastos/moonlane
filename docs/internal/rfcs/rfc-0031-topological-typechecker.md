@@ -174,10 +174,51 @@ The typechecker looks up `resolved` for name resolution and uses `original.join(
 
 `check_graph` takes a `StdPrelude` parameter (#188) which seeds `GlobalExports` with `std::` and `core` schemes before the per-module loop begins. All other modules have been loaded by the file loader, which errors on any missing file (#186). Together these two invariants guarantee that every import in every `LoadedModule` has a corresponding `GlobalExports` entry by the time scope construction starts. A missing entry at that point is an internal error, not a user error.
 
-Each module produces a `ModuleExports { scheme_env: SchemeEnv, type_env: HashMap<String, Type> }` bundle that is accumulated into `GlobalExports`. When typechecking module M, the inference context is pre-seeded with:
-1. M's own declarations.
-2. For each `import mod::name`, the corresponding entry from `GlobalExports[mod]`.
-3. For `import mod::*`, all `pub` entries from `GlobalExports[mod]`.
+### GlobalExports structure
+
+```rust
+type ModulePath = Vec<String>;  // e.g. ["parser"] or ["parser", "lexer"]
+
+struct ModuleExports {
+    pub_schemes: HashMap<String, Scheme>,
+    pub_types:   HashMap<String, TypeDef>,
+}
+
+struct GlobalExports {
+    modules: HashMap<ModulePath, ModuleExports>,
+}
+```
+
+Keyed by canonical module path. Module paths are unique in the graph (the loader deduplicates by canonical file path), so there are no key collisions in `GlobalExports`.
+
+### ScopedEnv and conflict detection
+
+The scope builder does not populate a flat `TypeEnv` directly. It builds a `ScopedEnv` that tracks where each binding came from:
+
+```rust
+enum Binding {
+    Single   { scheme: Scheme, source: ModulePath },
+    Conflict { sources: Vec<ModulePath> },
+}
+
+type ScopedEnv = HashMap<String, Binding>;
+```
+
+| Import type | Existing binding | Result |
+|---|---|---|
+| Explicit (`import a::Foo`) | absent | `Single { source: a }` |
+| Explicit (`import a::Foo`) | `Single` from explicit | `Conflict` — immediate error |
+| Explicit (`import a::Foo`) | `Single` from glob | `Single { source: a }` — explicit wins silently |
+| Glob (`import a::*`) | absent | `Single { source: a }` for each pub name |
+| Glob (`import a::*`) | `Single` from explicit | unchanged — explicit wins silently |
+| Glob (`import a::*`) | `Single` from glob | `Conflict` — deferred; error only at lookup |
+
+`Conflict` bindings are carried into `InferContext`. Inference looking up a `Conflict` name produces `T00xx`, naming the identifier and all source modules. This ensures glob-vs-glob conflicts are only reported when the name is actually used, while explicit-vs-explicit conflicts fail immediately at scope-build time regardless of usage.
+
+Each module produces a `ModuleExports` bundle accumulated into `GlobalExports`. When typechecking module M, the scope builder seeds `ScopedEnv` from:
+1. M's own declarations (as `Single` bindings with source = M).
+2. For each `import mod::name`, the entry from `GlobalExports[mod].pub_schemes`.
+3. For `import mod::*`, all entries from `GlobalExports[mod].pub_schemes`.
 
 Before inference runs, all `pub`-marked declarations in M are validated to have explicit type annotations (#187, error code `T0010`). This ensures exported schemes are fully concrete and consumable by downstream modules without cross-module type inference.
 
@@ -190,6 +231,18 @@ error[T0009]: `Token` is private in module `lexer`
 ```
 
 This is distinct from `T0003` (undefined name) — the name is known; it is merely inaccessible.
+
+### Import conflict error: `T0011`
+
+A name bound by two conflicting imports produces `T0011`:
+
+```
+error[T0011]: `Token` is imported from both `parser` and `lexer`
+  --> main.mln:2:1
+import parser::*;
+import lexer::*;
+note: use an explicit import to disambiguate: `import parser::Token`
+```
 
 ## Migration Path
 
@@ -218,14 +271,18 @@ This is distinct from `T0003` (undefined name) — the name is known; it is mere
 
 4. **Silent-skip for unresolvable imports:** Removed. The loader (#186) errors on missing files; `std::` modules are pre-loaded by the typechecker. There is no legitimate case where an import silently produces nothing — every import either resolves or is an error.
 
-5. **Std pre-loading informality:** `check_graph` takes an explicit `StdPrelude` parameter (#188) with `StdPrelude::default()` and `StdPrelude::empty()` constructors. Tests that do not need std pass `StdPrelude::empty()` for isolation. The convention of "typechecker does this first" is replaced by a typed, required argument.
+5. **Std pre-loading informality:** `check_graph` takes an explicit `StdPrelude` parameter (#188) with `StdPrelude::default()` and `StdPrelude::empty()` constructors. Tests that do not need std pass `StdPrelude::empty()` for isolation.
 
-6. **Alias + normalizer interaction:** When `import mod::name as alias` is in scope, `mod::name` as an expression rewrites to `alias` — the local binding — not the bare `name`. Writing `mod::name` without an alias for the bare form is a normalizer error.
+6. **Alias + normalizer interaction:** When `import mod::name as alias` is in scope, `mod::name` as an expression rewrites to `ResolvedPath { resolved: "alias", original: ["mod", "name"] }`. Writing `name` bare with no import for it is a normalizer error, not a silent rewrite.
 
 7. **Unannotated pub declarations:** `pub` declarations without explicit type annotations produce `T0010` before inference runs (#187). This enforces the no-cross-module-inference invariant at the point where it would otherwise silently produce incomplete exported schemes.
 
 8. **Re-export of private names:** A `pub import` may only re-export a name that is `pub` in the source module. Attempting to re-export a private name is `T0009` (#178). This prevents visibility leaks through facade modules.
 
-9. **Topological ordering implicit:** `ModuleGraph::modules` is documented as a topological ordering guarantee, and `load_root` adds a `debug_assert!` that validates it at construction time (#172). A violation surfaces immediately as an assertion failure during development rather than as a silent wrong-order typecheck.
+9. **Topological ordering implicit:** `ModuleGraph::modules` is documented as a topological ordering guarantee, and `load_root` adds a `debug_assert!` that validates it at construction time (#172).
 
 10. **Evaluator flat runtime:** Acknowledged as a known deferral. `evaluate_graph` concatenates `TypedDecl` lists in v0.6.0. Per-module runtime context is tracked in #189 for v0.7.0.
+
+11. **GlobalExports collisions:** No key collisions are possible — each module path is unique in the graph (loader deduplicates by canonical file path). Name collisions across imports are handled at the consumer level via `ScopedEnv` / `Binding`. Import conflict error code is `T0011` (#177).
+
+12. **Qualified path error messages:** The normalizer produces `Expr::ResolvedPath { resolved, original }`. The typechecker uses `resolved` for lookup and `original.join("::")` for error messages — explicit in the type, survives inferred-type errors where no source span exists (#185).
