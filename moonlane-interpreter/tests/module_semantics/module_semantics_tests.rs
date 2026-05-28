@@ -159,6 +159,22 @@ fn alias_import_original_name_not_in_scope() {
     run_graph(&main).expect_err("original name should not be in scope");
 }
 
+// ── #178: re-export propagation ──────────────────────────────────────────────
+
+#[test]
+fn facade_re_exports_item_and_consumer_can_use_it() {
+    // facade.mln re-exports `answer` from helper.mln.
+    // main.mln imports only from facade and calls `answer` without importing helper directly.
+    let dir = fixture_dir("re_export");
+    let main = dir.join("main.mln");
+    write(&main, "import facade::answer;\nfun main() -> Int { return answer(); }\n");
+    // facade imports answer from helper (so helper is loaded) and re-exports it
+    write(&dir.join("facade.mln"), "import helper::answer;\nexport helper::answer;\n");
+    write(&dir.join("helper.mln"), "pub fun answer() -> Int { return 42; }\n");
+
+    run_graph(&main).unwrap_or_else(|e| panic!("{e}"));
+}
+
 // ── T0011: import conflict detection ─────────────────────────────────────────
 
 #[test]

@@ -173,8 +173,9 @@ pub fn check_graph(
         let (typed_decls, scheme_env) =
             check_impl(&loaded.program, &imported_schemes, &type_context)?;
 
-        // Export pub names from this module's scheme_env.
-        let pub_schemes = filter_pub_schemes(&scheme_env, loaded, names);
+        // Export pub names from this module's scheme_env, plus re-exported names
+        // pulled from their source modules in GlobalExports (#178).
+        let pub_schemes = filter_pub_schemes(&scheme_env, loaded, names, &global_exports);
         global_exports.insert(loaded.module_path.clone(), ModuleExports { pub_schemes });
 
         // Accumulate this module's type decls for subsequent modules.
@@ -332,19 +333,37 @@ fn decl_exists(program: &Program, name: &str) -> bool {
     })
 }
 
-/// Filter a module's scheme_env to only the names declared `pub` in that module.
+/// Build the public scheme export for a module: pub-declared names from its
+/// own scheme_env, plus any re-exported names pulled from `global_exports`.
 fn filter_pub_schemes(
     scheme_env: &SchemeEnv,
     loaded: &LoadedModule,
     names: &ResolvedNames,
+    global_exports: &GlobalExports,
 ) -> SchemeEnv {
     let Some(pub_names) = names.pub_surface.get(&loaded.module_path) else {
         return HashMap::new();
     };
-    scheme_env.iter()
+
+    // Locally-declared pub names from this module's inference output.
+    let mut result: SchemeEnv = scheme_env.iter()
         .filter(|(name, _)| pub_names.contains(name.as_str()))
         .map(|(name, scheme)| (name.clone(), scheme.clone()))
-        .collect()
+        .collect();
+
+    // Re-exported names: present in pub_surface but not in scheme_env.
+    // Pull their schemes from the source module's GlobalExports entry.
+    if let Some(scope) = names.scopes.get(&loaded.module_path) {
+        for (local_name, binding) in &scope.re_exports {
+            if pub_names.contains(local_name.as_str()) && !result.contains_key(local_name) {
+                if let Some(scheme) = global_exports.get_scheme(&binding.source_module, &binding.source_name) {
+                    result.insert(local_name.clone(), scheme.clone());
+                }
+            }
+        }
+    }
+
+    result
 }
 
 /// Run the type checker over an untyped AST, producing a fully typed AST.
