@@ -177,3 +177,131 @@ fn self_qualified_path_in_expression_resolves() {
     let typed = typechecker::check(program).unwrap_or_else(|e| panic!("{e}"));
     evaluator::evaluate(typed).unwrap_or_else(|e| panic!("{e}"));
 }
+
+// ── #169: module system integration tests ────────────────────────────────────
+
+#[test]
+fn pub_enum_imported_and_matched() {
+    let dir = fixture_dir("enum_match");
+    let main = dir.join("main.mln");
+    write(
+        &main,
+        r#"
+import color::*;
+fun main() -> Int {
+    let c = Color::Red;
+    match c {
+        Color::Red   => { return 1; },
+        Color::Green => { return 2; },
+        Color::Blue  => { return 3; }
+    }
+}
+"#,
+    );
+    write(&dir.join("color.mln"), "pub enum Color { Red, Green, Blue }\n");
+
+    let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
+    let typed = typechecker::check(program).unwrap_or_else(|e| panic!("{e}"));
+    evaluator::evaluate(typed).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn group_import_makes_both_names_accessible() {
+    let dir = fixture_dir("group_import");
+    let main = dir.join("main.mln");
+    write(
+        &main,
+        r#"
+import math::{add, mul};
+fun main() -> Int { return add(mul(2, 3), 1); }
+"#,
+    );
+    write(
+        &dir.join("math.mln"),
+        "pub fun add(a: Int, b: Int) -> Int { return a + b; }\npub fun mul(a: Int, b: Int) -> Int { return a * b; }\n",
+    );
+
+    let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
+    let typed = typechecker::check(program).unwrap_or_else(|e| panic!("{e}"));
+    evaluator::evaluate(typed).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn import_with_alias_loads_module_into_graph() {
+    let dir = fixture_dir("alias_load");
+    let main = dir.join("main.mln");
+    write(&main, "import helper::answer as compute;\nfun main() { }\n");
+    write(&dir.join("helper.mln"), "pub fun answer() -> Int { return 42; }\n");
+
+    let graph = module_loader::load_root(&main).unwrap_or_else(|e| panic!("{e}"));
+
+    // The file is loaded even though the local binding uses an alias.
+    assert_eq!(graph.modules.len(), 2);
+    assert!(graph.modules.iter().any(|m| m.module_path == vec!["helper".to_string()]));
+}
+
+#[test]
+fn transitive_dependency_loaded_via_facade() {
+    let dir = fixture_dir("transitive");
+    let main = dir.join("main.mln");
+    write(&main, "import parser::*;\nfun main() -> Int { return parse(); }\n");
+    // parser imports (and thereby loads) lexer; exposes parse() which delegates to tokenize()
+    write(
+        &dir.join("parser.mln"),
+        "import lexer::*;\npub fun parse() -> Int { return tokenize(); }\n",
+    );
+    write(&dir.join("lexer.mln"), "pub fun tokenize() -> Int { return 1; }\n");
+
+    let graph = module_loader::load_root(&main).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(graph.modules.len(), 3);
+
+    let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
+    let typed = typechecker::check(program).unwrap_or_else(|e| panic!("{e}"));
+    evaluator::evaluate(typed).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn import_nonexistent_module_silently_skips_at_load_time() {
+    // A missing .mln file is not a load error — the import is simply unresolved.
+    // Using the unresolved name fails later at typecheck time.
+    let dir = fixture_dir("missing_mod");
+    let main = dir.join("main.mln");
+    write(
+        &main,
+        "import nonexistent::Thing;\nfun main() -> Int { return Thing(); }\n",
+    );
+
+    // load_root succeeds: only main.mln is in the graph
+    let graph = module_loader::load_root(&main).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(graph.modules.len(), 1, "only root module should be loaded");
+
+    // typechecker rejects the usage of an undefined name
+    let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
+    let err = typechecker::check(program).expect_err("undefined name should be a type error");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Thing") || msg.contains("undefined"),
+        "message was: {msg}",
+    );
+}
+
+#[test]
+fn struct_field_access_across_modules() {
+    let dir = fixture_dir("struct_field");
+    let main = dir.join("main.mln");
+    write(
+        &main,
+        r#"
+import point::*;
+fun main() -> Int {
+    let p = Point { x: 3, y: 4 };
+    return p.x;
+}
+"#,
+    );
+    write(&dir.join("point.mln"), "pub struct Point { x: Int, y: Int }\n");
+
+    let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
+    let typed = typechecker::check(program).unwrap_or_else(|e| panic!("{e}"));
+    evaluator::evaluate(typed).unwrap_or_else(|e| panic!("{e}"));
+}
