@@ -112,6 +112,23 @@ For each qualifying decision, verify a decision record exists in `moonlane-inter
 
 List every qualifying decision found and whether a record exists or was created.
 
+### Gate 8: ADR links in code
+
+For every ADR written or referenced this sprint, check whether the code it governs carries an inline comment linking back to it. Use the criteria from AGENTS.md § Linking decisions to code:
+
+- Code that looks wrong but is intentional (a workaround, a deliberate shortcut, a known limitation) **must** have a comment explaining the reason and citing the ADR.
+- A load-bearing invariant the ADR documents — one a future refactor could silently break — **must** have a comment at the enforcement point.
+- Routine code that simply implements a spec rule does **not** need a link.
+
+To find candidate sites, grep for the ADR IDs and cross-check that the surrounding code has an explanatory comment:
+```bash
+grep -rn "ADR-\|adr-" moonlane-interpreter/src/
+```
+
+For each ADR written this sprint: read it, identify the specific code it governs, and verify the comment is present and informative (not just `// see ADR-NNNN`). Add comments where missing.
+
+List each ADR, the file(s) it governs, and whether a comment was present or added.
+
 ---
 
 ## Step 3 — Fix findings before continuing
@@ -217,6 +234,9 @@ All gates passed. ✅
 ### Spec / doc fixes
 <list any spec or doc corrections made during gate checks, or "None">
 
+### ADR links in code (Gate 8)
+<for each ADR written or referenced this sprint: ADR-NNNN — file(s) — comment present/added, or "No ADRs this sprint">
+
 ### Integration tests (if version sprint)
 <summary: N tests written, M failures found, K fixed, issues opened — or "N/A">
 
@@ -264,7 +284,7 @@ Both `Closes` lines are required — on merge, GitHub automatically closes both 
 
 > **Sprint $ARGUMENTS quality gate passed and PR is open.**
 >
-> - All 7 quality gates: ✅
+> - All 8 quality gates: ✅
 > - Review issue: #<N> — add **Next Sprint Seeds** if you have ideas.
 > - **Merge the PR** on GitHub — this automatically closes the review and kickoff issues.
 > - After the merge is confirmed, pull `main` and create the release tag:
