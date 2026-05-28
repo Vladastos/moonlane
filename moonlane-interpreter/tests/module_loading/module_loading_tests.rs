@@ -35,7 +35,7 @@ fn single_file_program_loads_without_modules() {
 
     let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
 
-    assert_eq!(program.modules.len(), 0);
+    assert_eq!(program.imports.len(), 0);
     assert_eq!(program.decls.len(), 1);
 }
 
@@ -43,7 +43,7 @@ fn single_file_program_loads_without_modules() {
 fn multi_file_program_loads_declared_modules() {
     let dir = fixture_dir("multi");
     let main = dir.join("main.mln");
-    write(&main, "mod parser;\nfun main() { }\n");
+    write(&main, "import parser::Token;\nfun main() { }\n");
     write(&dir.join("parser.mln"), "struct Token { value: Int }\n");
 
     let graph = module_loader::load_root(&main).unwrap_or_else(|e| panic!("{e}"));
@@ -56,7 +56,7 @@ fn multi_file_program_loads_declared_modules() {
 fn multi_file_program_runs_after_module_loading() {
     let dir = fixture_dir("run_multi");
     let main = dir.join("main.mln");
-    write(&main, "mod helper;\nfun main() -> Int { return answer(); }\n");
+    write(&main, "import helper::answer;\nfun main() -> Int { return answer(); }\n");
     write(&dir.join("helper.mln"), "fun answer() -> Int { return 42; }\n");
 
     let program = module_loader::load_program(&main).unwrap_or_else(|e| panic!("{e}"));
@@ -66,38 +66,27 @@ fn multi_file_program_runs_after_module_loading() {
 }
 
 #[test]
-fn resolves_name_mod_file_layout() {
-    let dir = fixture_dir("mod_file");
+fn facade_module_alongside_directory() {
+    let dir = fixture_dir("facade");
     let main = dir.join("main.mln");
-    write(&main, "mod parser;\nfun main() { }\n");
-    write(&dir.join("parser").join("mod.mln"), "struct Token { value: Int }\n");
+    write(&main, "import parser::Token;\nfun main() { }\n");
+    // parser.mln is the facade; parser/ is the namespace — both can coexist
+    write(&dir.join("parser.mln"), "struct Token { value: Int }\n");
+    fs::create_dir_all(dir.join("parser")).unwrap();
+    write(&dir.join("parser").join("ast.mln"), "pub struct Ast { value: Int }\n");
 
     let graph = module_loader::load_root(&main).unwrap_or_else(|e| panic!("{e}"));
 
+    // main + parser.mln loaded; parser/ast.mln not imported so not loaded
     assert_eq!(graph.modules.len(), 2);
-}
-
-#[test]
-fn rejects_ambiguous_module_layout() {
-    let dir = fixture_dir("ambiguous");
-    let main = dir.join("main.mln");
-    write(&main, "mod parser;\nfun main() { }\n");
-    write(&dir.join("parser.mln"), "struct A { value: Int }\n");
-    write(&dir.join("parser").join("mod.mln"), "struct B { value: Int }\n");
-
-    let err = module_loader::load_root(&main).expect_err("ambiguous module should fail");
-    let msg = err.to_string();
-
-    assert!(msg.contains("ambiguous module `parser`"), "message was: {msg}");
-    assert!(msg.contains("parser.mln"), "message was: {msg}");
-    assert!(msg.contains("parser/mod.mln"), "message was: {msg}");
+    assert!(graph.modules.iter().any(|m| m.module_path == vec!["parser".to_string()]));
 }
 
 #[test]
 fn rejects_super_from_root_import() {
     let dir = fixture_dir("root_super");
     let main = dir.join("main.mln");
-    write(&main, "use super::parser;\nfun main() { }\n");
+    write(&main, "import super::parser;\nfun main() { }\n");
 
     let err = module_loader::load_root(&main).expect_err("super from root should fail");
     let msg = err.to_string();
@@ -110,16 +99,15 @@ fn rejects_super_from_root_import() {
 fn accepts_root_self_super_std_and_child_roots_in_non_root_modules() {
     let dir = fixture_dir("roots");
     let main = dir.join("main.mln");
-    write(&main, "mod parser;\nfun main() { }\n");
+    write(&main, "import parser::Token;\nfun main() { }\n");
     write(
         &dir.join("parser.mln"),
         r#"
-mod child;
-use root::parser;
-use self::child;
-use super::parser;
-use std::core;
-use child::Thing;
+import self::child::Thing;
+import root::parser::Token;
+import super::parser::Token;
+import std::core::Int;
+import child::Thing;
 
 struct Token { value: Int }
 "#,
@@ -138,9 +126,10 @@ fn rejects_circular_module_graph() {
 
     let dir = fixture_dir("cycle");
     let main = dir.join("main.mln");
-    write(&main, "mod a;\nfun main() { }\n");
-    write(&dir.join("a").join("mod.mln"), "mod b;\n");
-    symlink(dir.join("a"), dir.join("a").join("b"))
+    write(&main, "import a::Thing;\nfun main() { }\n");
+    write(&dir.join("a.mln"), "import b::Other;\n");
+    // create b/ as a symlink back to a/ to simulate a cycle
+    symlink(dir.join("a.mln"), dir.join("b.mln"))
         .unwrap_or_else(|e| panic!("failed to create symlink cycle: {e}"));
 
     let err = module_loader::load_root(&main).expect_err("cycle should fail");

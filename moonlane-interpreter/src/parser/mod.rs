@@ -42,72 +42,44 @@ fn parse_program(pairs: &mut Pairs<Rule>, filename: &str) -> Result<Program, Moo
     if program_pair.as_rule() != Rule::program {
         return Err(MoonlaneError::internal("parse_program: first rule is not program"));
     }
-    let mut modules = Vec::new();
     let mut imports = Vec::new();
+    let mut exports = Vec::new();
     let mut decls = Vec::new();
     for pair in program_pair.into_inner() {
         match pair.as_rule() {
-            Rule::mod_decl => {
-                modules.push(parse_mod_decl(pair, filename)?);
-            }
-            Rule::use_decl => {
-                imports.push(parse_use_decl(pair, filename)?);
-            }
-            Rule::decl => {
-                decls.push(parse_decl(pair, filename)?);
-            }
+            Rule::import_decl => imports.push(parse_import_decl(pair, filename)?),
+            Rule::export_decl => exports.push(parse_export_decl(pair, filename)?),
+            Rule::decl        => decls.push(parse_decl(pair, filename)?),
             Rule::EOI => {}
             _ => {}
         }
     }
-    Ok(Program { modules, imports, decls })
+    Ok(Program { imports, exports, decls })
 }
 
-fn parse_mod_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<ModDecl, MoonlaneError> {
+fn parse_import_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<ImportDecl, MoonlaneError> {
     let span = Span::of(&pair, filename);
-    let mut visibility = Visibility::Private;
-    let mut name = None;
-    for p in pair.into_inner() {
-        match p.as_rule() {
-            Rule::pub_kw => visibility = Visibility::Public,
-            Rule::ident => name = Some(p.as_str().to_string()),
-            r => return Err(MoonlaneError::internal(format!("mod_decl: unexpected rule {r:?}"))),
-        }
-    }
-    Ok(ModDecl {
-        name: name.ok_or_else(|| MoonlaneError::internal("mod_decl: expected module name"))?,
-        visibility,
-        span,
-    })
+    let path_pair = pair.into_inner().next()
+        .ok_or_else(|| MoonlaneError::internal("import_decl: expected import path"))?;
+    Ok(ImportDecl { path: parse_import_path(path_pair)?, span })
 }
 
-fn parse_use_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<UseDecl, MoonlaneError> {
+fn parse_export_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<ExportDecl, MoonlaneError> {
     let span = Span::of(&pair, filename);
-    let mut visibility = Visibility::Private;
-    let mut path = None;
-    for p in pair.into_inner() {
-        match p.as_rule() {
-            Rule::pub_kw => visibility = Visibility::Public,
-            Rule::use_path => path = Some(parse_use_path(p)?),
-            r => return Err(MoonlaneError::internal(format!("use_decl: unexpected rule {r:?}"))),
-        }
-    }
-    Ok(UseDecl {
-        visibility,
-        path: path.ok_or_else(|| MoonlaneError::internal("use_decl: expected import path"))?,
-        span,
-    })
+    let path_pair = pair.into_inner().next()
+        .ok_or_else(|| MoonlaneError::internal("export_decl: expected import path"))?;
+    Ok(ExportDecl { path: parse_import_path(path_pair)?, span })
 }
 
-fn parse_use_path(pair: pest::iterators::Pair<Rule>) -> Result<UsePath, MoonlaneError> {
+fn parse_import_path(pair: pest::iterators::Pair<Rule>) -> Result<ImportPath, MoonlaneError> {
     let mut inner = pair.into_inner();
     let root_pair = inner.next()
-        .ok_or_else(|| MoonlaneError::internal("use_path: expected path root"))?;
+        .ok_or_else(|| MoonlaneError::internal("import_path: expected path root"))?;
     let tree_pair = inner.next()
-        .ok_or_else(|| MoonlaneError::internal("use_path: expected use tree"))?;
-    Ok(UsePath {
+        .ok_or_else(|| MoonlaneError::internal("import_path: expected import tree"))?;
+    Ok(ImportPath {
         root: parse_path_root(root_pair)?,
-        tree: parse_use_tree(tree_pair)?,
+        tree: parse_import_tree(tree_pair)?,
     })
 }
 
@@ -127,38 +99,49 @@ fn parse_path_root(pair: pest::iterators::Pair<Rule>) -> Result<PathRoot, Moonla
     }
 }
 
-fn parse_use_tree(pair: pest::iterators::Pair<Rule>) -> Result<UseTree, MoonlaneError> {
+fn parse_import_tree(pair: pest::iterators::Pair<Rule>) -> Result<ImportTree, MoonlaneError> {
     if pair.as_str().trim() == "*" {
-        return Ok(UseTree::Glob);
+        return Ok(ImportTree::Glob);
     }
     let mut inner = pair.into_inner();
     let first = inner.next()
-        .ok_or_else(|| MoonlaneError::internal("use_tree: expected import item"))?;
+        .ok_or_else(|| MoonlaneError::internal("import_tree: expected import item"))?;
     match first.as_rule() {
         Rule::ident => {
             let name = first.as_str().to_string();
             match inner.next() {
                 Some(second) if second.as_rule() == Rule::ident => {
-                    Ok(UseTree::Name { name, alias: Some(second.as_str().to_string()) })
+                    Ok(ImportTree::Name { name, alias: Some(second.as_str().to_string()) })
                 }
-                Some(second) if second.as_rule() == Rule::use_tree => {
-                    Ok(UseTree::Path { name, tree: Box::new(parse_use_tree(second)?) })
+                Some(second) if second.as_rule() == Rule::import_tree => {
+                    Ok(ImportTree::Path { name, tree: Box::new(parse_import_tree(second)?) })
                 }
-                Some(second) => Err(MoonlaneError::internal(format!("use_tree: unexpected rule after name {:?}", second.as_rule()))),
-                None => Ok(UseTree::Name { name, alias: None }),
+                Some(second) => Err(MoonlaneError::internal(format!("import_tree: unexpected rule after name {:?}", second.as_rule()))),
+                None => Ok(ImportTree::Name { name, alias: None }),
             }
         }
-        Rule::use_tree => {
-            let mut trees = vec![parse_use_tree(first)?];
+        Rule::import_item => {
+            // Group opening item — collect all import_items as a Group
+            let first_tree = parse_import_item(first)?;
+            let mut trees = vec![first_tree];
             for p in inner {
-                if p.as_rule() == Rule::use_tree {
-                    trees.push(parse_use_tree(p)?);
+                if p.as_rule() == Rule::import_item {
+                    trees.push(parse_import_item(p)?);
                 }
             }
-            Ok(UseTree::Group(trees))
+            Ok(ImportTree::Group(trees))
         }
-        r => Err(MoonlaneError::internal(format!("use_tree: unexpected rule {r:?}"))),
+        r => Err(MoonlaneError::internal(format!("import_tree: unexpected rule {r:?}"))),
     }
+}
+
+fn parse_import_item(pair: pest::iterators::Pair<Rule>) -> Result<ImportTree, MoonlaneError> {
+    let mut inner = pair.into_inner();
+    let name = inner.next()
+        .ok_or_else(|| MoonlaneError::internal("import_item: expected name"))?
+        .as_str().to_string();
+    let alias = inner.next().map(|p| p.as_str().to_string());
+    Ok(ImportTree::Name { name, alias })
 }
 
 fn parse_decl(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<Decl, MoonlaneError> {

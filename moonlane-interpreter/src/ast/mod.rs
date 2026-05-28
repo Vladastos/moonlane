@@ -30,12 +30,10 @@ impl Span {
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    /// Reserved for module loading/resolution in #159/#161.
     #[allow(dead_code)]
-    pub modules: Vec<ModDecl>,
-    /// Reserved for module loading/resolution in #159/#161.
+    pub imports: Vec<ImportDecl>,
     #[allow(dead_code)]
-    pub imports: Vec<UseDecl>,
+    pub exports: Vec<ExportDecl>,
     pub decls: Vec<Decl>,
 }
 
@@ -46,35 +44,25 @@ pub enum Visibility {
 }
 
 #[derive(Debug, Clone)]
-pub struct ModDecl {
-    /// Reserved for module loading/resolution in #159/#161.
+pub struct ImportDecl {
     #[allow(dead_code)]
-    pub name:       String,
-    /// Reserved for module loading/resolution in #159/#161.
+    pub path: ImportPath,
     #[allow(dead_code)]
-    pub visibility: Visibility,
-    /// Reserved for module diagnostics in #159/#161.
-    #[allow(dead_code)]
-    pub span:       Span,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
-pub struct UseDecl {
-    /// Reserved for module loading/resolution in #159/#161.
+pub struct ExportDecl {
     #[allow(dead_code)]
-    pub visibility: Visibility,
-    /// Reserved for module loading/resolution in #159/#161.
+    pub path: ImportPath,
     #[allow(dead_code)]
-    pub path:       UsePath,
-    /// Reserved for module diagnostics in #159/#161.
-    #[allow(dead_code)]
-    pub span:       Span,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UsePath {
+pub struct ImportPath {
     pub root: PathRoot,
-    pub tree: UseTree,
+    pub tree: ImportTree,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,11 +75,11 @@ pub enum PathRoot {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UseTree {
+pub enum ImportTree {
     Name { name: String, alias: Option<String> },
-    Group(Vec<UseTree>),
+    Group(Vec<ImportTree>),
     Glob,
-    Path { name: String, tree: Box<UseTree> },
+    Path { name: String, tree: Box<ImportTree> },
 }
 
 

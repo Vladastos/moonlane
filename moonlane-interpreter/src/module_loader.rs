@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::ast::{PathRoot, Program, UseTree};
+use crate::ast::{ImportTree, PathRoot, Program};
 use crate::error::{MoonlaneError, ParseErrorCode};
 use crate::parser;
 
@@ -30,17 +30,17 @@ pub fn load_root(path: impl AsRef<Path>) -> Result<ModuleGraph, MoonlaneError> {
 
 pub fn load_program(path: impl AsRef<Path>) -> Result<Program, MoonlaneError> {
     let graph = load_root(path)?;
-    let mut modules = Vec::new();
     let mut imports = Vec::new();
+    let mut exports = Vec::new();
     let mut decls = Vec::new();
 
     for loaded in graph.modules {
-        modules.extend(loaded.program.modules);
         imports.extend(loaded.program.imports);
+        exports.extend(loaded.program.exports);
         decls.extend(loaded.program.decls);
     }
 
-    Ok(Program { modules, imports, decls })
+    Ok(Program { imports, exports, decls })
 }
 
 #[derive(Default)]
@@ -80,11 +80,13 @@ impl Loader {
         validate_super_root(&program, &module_path, &file_path)?;
 
         self.stack.push(file_path.clone());
-        for module in &program.modules {
-            let child = resolve_child_module(&file_path, &module.name)?;
-            let mut child_path = module_path.clone();
-            child_path.push(module.name.clone());
-            self.load_module(child, child_path)?;
+        for import in &program.imports {
+            if let Some((module_name, child_file)) = resolve_import_module(&file_path, &import.path.root, &import.path.tree) {
+                let child = canonicalize_existing(&child_file)?;
+                let mut child_path = module_path.clone();
+                child_path.push(module_name);
+                self.load_module(child, child_path)?;
+            }
         }
         self.stack.pop();
 
@@ -103,32 +105,41 @@ fn canonicalize_existing(path: &Path) -> Result<PathBuf, MoonlaneError> {
     })
 }
 
-fn resolve_child_module(parent_file: &Path, name: &str) -> Result<PathBuf, MoonlaneError> {
+/// Extract the first path segment from an import declaration that corresponds to a
+/// module file alongside the importing file. Returns `(module_name, candidate_path)`
+/// if the import resolves to a local file, or `None` for `std::`, `root::`, and
+/// other roots that don't map to a sibling file.
+fn resolve_import_module(parent_file: &Path, root: &PathRoot, tree: &ImportTree) -> Option<(String, PathBuf)> {
     let parent_dir = parent_file.parent().unwrap_or_else(|| Path::new("."));
-    let file_candidate = parent_dir.join(format!("{name}.mln"));
-    let mod_candidate = parent_dir.join(name).join("mod.mln");
-    let file_exists = file_candidate.exists();
-    let mod_exists = mod_candidate.exists();
 
-    match (file_exists, mod_exists) {
-        (true, true) => Err(module_error(
-            format!(
-                "ambiguous module `{name}`: both `{}` and `{}` exist; remove one to resolve the ambiguity",
-                file_candidate.display(),
-                mod_candidate.display(),
-            ),
-            parent_file,
-        )),
-        (true, false) => canonicalize_existing(&file_candidate),
-        (false, true) => canonicalize_existing(&mod_candidate),
-        (false, false) => Err(module_error(
-            format!(
-                "module `{name}` not found; expected `{}` or `{}`",
-                file_candidate.display(),
-                mod_candidate.display(),
-            ),
-            parent_file,
-        )),
+    // Only resolve imports rooted at `self::`, `super::`, or a bare name (child module).
+    // `root::`, `std::` are resolved globally at a later stage.
+    let first_name = match root {
+        PathRoot::Self_ => {
+            // self::name::... — the first segment of the tree is a child
+            tree_first_segment(tree)?
+        }
+        PathRoot::Super => {
+            // super::name::... — resolved relative to parent dir; skip for graph loading
+            return None;
+        }
+        PathRoot::Root | PathRoot::Std => return None,
+        PathRoot::Name(name) => name.clone(),
+    };
+
+    let candidate = parent_dir.join(format!("{first_name}.mln"));
+    if candidate.exists() {
+        Some((first_name, candidate))
+    } else {
+        None
+    }
+}
+
+fn tree_first_segment(tree: &ImportTree) -> Option<String> {
+    match tree {
+        ImportTree::Name { name, .. } => Some(name.clone()),
+        ImportTree::Path { name, .. } => Some(name.clone()),
+        ImportTree::Group(_) | ImportTree::Glob => None,
     }
 }
 
@@ -138,7 +149,7 @@ fn validate_super_root(program: &Program, module_path: &[String], file_path: &Pa
     }
 
     for import in &program.imports {
-        if import.path.root == PathRoot::Super || use_tree_contains_super(&import.path.tree) {
+        if import.path.root == PathRoot::Super || import_tree_contains_super(&import.path.tree) {
             return Err(module_error("`super::` is invalid from the root module", file_path));
         }
     }
@@ -146,11 +157,11 @@ fn validate_super_root(program: &Program, module_path: &[String], file_path: &Pa
     Ok(())
 }
 
-fn use_tree_contains_super(tree: &UseTree) -> bool {
+fn import_tree_contains_super(tree: &ImportTree) -> bool {
     match tree {
-        UseTree::Name { .. } | UseTree::Glob => false,
-        UseTree::Group(trees) => trees.iter().any(use_tree_contains_super),
-        UseTree::Path { tree, .. } => use_tree_contains_super(tree),
+        ImportTree::Name { .. } | ImportTree::Glob => false,
+        ImportTree::Group(trees) => trees.iter().any(import_tree_contains_super),
+        ImportTree::Path { tree, .. } => import_tree_contains_super(tree),
     }
 }
 

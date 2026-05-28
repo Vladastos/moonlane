@@ -1,12 +1,12 @@
-mod parser;
-pub mod lexer;
+import std::math;
+import std::collections::{Map, Set};
+import root::parser::Ast;
+import root::v1::Parser as ParserV1;
+import root::v2::{Parser as ParserV2, Token};
+import root::prelude::*;
 
-use std::math;
-use std::collections::{Map, Set};
-use root::parser::Ast;
-use root::v1::Parser as ParserV1;
-use root::v2::{Parser as ParserV2, Token};
-use root::prelude::*;
+export ast::Ast;
+export lexer::{Token, Span};
 
 struct Program {
     ast: root::parser::Ast,
