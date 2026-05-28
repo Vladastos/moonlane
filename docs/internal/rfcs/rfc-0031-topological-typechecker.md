@@ -165,12 +165,14 @@ This keeps path-resolution concerns out of the type inference engine entirely. T
 
 ### Type-checking loop
 
-Before the per-module loop begins, the typechecker pre-loads `std::` and `core` module schemes into `GlobalExports`. All other modules have been loaded by the file loader, which errors on any missing file (#186). Together these two invariants guarantee that every import in every `LoadedModule` has a corresponding `GlobalExports` entry by the time scope construction starts. A missing entry at that point is an internal error, not a user error.
+`check_graph` takes a `StdPrelude` parameter (#188) which seeds `GlobalExports` with `std::` and `core` schemes before the per-module loop begins. All other modules have been loaded by the file loader, which errors on any missing file (#186). Together these two invariants guarantee that every import in every `LoadedModule` has a corresponding `GlobalExports` entry by the time scope construction starts. A missing entry at that point is an internal error, not a user error.
 
 Each module produces a `ModuleExports { scheme_env: SchemeEnv, type_env: HashMap<String, Type> }` bundle that is accumulated into `GlobalExports`. When typechecking module M, the inference context is pre-seeded with:
 1. M's own declarations.
 2. For each `import mod::name`, the corresponding entry from `GlobalExports[mod]`.
 3. For `import mod::*`, all `pub` entries from `GlobalExports[mod]`.
+
+Before inference runs, all `pub`-marked declarations in M are validated to have explicit type annotations (#187, error code `T0010`). This ensures exported schemes are fully concrete and consumable by downstream modules without cross-module type inference.
 
 ### Private-item error: `T0009`
 
@@ -184,18 +186,20 @@ This is distinct from `T0003` (undefined name) — the name is known; it is mere
 
 ## Migration Path
 
-1. Implement `check_graph` (returns `TypedModuleGraph`) alongside the existing `check` (Issue #172).
+1. Implement `check_graph` (returns `TypedModuleGraph`) with `StdPrelude` parameter; define `TypedModule`/`TypedModuleGraph` types; add topological order `debug_assert!` to `load_root` (Issue #172, #188).
 2. Implement `evaluate_graph` alongside the existing `evaluate` (Issue #183).
 3. Make missing module files a hard load error; `std::` remains loader-transparent (Issue #186).
 4. Wire `ResolvedNames` from the `ModuleGraph` into each module's inference scope (Issue #173).
 5. Implement the path normalization pass `src/path_normalizer.rs` (Issue #185).
 6. Enforce `pub_surface` in glob and named imports; introduce `T0009` (Issues #174, #176).
-7. Add alias resolution (Issue #175).
-8. Add conflict detection (Issue #177).
-9. Add re-export propagation (Issue #178).
-10. Migrate CLI binary to new pipeline (Issue #184).
-11. Remove the flat-merge `load_program`, `check(Program)`, `evaluate(TypedProgram)`, and all ADR-0019/ADR-0020 fallback code (Issue #179).
-12. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
+7. Require explicit type annotations on `pub` declarations; introduce `T0010` (Issue #187).
+8. Add alias resolution (Issue #175).
+9. Add conflict detection (Issue #177).
+10. Add re-export propagation with visibility constraint — only `pub` names in source may be re-exported (Issue #178).
+11. Migrate CLI binary to new pipeline (Issue #184).
+12. Remove the flat-merge `load_program`, `check(Program)`, `evaluate(TypedProgram)`, and all ADR-0019/ADR-0020 fallback code (Issue #179).
+13. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
+14. Per-module runtime context in evaluator — deferred to v0.7.0 (Issue #189).
 
 ## Resolved Questions
 
@@ -206,3 +210,15 @@ This is distinct from `T0003` (undefined name) — the name is known; it is mere
 3. **Qualified path expressions in code:** Handled by the path normalization pass (#185), not by the typechecker. The typechecker receives only bare names after normalization. This keeps path-resolution logic out of the inference engine and out of the `TypeEnv` (no qualified aliases needed). The restructuring of the typechecker into an explicit multi-stage pipeline is deferred; the normalization pass is a standalone module that does not require internal typechecker changes.
 
 4. **Silent-skip for unresolvable imports:** Removed. The loader (#186) errors on missing files; `std::` modules are pre-loaded by the typechecker. There is no legitimate case where an import silently produces nothing — every import either resolves or is an error.
+
+5. **Std pre-loading informality:** `check_graph` takes an explicit `StdPrelude` parameter (#188) with `StdPrelude::default()` and `StdPrelude::empty()` constructors. Tests that do not need std pass `StdPrelude::empty()` for isolation. The convention of "typechecker does this first" is replaced by a typed, required argument.
+
+6. **Alias + normalizer interaction:** When `import mod::name as alias` is in scope, `mod::name` as an expression rewrites to `alias` — the local binding — not the bare `name`. Writing `mod::name` without an alias for the bare form is a normalizer error.
+
+7. **Unannotated pub declarations:** `pub` declarations without explicit type annotations produce `T0010` before inference runs (#187). This enforces the no-cross-module-inference invariant at the point where it would otherwise silently produce incomplete exported schemes.
+
+8. **Re-export of private names:** A `pub import` may only re-export a name that is `pub` in the source module. Attempting to re-export a private name is `T0009` (#178). This prevents visibility leaks through facade modules.
+
+9. **Topological ordering implicit:** `ModuleGraph::modules` is documented as a topological ordering guarantee, and `load_root` adds a `debug_assert!` that validates it at construction time (#172). A violation surfaces immediately as an assertion failure during development rather than as a silent wrong-order typecheck.
+
+10. **Evaluator flat runtime:** Acknowledged as a known deferral. `evaluate_graph` concatenates `TypedDecl` lists in v0.6.0. Per-module runtime context is tracked in #189 for v0.7.0.
