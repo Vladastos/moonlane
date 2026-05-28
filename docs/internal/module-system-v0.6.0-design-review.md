@@ -64,17 +64,21 @@ Without the distinction, T0009 is effectively unreachable. Every private-item ac
 
 ### Resolution
 
-Add `all_declared_names: HashSet<String>` to `ModuleExports`, populated during each module's typecheck pass before its exports are committed to `GlobalExports`:
+When a name is absent from `pub_schemes`, look it up directly in the source module's `program.decls` inside the `NormalizedModuleGraph`. `check_graph` already has the full graph in scope — no extra data structure is required:
 
 ```rust
-struct ModuleExports {
-    pub_schemes:        HashMap<String, Scheme>,
-    pub_types:          HashMap<String, TypeDef>,
-    all_declared_names: HashSet<String>,  // pub + private, for T0009 detection
+if source_exports.pub_schemes.contains_key(name) {
+    // resolved
+} else {
+    let is_private = graph.modules.iter()
+        .find(|m| m.module_path == *source_path)
+        .map(|m| m.program.decls.iter().any(|d| decl_name(d) == name))
+        .unwrap_or(false);
+    return Err(if is_private { T0009 } else { T0003 });
 }
 ```
 
-At lookup time: name absent from `pub_schemes` → check `all_declared_names` → present means T0009, absent means T0003.
+`ModuleExports` stays pure — it holds only public type information with no redundant name sets to keep in sync. The lookup is O(declarations in module) and only occurs on error paths.
 
 **Tracking:** Issue #191
 

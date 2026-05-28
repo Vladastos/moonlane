@@ -216,9 +216,10 @@ type ScopedEnv = HashMap<String, Binding>;
 `Conflict` bindings are carried into `InferContext`. Inference looking up a `Conflict` name produces `T00xx`, naming the identifier and all source modules. This ensures glob-vs-glob conflicts are only reported when the name is actually used, while explicit-vs-explicit conflicts fail immediately at scope-build time regardless of usage.
 
 Each module produces a `ModuleExports` bundle accumulated into `GlobalExports`. When typechecking module M, the scope builder seeds `ScopedEnv` from:
-1. M's own declarations (as `Single` bindings with source = M).
-2. For each `import mod::name`, the entry from `GlobalExports[mod].pub_schemes`.
-3. For `import mod::*`, all entries from `GlobalExports[mod].pub_schemes`.
+1. Imported names: for each `import mod::name`, the entry from `GlobalExports[mod].pub_schemes`; for `import mod::*`, all entries from `GlobalExports[mod].pub_schemes`.
+2. Local declarations (seeded last, silently winning over any imported name with the same identifier).
+
+When a name is absent from `pub_schemes`, the typechecker looks it up in the source module's `program.decls` (available in the `NormalizedModuleGraph` already in scope) to distinguish T0009 from T0003. This requires no extra data in `ModuleExports` and the lookup cost is O(declarations) on error paths only.
 
 Before inference runs, all `pub`-marked declarations in M are validated to have explicit type annotations (#187, error code `T0010`). This ensures exported schemes are fully concrete and consumable by downstream modules without cross-module type inference.
 
@@ -284,5 +285,7 @@ note: use an explicit import to disambiguate: `import parser::Token`
 10. **Evaluator flat runtime:** Acknowledged as a known deferral. `evaluate_graph` concatenates `TypedDecl` lists in v0.6.0. Per-module runtime context is tracked in #189 for v0.7.0.
 
 11. **GlobalExports collisions:** No key collisions are possible — each module path is unique in the graph (loader deduplicates by canonical file path). Name collisions across imports are handled at the consumer level via `ScopedEnv` / `Binding`. Import conflict error code is `T0011` (#177).
+
+13. **T0009 vs T0003 detection:** `ModuleExports` stores only `pub` items. When a name is absent from `pub_schemes`, the typechecker looks it up in the source module's `program.decls` (available in the `NormalizedModuleGraph`) to distinguish T0009 ("private") from T0003 ("absent"). No redundant `all_declared_names` field is needed; the lookup is O(declarations) on error paths only (#191).
 
 12. **Qualified path error messages:** The normalizer produces `Expr::ResolvedPath { resolved, original }`. The typechecker uses `resolved` for lookup and `original.join("::")` for error messages — explicit in the type, survives inferred-type errors where no source span exists (#185).
