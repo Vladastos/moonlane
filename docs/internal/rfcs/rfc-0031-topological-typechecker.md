@@ -165,12 +165,12 @@ This keeps path-resolution concerns out of the type inference engine entirely. T
 
 ### Type-checking loop
 
-Each module produces a `ModuleExports { scheme_env: SchemeEnv, type_env: HashMap<String, Type> }` bundle that is accumulated into a `GlobalExports` registry. When typechecking module M, the inference context is pre-seeded with:
+Before the per-module loop begins, the typechecker pre-loads `std::` and `core` module schemes into `GlobalExports`. All other modules have been loaded by the file loader, which errors on any missing file (#186). Together these two invariants guarantee that every import in every `LoadedModule` has a corresponding `GlobalExports` entry by the time scope construction starts. A missing entry at that point is an internal error, not a user error.
+
+Each module produces a `ModuleExports { scheme_env: SchemeEnv, type_env: HashMap<String, Type> }` bundle that is accumulated into `GlobalExports`. When typechecking module M, the inference context is pre-seeded with:
 1. M's own declarations.
 2. For each `import mod::name`, the corresponding entry from `GlobalExports[mod]`.
 3. For `import mod::*`, all `pub` entries from `GlobalExports[mod]`.
-
-Imports whose source module is not in `GlobalExports` (unresolvable `std::`, `root::`, or `super::` imports) are silently skipped during scope construction. Usage of the unresolved name fails at inference time with T0003.
 
 ### Private-item error: `T0009`
 
@@ -186,15 +186,16 @@ This is distinct from `T0003` (undefined name) — the name is known; it is mere
 
 1. Implement `check_graph` (returns `TypedModuleGraph`) alongside the existing `check` (Issue #172).
 2. Implement `evaluate_graph` alongside the existing `evaluate` (Issue #183).
-3. Wire `ResolvedNames` from the `ModuleGraph` into each module's inference scope (Issue #173).
-4. Implement the path normalization pass `src/path_normalizer.rs` (Issue #185).
-5. Enforce `pub_surface` in glob and named imports; introduce `T0009` (Issues #174, #176).
-6. Add alias resolution (Issue #175).
-7. Add conflict detection (Issue #177).
-8. Add re-export propagation (Issue #178).
-9. Migrate CLI binary to new pipeline (Issue #184).
-10. Remove the flat-merge `load_program`, `check(Program)`, `evaluate(TypedProgram)`, and all ADR-0019/ADR-0020 fallback code (Issue #179).
-11. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
+3. Make missing module files a hard load error; `std::` remains loader-transparent (Issue #186).
+4. Wire `ResolvedNames` from the `ModuleGraph` into each module's inference scope (Issue #173).
+5. Implement the path normalization pass `src/path_normalizer.rs` (Issue #185).
+6. Enforce `pub_surface` in glob and named imports; introduce `T0009` (Issues #174, #176).
+7. Add alias resolution (Issue #175).
+8. Add conflict detection (Issue #177).
+9. Add re-export propagation (Issue #178).
+10. Migrate CLI binary to new pipeline (Issue #184).
+11. Remove the flat-merge `load_program`, `check(Program)`, `evaluate(TypedProgram)`, and all ADR-0019/ADR-0020 fallback code (Issue #179).
+12. Update spec and changelog; mark RFC-0030 incorporated (Issue #180).
 
 ## Resolved Questions
 
@@ -203,3 +204,5 @@ This is distinct from `T0003` (undefined name) — the name is known; it is mere
 2. **Private-item error code:** New code `T0009` — "name is private in module X". Using `T0003` ("undefined name") would be misleading since the name is known to the typechecker.
 
 3. **Qualified path expressions in code:** Handled by the path normalization pass (#185), not by the typechecker. The typechecker receives only bare names after normalization. This keeps path-resolution logic out of the inference engine and out of the `TypeEnv` (no qualified aliases needed). The restructuring of the typechecker into an explicit multi-stage pipeline is deferred; the normalization pass is a standalone module that does not require internal typechecker changes.
+
+4. **Silent-skip for unresolvable imports:** Removed. The loader (#186) errors on missing files; `std::` modules are pre-loaded by the typechecker. There is no legitimate case where an import silently produces nothing — every import either resolves or is an error.
