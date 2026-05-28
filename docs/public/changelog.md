@@ -4,6 +4,28 @@ title: "Moonlane Language Changelog"
 
 # Changelog
 
+## v0.6.0
+
+Module semantics. Shipped by Sprint 11 (`sprint/11`).
+
+**Enforced module semantics (previously deferred from v0.5.0):**
+- Visibility enforcement: `pub` is required for a declaration to be importable; private items produce a compile-time error (T0009) when referenced from another module
+- Import scoping: only names brought in scope by `import` are accessible; accessing an undeclared name is a compile-time error (T0003)
+- Alias resolution: `import mod::name as alias` makes `alias` callable and removes `name` from scope
+- Import conflict detection: two imports binding the same local name produce a compile-time error (T0011); explicit imports silently win over conflicting glob imports
+- Glob visibility filtering: `import mod::*` now includes only `pub` items from the source module; private items are excluded
+- Re-export propagation: names re-exported via `export` are part of the facade module's public API and importable by consumers without importing the underlying module directly
+- `pub` declarations require complete type annotations (T0010): every parameter and the return type must be annotated on a `pub fun`
+
+**Internal improvements:**
+- Name resolver wired into the type-checking pipeline (`load_root → resolve → normalize → check_graph → evaluate_graph`)
+- Flat-merge compatibility shim (ADR-0019) and last-segment fallback (ADR-0020) removed
+- `root::`, `self::`, and `super::` path roots now compute correct module paths in both the loader and name resolver
+
+**Compatibility:**
+- Single-file programs and programs using only `pub` items across module boundaries are unaffected
+- Programs that imported private items or relied on global declaration visibility will need `pub` annotations added
+
 ## v0.5.0
 
 Module system. Shipped by Sprint 9 (`sprint/9`).

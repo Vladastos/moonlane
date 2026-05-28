@@ -1,15 +1,5 @@
 # Modules
 
-> **v0.5.0 implementation status.** The module syntax (`import`, `export`, `pub`) and the file-loading graph are fully implemented. The following semantics are **defined by this spec but not yet enforced by the interpreter** — they are scheduled for v0.6.0 when the name resolver is integrated into the type-checking pipeline:
-> - Visibility enforcement: private items are currently accessible from any module
-> - Import scoping: all loaded declarations are globally visible regardless of which imports are present
-> - Aliases (`as`): parsed but not honoured by the type checker
-> - Import conflict detection
-> - Glob visibility filtering (currently includes private items)
-> - Re-export semantics (re-exported names are accessible only because of the global flat merge, not because of `export`)
-
----
-
 ## Files and Modules
 
 Every `.mln` source file is a module. There is no `mod` declaration — the module graph is built entirely from `import` declarations.
@@ -64,7 +54,7 @@ Path roots are:
 | Root | Meaning |
 |---|---|
 | `root::` | The selected root module for the current program |
-| `std::` | The bundled standard library root — no std modules are available in v0.5.0 |
+| `std::` | The bundled standard library root — no std modules are available in v0.6.0 |
 | `self::` | The current module |
 | `super::` | The parent module; invalid from the root module |
 | imported module handle | A module brought into scope by `import path::module;` |
@@ -144,7 +134,7 @@ fun helper(token: Token) -> Bool { ... }
 
 `pub` is valid on `struct`, `enum`, `fun`, `linear struct`, `linear enum`, `aspect`, and top-level `let`/`mut` bindings.
 
-In v0.5.0, fields of a `pub struct` are public. Fields of a private struct are private because the struct itself is not externally nameable.
+Fields of a `pub struct` are public. Fields of a private struct are private because the struct itself is not externally nameable.
 
 Within a module, all names defined in that module are accessible without qualification, including private names.
 
