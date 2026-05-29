@@ -12,9 +12,9 @@ Panics are triggered by:
 
 ## Built-in Functions
 
-> **Temporary.** Built-in functions are a stopgap until the standard library is available. Once `std::core` and related stdlib modules land, these functions will migrate into `std::io`, `std::string`, `std::array`, etc. and the global built-in form will be deprecated. Do not design new language features that depend on builtins remaining as globals.
+> **Note.** Built-in functions are part of `std::core`, which is auto-imported into every module. They will eventually migrate into dedicated stdlib modules (`std::io`, `std::string`, `std::array`, etc.) when those are implemented. The global form is provided by `std::core` auto-import — do not design new features that require builtins to remain globals.
 
-These are available globally without any `import` declaration:
+These are available in every module without any `import` declaration (provided by `std::core` auto-import):
 
 | Name              | Signature                            | Description                              |
 |-------------------|--------------------------------------|------------------------------------------|
