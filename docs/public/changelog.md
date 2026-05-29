@@ -4,6 +4,22 @@ title: "Moonlane Language Changelog"
 
 # Changelog
 
+## v0.6.1
+
+Type system cleanup and `std::core` virtual module. Shipped by Sprint 12 (`sprint/12`).
+
+**Internal improvements:**
+- Unified `TypeDefinitionRegistry` replaces four separate flat maps (`struct_env`, `method_env`, `enum_env`, aspect impls) in the type inference and construction passes; a single registry instance is now the source of truth for all type and impl data (#133)
+- `ImplMethodKey` enum replaces flat string concatenation for impl method dispatch keys in the evaluator
+- `StdPrelude::default()` is the single source of truth for all built-in function schemes, eliminating the previous divergence between the inference and construction registries
+
+**New language features:**
+- `std::core` virtual module: `Perhaps`, `Result`, `Display`, `Iterable`, `From`, and all built-in functions are available in every module without any explicit import (#201, #202)
+- Glob import tiers: the runtime auto-imports `std::core` at `Std` tier (lowest priority); user `import path::*` declarations use `User` tier and silently win over `Std` tier without a conflict error (#206)
+
+**Compatibility:**
+- All existing programs are unaffected; `std::core` names that were previously available globally continue to work without import statements
+
 ## v0.6.0
 
 Module semantics. Shipped by Sprint 11 (`sprint/11`).

@@ -109,16 +109,38 @@ export ast::ParseError as Error;
 
 `export` declarations are processed after the module graph is fully loaded; they do not affect which files are loaded.
 
+## std::core Auto-Import
+
+Every module automatically has `std::core` glob-imported at the lowest priority tier. This means `Perhaps`, `Result`, `Display`, `Iterable`, `From`, and all built-in functions are available in every module without any explicit import statement.
+
+```moonlane
+// No import needed — Perhaps and Result are always in scope
+fun maybe_parse(s: String) -> Perhaps<Int> {
+    if (s == "1") { Perhaps::Some { value: 1 } }
+    else { None }
+}
+```
+
+You can still write `import std::core::Perhaps;` or `import std::core::*;` explicitly — the result is the same. If a local declaration or explicit import shadows a `std::core` name, the local binding wins silently.
+
+`std::core` is currently a **virtual module** — it has no physical `.mln` file and cannot be listed or enumerated. Its contents are seeded by the runtime.
+
 ## Import Conflicts
 
 Two explicit imports that bind the same local name in the same module are a compile-time error at the second import.
 
-Glob imports use a softer rule:
+Glob imports use a priority tier system:
 
-- Local declarations beat glob imports.
-- Explicit imports beat glob imports.
-- Two glob imports may name the same item without an immediate error.
-- A name from conflicting glob imports is an error only if it is referenced ambiguously.
+| Tier | Source | Priority |
+|------|--------|----------|
+| `Std` | Auto-inserted by the runtime (e.g. `std::core`) | Lowest |
+| `User` | Explicit `import path::*` in source | Higher |
+
+Conflict rules:
+- Local declarations beat all glob imports.
+- Explicit imports beat all glob imports.
+- A `User` glob silently wins over a `Std` glob for the same name (no error).
+- Two `User` globs exporting the same name are a conflict error (T0011) only if that name is actually referenced.
 
 ## Visibility
 
