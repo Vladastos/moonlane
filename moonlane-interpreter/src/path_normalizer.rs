@@ -217,7 +217,10 @@ fn normalize_expr(
             for arm in &mut m.arms { normalize_arm(arm, scope, module_names)?; }
             Ok(())
         }
-        Expr::StructLiteral { fields, .. } => {
+        Expr::StructLiteral { path, fields, .. } => {
+            if let Some(local_path) = try_normalize_struct_path(path, scope, module_names) {
+                *path = local_path;
+            }
             for (_, v) in fields { normalize_expr(v, scope, module_names)?; }
             Ok(())
         }
@@ -265,12 +268,16 @@ fn try_resolve_path(
         return Some(name);
     }
 
-    // Non-keyword first segment: only rewrite if it matches a loaded module name
-    if !module_names.contains(first.as_str()) {
+    // Accept if `first` is either a loaded module name OR the first segment of a glob path
+    // (handles virtual modules like `std` that have no physical file).
+    let is_known_prefix = module_names.contains(first.as_str())
+        || scope.map_or(false, |s| s.globs.iter().any(|(_, g)| g.first().map(|s| s.as_str()) == Some(first.as_str())));
+
+    if !is_known_prefix {
         return None; // e.g. Color::Red — Color is a type, not a module
     }
 
-    // first is a known module name — find the local alias for this import
+    // first is a known module prefix — find the local alias for this import
     if let Some(s) = scope {
         // 1. Explicit import with matching source
         for (local_name, binding) in &s.explicit {
@@ -282,7 +289,7 @@ fn try_resolve_path(
         }
         // 2. Glob import from this module — local name == source name
         let source_module: Vec<String> = segments[..segments.len() - 1].to_vec();
-        if s.globs.iter().any(|(_, g)| g == &source_module || g.first() == Some(first)) {
+        if s.globs.iter().any(|(_, g)| g == &source_module || g.first().map(|s| s.as_str()) == Some(first.as_str())) {
             return Some(declared_name.clone());
         }
     }
@@ -290,6 +297,42 @@ fn try_resolve_path(
     // Module is known but no import binding found for this name — treat as bare name
     // (the typechecker will error if it's actually undefined)
     Some(declared_name.clone())
+}
+
+/// Resolve a struct-literal path by stripping a module prefix.
+/// For `["std", "core", "Perhaps", "Some"]` returns `["Perhaps", "Some"]`.
+/// Returns `None` if the path starts with a type name, not a module.
+fn try_normalize_struct_path(
+    path: &[String],
+    scope: Option<&ModuleScope>,
+    module_names: &HashSet<String>,
+) -> Option<Vec<String>> {
+    if path.len() < 2 {
+        return None;
+    }
+    let first = &path[0];
+    // Only process if the first segment looks like a module, not a type.
+    let is_known_prefix = module_names.contains(first.as_str())
+        || scope.map_or(false, |s| s.globs.iter().any(|(_, g)| g.first().map(|s| s.as_str()) == Some(first.as_str())));
+    if !is_known_prefix {
+        return None;
+    }
+    let s = scope?;
+    // Find the longest glob prefix that matches the beginning of the path,
+    // then return the remainder as the local type+variant path.
+    let mut best: Option<usize> = None;
+    for (_, glob_module) in &s.globs {
+        if path.starts_with(glob_module.as_slice()) && path.len() > glob_module.len() {
+            let len = glob_module.len();
+            if best.map_or(true, |b| len > b) {
+                best = Some(len);
+            }
+        }
+    }
+    if let Some(prefix_len) = best {
+        return Some(path[prefix_len..].to_vec());
+    }
+    None
 }
 
 // ── Unused span helper ────────────────────────────────────────────────────────
