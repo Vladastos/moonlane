@@ -93,6 +93,14 @@ pub fn resolve(graph: &ModuleGraph) -> Result<ResolvedNames, MoonlaneError> {
         scopes.insert(loaded.module_path.clone(), scope);
     }
 
+    // Inject the std::core virtual module into pub_surface so that
+    // `import std::core::Perhaps` and similar are recognized as valid imports.
+    // (std::core has no physical file; these names are registered in the type registry.)
+    let std_core_surface: HashSet<String> = [
+        "Perhaps", "Result", "Display", "Iterable", "From",
+    ].iter().map(|s| s.to_string()).collect();
+    pub_surface.insert(vec!["std".to_string(), "core".to_string()], std_core_surface);
+
     Ok(ResolvedNames { scopes, pub_surface })
 }
 

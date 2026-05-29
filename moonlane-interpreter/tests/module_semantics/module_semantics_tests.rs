@@ -278,6 +278,44 @@ fn local_function_shadows_std_core_auto_import() {
     run_graph_std(&main).unwrap_or_else(|e| panic!("{e}"));
 }
 
+// ── std::core type declarations (#202) ───────────────────────────────────────
+
+#[test]
+fn import_std_core_perhaps_is_valid() {
+    // `import std::core::Perhaps` must not error.
+    let dir = fixture_dir("import_perhaps");
+    let main = dir.join("main.mln");
+    write(&main, "import std::core::Perhaps;\nfun main() { let x = Perhaps::Some { value: 1 }; }\n");
+    run_graph_std(&main).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn import_std_core_group_is_valid() {
+    // `import std::core::{Perhaps, Result}` must not error.
+    let dir = fixture_dir("import_perhaps_result");
+    let main = dir.join("main.mln");
+    write(&main, "import std::core::{Perhaps, Result};\nfun main() { let x = Perhaps::Some { value: 1 }; }\n");
+    run_graph_std(&main).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn std_core_perhaps_path_in_struct_literal() {
+    // `std::core::Perhaps::Some { value: 42 }` must be resolved to `Perhaps::Some { value: 42 }`.
+    let dir = fixture_dir("std_path_struct_lit");
+    let main = dir.join("main.mln");
+    write(&main, "fun main() { let x = std::core::Perhaps::Some { value: 42 }; }\n");
+    run_graph_std(&main).unwrap_or_else(|e| panic!("{e}"));
+}
+
+#[test]
+fn programs_without_explicit_std_import_still_use_perhaps() {
+    // Programs that never mention std::core must still be able to use Perhaps and Result.
+    let dir = fixture_dir("no_std_import_perhaps");
+    let main = dir.join("main.mln");
+    write(&main, "fun main() { let x = Perhaps::Some { value: 1 }; }\n");
+    run_graph_std(&main).unwrap_or_else(|e| panic!("{e}"));
+}
+
 // ── T0009: visibility enforcement ────────────────────────────────────────────
 
 #[test]

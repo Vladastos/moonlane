@@ -1068,6 +1068,10 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Moonl
                 field_vals.insert(name.clone(), eval_untyped_expr(expr, env)?.into_value());
             }
             if path.len() == 2 {
+                // KNOWN LIMITATION (#205): Perhaps and Result are native Value variants, not
+                // user-defined enum structs. Their constructors are intercepted here rather
+                // than dispatched through the normal struct-literal path. This will be
+                // resolved when the evaluator migrates to struct-style dispatch (#205).
                 match (path[0].as_str(), path[1].as_str()) {
                     ("Perhaps", "Some") => {
                         let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Perhaps::Some: missing `value` field"))?;
@@ -1473,6 +1477,10 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Moon
                 field_vals.insert(name.clone(), eval_expr(expr, env)?.into_value());
             }
             if path.len() == 2 {
+                // KNOWN LIMITATION (#205): Perhaps and Result are native Value variants, not
+                // user-defined enum structs. Their constructors are intercepted here rather
+                // than dispatched through the normal struct-literal path. This will be
+                // resolved when the evaluator migrates to struct-style dispatch (#205).
                 match (path[0].as_str(), path[1].as_str()) {
                     ("Perhaps", "Some") => {
                         let v = field_vals.remove("value").ok_or_else(|| MoonlaneError::internal("Perhaps::Some: missing `value` field"))?;
