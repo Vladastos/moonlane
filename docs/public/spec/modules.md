@@ -7,7 +7,7 @@ Every `.mln` source file is a module. There is no `mod` declaration — the modu
 The root file passed to the toolchain is the root module:
 
 ```bash
-moonlane run src/main.mln
+metel run src/main.mln
 ```
 
 In that example, `root::` refers to `src/main.mln`.
@@ -61,7 +61,7 @@ Path roots are:
 
 Fully-qualified paths are valid anywhere a name is expected:
 
-```moonlane
+```metel
 let token: root::parser::Token = root::parser::Token::new();
 ```
 
@@ -69,7 +69,7 @@ let token: root::parser::Token = root::parser::Token::new();
 
 `import` loads the referenced module file and declares which names from it are in scope for the current module:
 
-```moonlane
+```metel
 import parser::{Ast, Token};       // loads parser.mln; Ast and Token are in scope
 import root::lexer::Token as Tok;  // absolute path with alias
 import parser::*;                  // glob — all public names from parser.mln
@@ -91,7 +91,7 @@ Import forms:
 
 `export` re-exports names from submodules into the current module's public API:
 
-```moonlane
+```metel
 // parser.mln — facade module for the parser namespace
 export ast::Ast;
 export lexer::{Token, Span};
@@ -113,7 +113,7 @@ export ast::ParseError as Error;
 
 Every module automatically has `std::core` glob-imported at the lowest priority tier. This means `Perhaps`, `Result`, `Display`, `Iterable`, `From`, and all built-in functions are available in every module without any explicit import statement.
 
-```moonlane
+```metel
 // No import needed — Perhaps and Result are always in scope
 fun maybe_parse(s: String) -> Perhaps<Int> {
     if (s == "1") { Perhaps::Some { value: 1 } }
@@ -146,7 +146,7 @@ Conflict rules:
 
 Declarations are module-private by default. A declaration is accessible from outside its module only if it is annotated with `pub`.
 
-```moonlane
+```metel
 pub struct Token { kind: TokenKind, span: Span }
 struct InternalState { count: Int }
 

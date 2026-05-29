@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<g stroke="#8BBDE0" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="rotate(0 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g><g transform="rotate(60 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g><g transform="rotate(120 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g><g transform="rotate(180 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g><g transform="rotate(240 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g><g transform="rotate(300 50 50)">
+    <line x1="50" y1="50" x2="50" y2="10"></line>
+    <line x1="50" y1="29.2" x2="38.8" y2="18"></line>
+    <line x1="50" y1="29.2" x2="61.2" y2="18"></line>
+    <line x1="50" y1="19.6" x2="43.2" y2="12.8"></line>
+    <line x1="50" y1="19.6" x2="56.8" y2="12.8"></line>
+  </g>
+</g>
+<polygon points="50,42 56.93,46 56.93,54 50,58 43.07,54 43.07,46" fill="#2B6CB8"></polygon>
+</svg>

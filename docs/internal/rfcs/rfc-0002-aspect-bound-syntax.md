@@ -7,7 +7,7 @@ status: accepted
 
 ## Summary
 
-Define the syntax for expressing aspect bounds on generic type parameters. The current spec sketches Rust-style syntax (`T: Aspect`, `where` clause) without fully specifying multi-bound forms, anonymous type parameters, or associated type constraints. This RFC evaluates alternatives from other languages and proposes a design that is expressive, readable, and internally consistent with Moonlane's existing syntax.
+Define the syntax for expressing aspect bounds on generic type parameters. The current spec sketches Rust-style syntax (`T: Aspect`, `where` clause) without fully specifying multi-bound forms, anonymous type parameters, or associated type constraints. This RFC evaluates alternatives from other languages and proposes a design that is expressive, readable, and internally consistent with Metel's existing syntax.
 
 ---
 
@@ -121,7 +121,7 @@ foo :: (Show a, Eq a, Ord a) => a -> String
 bar :: Convertible a b => a -> b
 ```
 
-**Verdict:** Extremely terse. Constraints are grouped before the type signature with `=>`. Reading right-to-left (`a -> a -> a` given that `a` satisfies `Ord`) takes adjustment, but once internalized, the separation of constraints from parameter types is clear. The downside: constraint inference is so powerful in Haskell that you rarely write bounds at all — the ergonomic pressure in Moonlane will be different.
+**Verdict:** Extremely terse. Constraints are grouped before the type signature with `=>`. Reading right-to-left (`a -> a -> a` given that `a` satisfies `Ord`) takes adjustment, but once internalized, the separation of constraints from parameter types is clear. The downside: constraint inference is so powerful in Haskell that you rarely write bounds at all — the ergonomic pressure in Metel will be different.
 
 ---
 
@@ -180,11 +180,11 @@ def baz[T, U](x: T)(using T =:= U): U
 
 ---
 
-## Design Options for Moonlane
+## Design Options for Metel
 
 The current spec sketches:
 
-```moonlane
+```metel
 fun largest<T: Comparable>(a: T, b: T) -> T where T: Comparable { ... }  // inline
 fun largest<T: Comparable>(a: T, b: T) -> T { ... }                       // also inline
 ```
@@ -197,7 +197,7 @@ fun largest<T: Comparable>(a: T, b: T) -> T { ... }                       // als
 
 Extend the current spec with `+` for multiple bounds. Inline and `where` both supported.
 
-```moonlane
+```metel
 fun foo<T: Display + Clone>(x: T) -> T
 
 fun foo<T, U>(x: T, y: U) -> T
@@ -214,7 +214,7 @@ fun foo<T, U>(x: T, y: U) -> T
 
 Replace `+` with `&` as the multi-bound separator. `&` has precedent in TypeScript, Swift, and Scala for type intersection / protocol composition.
 
-```moonlane
+```metel
 fun foo<T: Display & Clone>(x: T) -> T
 
 fun bar<T, U>(x: T, y: U) -> T
@@ -233,7 +233,7 @@ fun bar<T, U>(x: T, y: U) -> T
 
 Adopt Kotlin's approach: `:` for single inline bounds, `where` clause (mandatory) for multiple. This eliminates the dual-syntax problem entirely.
 
-```moonlane
+```metel
 // Single bound — inline allowed
 fun largest<T: Comparable>(a: T, b: T) -> T
 
@@ -255,7 +255,7 @@ fun bar(x: impl Display) -> impl Display
 
 Introduce `requires` as a constraint clause. Type parameters are inferred from usage — you don't declare `<T>` separately unless you need to name the type in the return position.
 
-```moonlane
+```metel
 // Type param declared only when needed in return type
 fun largest(a: T, b: T) -> T requires T: Comparable
 
@@ -275,7 +275,7 @@ fun sort(arr: T[]) requires T: Comparable
 
 Inspired by Haskell's `=>` and Scala's `using`. Move all bounds into a named block, always after the signature:
 
-```moonlane
+```metel
 fun foo(x: T, y: U) -> T
     [T: Display + Clone, U: Iterable<T>]
 
@@ -332,23 +332,23 @@ Options C and D additionally require:
    Kotlin bans it; everything goes in `where`. Rust allows both. Allowing both creates the dual-syntax problem. If inline multi-bound is forbidden, bounds on a single-constraint param can be inline (`<T: Comparable>`) but two+ bounds always require `where`.
 
 3. **Anonymous type params — `impl Aspect` or something else?**  
-   `impl Aspect` for parameter position is a known Rust tension (why `impl` — what does it implement?). Swift's `some` is semantically clear. Should Moonlane introduce a keyword, or require explicit `<T: Aspect>` for all generic positions?
+   `impl Aspect` for parameter position is a known Rust tension (why `impl` — what does it implement?). Swift's `some` is semantically clear. Should Metel introduce a keyword, or require explicit `<T: Aspect>` for all generic positions?
 
 4. **Associated type constraints — how to express them?**  
-   Rust: `Iterator<Item = String>`. Swift: `Collection<String>` (primary associated type). Moonlane's `Iterable<T>` could adopt Swift's model — `Iterable<String>` constrains the element type directly without named-argument syntax.  
+   Rust: `Iterator<Item = String>`. Swift: `Collection<String>` (primary associated type). Metel's `Iterable<T>` could adopt Swift's model — `Iterable<String>` constrains the element type directly without named-argument syntax.  
    This is the cleanest option and is consistent with how `Perhaps<T>` and `Result<T, E>` are already written.
 
 5. **`where` vs `requires` — keep one or both?**  
    `where` is already a keyword. `requires` reads more declaratively ("this function requires...") and is less likely to be confused with the SQL/query connotation of `where`. If both are allowed, another dual-syntax problem emerges.
 
 6. **Self-referential bounds — `T: Comparable<T>` vs `T: Comparable`?**  
-   Rust's `PartialOrd<Rhs = Self>` is complex. Kotlin's `Comparable<T>` is explicit but repetitive. The Moonlane spec already shows `Comparable` without a self-type parameter. This should be codified: bounds use the simple name (`Comparable`), and `Self` in the aspect definition refers to the implementing type. This avoids `T: Comparable<T>` entirely.
+   Rust's `PartialOrd<Rhs = Self>` is complex. Kotlin's `Comparable<T>` is explicit but repetitive. The Metel spec already shows `Comparable` without a self-type parameter. This should be codified: bounds use the simple name (`Comparable`), and `Self` in the aspect definition refers to the implementing type. This avoids `T: Comparable<T>` entirely.
 
 7. **Type aliases for constraint bundles — `type` or `aspect` alias?**
 
    Type aliases let you name a compound bound and use it as a single inline constraint, directly relieving Option C's main ergonomic cost:
 
-   ```moonlane
+   ```metel
    type Sortable = Comparable & Display & Clone   // defined once
    
    fun sort<T: Sortable>(arr: T[]) -> T[]         // single inline bound — no where needed
@@ -359,14 +359,14 @@ Options C and D additionally require:
 
    **The catch:** alias definitions cannot use Option C's `where`-style comma-per-aspect form (there is no `T` to repeat). They need a conjunction operator in the definition — which reintroduces the separator question that Option C sidesteps at call sites:
 
-   ```moonlane
+   ```metel
    type Sortable = Comparable & Display & Clone   // & separator in definition
    type Sortable = Comparable + Display + Clone   // + separator in definition
    ```
 
    Alternatively, a separate `aspect alias` keyword scopes the separator decision to a distinct syntactic form, making it visually unambiguous:
 
-   ```moonlane
+   ```metel
    aspect Sortable = Comparable + Display + Clone  // aspect alias — not a type alias
    ```
 
@@ -378,7 +378,7 @@ Options C and D additionally require:
    - Should constraint aliases be usable anywhere a aspect bound appears, including `where` clauses?
 
 8. **Forward reference — async/concurrency aspect bounds**  
-   If Moonlane ever gains async or multithreading support, the aspect system will need `Send`/`Sync`-like marker aspects to express thread-safety constraints, and the pointer RFC (`*mut T`) will need corresponding bounds to prevent unsound shared mutable access across threads. No design is needed now — defer until after the evaluator PoC and aspects implementation give enough implementation experience to make concrete choices. Noted here to avoid designing the aspect system into a corner.
+   If Metel ever gains async or multithreading support, the aspect system will need `Send`/`Sync`-like marker aspects to express thread-safety constraints, and the pointer RFC (`*mut T`) will need corresponding bounds to prevent unsound shared mutable access across threads. No design is needed now — defer until after the evaluator PoC and aspects implementation give enough implementation experience to make concrete choices. Noted here to avoid designing the aspect system into a corner.
 
 ---
 

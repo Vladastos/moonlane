@@ -19,7 +19,7 @@ Replaces RFC-0009 and RFC-0029 with a revised module system that addresses the e
 
 The RFC-0009 design required two separate declarations to use a module:
 
-```moonlane
+```metel
 mod parser;               // declares the module exists (loads the file)
 use parser::{Ast, Token}; // brings names into scope
 ```
@@ -36,7 +36,7 @@ Additionally, `pub use` reads as a mechanism (`pub` + `use`) rather than an inte
 
 A single `import` declaration both loads the module file and brings names into the current scope:
 
-```moonlane
+```metel
 import parser::{Ast, Token};       // loads parser.mln, brings Ast and Token into scope
 import std::math;                  // loads std/math, brings math into scope as a module handle
 import root::lexer::Token as Tok;  // absolute path with alias
@@ -60,7 +60,7 @@ Import forms:
 
 Re-exporting names from submodules uses an explicit `export` declaration:
 
-```moonlane
+```metel
 // parser.mln — facade module for the parser namespace
 export ast::Ast;
 export lexer::{Token, Span};
@@ -105,7 +105,7 @@ Modules do not have their own visibility annotation. Module-level access control
 
 To hide the internal file structure from importers, a parent module uses `export` to expose only the names it chooses:
 
-```moonlane
+```metel
 // parser.mln
 export ast::Ast;          // Ast is accessible as root::parser::Ast
 export lexer::Token;      // Token is accessible as root::parser::Token
@@ -129,7 +129,7 @@ Path roots are unchanged from RFC-0029:
 
 Fully-qualified paths are valid anywhere a name is expected without a preceding `import`:
 
-```moonlane
+```metel
 let p: root::parser::Ast = root::parser::Ast::new();
 ```
 

@@ -12,7 +12,7 @@ Open a new sprint: create the sprint branch, the kickoff issue, assign issues to
 
 3. **Show the current backlog** for the active epic so the user can decide what goes into the sprint:
 ```bash
-gh issue list --repo moonlane-lang/moonlane --label "status:backlog" --json number,title,labels,milestone
+gh issue list --repo metel-lang/metel --label "status:backlog" --json number,title,labels,milestone
 ```
 
 4. **Ask the user** which issue numbers to include in this sprint before proceeding.
@@ -28,7 +28,7 @@ All sprint work must be committed to `sprint/<N>`. Nothing goes directly to `mai
 6. **Create the sprint kickoff issue** with the active milestone:
 ```bash
 gh issue create \
-  --repo moonlane-lang/moonlane \
+  --repo metel-lang/metel \
   --title "Sprint <N> Kickoff: <goal>" \
   --label "sprint:kickoff" \
   --milestone "<milestone>" \
@@ -52,7 +52,7 @@ $(for each selected issue: - [ ] #N)
 
 7. **Ensure all planned issues carry the correct milestone:**
 ```bash
-gh issue edit <N> --repo moonlane-lang/moonlane \
+gh issue edit <N> --repo metel-lang/metel \
   --milestone "<milestone>" \
   --remove-label "status:backlog" \
   --add-label "status:in-progress"

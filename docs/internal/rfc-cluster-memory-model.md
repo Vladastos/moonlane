@@ -8,7 +8,7 @@
 
 ## Overview
 
-Four open RFCs collectively define Moonlane's memory and concurrency model. They were written independently but are deeply interdependent — accepting or implementing any one of them without resolving the others will produce inconsistencies that require breaking changes later. This document maps the conflicts, establishes the decisions that must be made, and proposes a resolution order.
+Four open RFCs collectively define Metel's memory and concurrency model. They were written independently but are deeply interdependent — accepting or implementing any one of them without resolving the others will produce inconsistencies that require breaking changes later. This document maps the conflicts, establishes the decisions that must be made, and proposes a resolution order.
 
 The four RFCs:
 
@@ -56,7 +56,7 @@ RFC-0006 explicitly lists RFC-0001 and RFC-0003 as blocking dependencies. RFC-00
 
 RFC-0001 proposes `&x` as the address-of operator, producing a storable, RC-backed `*T` pointer:
 
-```moonlane
+```metel
 mut x: Int = 42;
 let p: *Int = &x;       // p is a *Int — storable, cloneable, RC-backed
 let q: *mut Int = &mut x;
@@ -64,7 +64,7 @@ let q: *mut Int = &mut x;
 
 RFC-0024 proposes `&T` as a read reference — a non-storable, expression-only view used to inspect a linear value without consuming it:
 
-```moonlane
+```metel
 let buf = Buffer::alloc(1024);
 let len = buf_len(&buf);   // &buf is a temporary — cannot be stored, cannot outlive the expression
 ```
@@ -74,7 +74,7 @@ The same sigil means different things with incompatible semantics. This is not a
 **Decision:** Option A — differentiate the sigils.
 
 - **Option A — Differentiate the sigils.** ✓ **Adopted.** Keep `&` for RFC-0001's address-of; `&x` always produces `*T`, always RC-backed and storable. RFC-0024's read reference uses `@x` / `@T` — a distinct sigil, unused elsewhere in the language, visually unambiguous.
-- **Option B — Unify under `&`.** Rejected. `&x` would produce `*T` for non-linear targets and `@T` for linear targets — different result types behind the same operator. Type-dependent operator behavior behind a single sigil is at odds with Moonlane's no-implicit-conversions principle and makes generic code difficult to reason about.
+- **Option B — Unify under `&`.** Rejected. `&x` would produce `*T` for non-linear targets and `@T` for linear targets — different result types behind the same operator. Type-dependent operator behavior behind a single sigil is at odds with Metel's no-implicit-conversions principle and makes generic code difficult to reason about.
 - **Option C — Restrict RFC-0001 to non-linear types only.** Rejected for the same reason as Option B — same syntax, incompatible result types depending on linearity.
 
 `&x` is now unambiguous across the entire language: it always means address-of and always produces `*T`. RFC-0024's read reference operator is `@x` / `@T` throughout.
@@ -109,7 +109,7 @@ This leaves no way to use a linear value from an enclosing scope inside a closur
 - **Explicit opt-in** — a `move` qualifier on the closure (as in Rust's `move || { ... }`) transfers all linear free variables. Non-linear values can still be clone-captured.
 - **Per-variable** — something like `capture(move buf, clone counter)` in the closure header. Maximum control, maximum verbosity.
 
-The explicit opt-in (`move fun(...) { ... }`) is the most consistent with Moonlane's "no implicit conversions" principle. Automatic move-capture for linear values specifically is a reasonable middle ground since the linear type system already tracks whether a value is consumed.
+The explicit opt-in (`move fun(...) { ... }`) is the most consistent with Metel's "no implicit conversions" principle. Automatic move-capture for linear values specifically is a reasonable middle ground since the linear type system already tracks whether a value is consumed.
 
 ---
 
@@ -153,7 +153,7 @@ Document whether "tracked unique pointers" (a `*T` known to be the sole alias) a
 
 With the pointer boundary established, RFC-0006 can be amended with a move capture form. The recommended approach is an explicit `move` qualifier on closures:
 
-```moonlane
+```metel
 let buf = Buffer::alloc(1024);
 let process = move fun() { buf.write(data); buf.free(); };
 // buf is consumed here — it has moved into the closure

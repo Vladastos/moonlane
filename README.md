@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/moonlane-logo.svg" alt="Moonlane" width="600"/>
+  <img src="media/metel-logo-dark.svg" alt="Metel" width="600"/>
 </p>
 
 An exploration in type-driven memory management.
@@ -39,7 +39,7 @@ The current frontier is linear types—baked in as an opt-in pillar of the memor
 
 - **Typed channels** — `Chan<T>` is the primary concurrency primitive. Values are transferred between fibers with `ch <- value` (send) and `<- ch` (receive). A `select` expression waits on multiple channels simultaneously. Channels are the natural transport for linear values: sending consumes the value, satisfying the exactly-once rule across fiber boundaries.
 
-- **C FFI** — `extern "C"` blocks declare functions callable via the C ABI. Calls require an `unsafe` block. The primary use case is Rust crate interop: any Rust crate can be exposed to Moonlane through a thin `#[no_mangle] extern "C"` shim, giving access to the full `crates.io` ecosystem.
+- **C FFI** — `extern "C"` blocks declare functions callable via the C ABI. Calls require an `unsafe` block. The primary use case is Rust crate interop: any Rust crate can be exposed to Metel through a thin `#[no_mangle] extern "C"` shim, giving access to the full `crates.io` ecosystem.
 
 See the [Language Specification](docs/public/spec.md) and [RFCs](docs/internal/rfcs/) for the complete design.
 
@@ -53,7 +53,7 @@ See the [Language Specification](docs/public/spec.md) and [RFCs](docs/internal/r
 ### Build
 
 ```bash
-cd moonlane-interpreter
+cd metel-interpreter
 cargo build --release
 ```
 
@@ -80,7 +80,7 @@ cargo test --test typechecking_tests
 
 **Algebraic types and pattern matching**
 
-```moonlane
+```metel
 enum Shape {
     Circle    { radius: Float },
     Rectangle { width: Float, height: Float },
@@ -96,7 +96,7 @@ fun area(s: Shape) -> Float {
 
 **Generics**
 
-```moonlane
+```metel
 fun first<T>(items: T[]) -> Perhaps<T> {
     if (array_len(items) == 0) { Perhaps::Nope {} }
     else { Perhaps::Some { value: items[0] } }
@@ -105,7 +105,7 @@ fun first<T>(items: T[]) -> Perhaps<T> {
 
 **Aspects**
 
-```moonlane
+```metel
 aspect Summary {
     fun summarize(self) -> String;
 }
@@ -123,7 +123,7 @@ impl Summary for Tweet {
 
 **Error propagation with `From`-based coercion**
 
-```moonlane
+```metel
 enum IoError  { FileNotFound {} }
 enum AppError { Io { msg: String } }
 
@@ -139,7 +139,7 @@ fun load_config() -> Result<String, AppError> {
 
 **User-defined iteration**
 
-```moonlane
+```metel
 struct Counter { current: Int, max: Int }
 
 impl Iterable<Int> for Counter {
@@ -162,8 +162,8 @@ fun main() {
 ## Project Structure
 
 ```
-Moonlane/
-├── moonlane-interpreter/
+Metel/
+├── metel-interpreter/
 │   ├── src/
 │   │   ├── parser/         # PEG grammar (pest) → untyped AST
 │   │   ├── ast/            # Untyped AST node definitions
@@ -185,11 +185,11 @@ Moonlane/
 ## Resources
 
 - **Language Specification:** [`docs/public/spec.md`](docs/public/spec.md)
-- **Typechecker Architecture:** [`moonlane-interpreter/docs/typechecker.md`](moonlane-interpreter/docs/typechecker.md)
-- **Evaluator Design:** [`moonlane-interpreter/docs/evaluator.md`](moonlane-interpreter/docs/evaluator.md)
+- **Typechecker Architecture:** [`metel-interpreter/docs/typechecker.md`](metel-interpreter/docs/typechecker.md)
+- **Evaluator Design:** [`metel-interpreter/docs/evaluator.md`](metel-interpreter/docs/evaluator.md)
 - **RFCs:** [`docs/internal/rfcs/`](docs/internal/rfcs/) — language change proposals and decisions
-- **Decision Records:** [`moonlane-interpreter/docs/decisions/`](moonlane-interpreter/docs/decisions/) — implementation rationales
+- **Decision Records:** [`metel-interpreter/docs/decisions/`](metel-interpreter/docs/decisions/) — implementation rationales
 
 ## License
 
-Moonlane is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+Metel is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.

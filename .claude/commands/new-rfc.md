@@ -65,7 +65,7 @@ target:
 
 ```bash
 gh issue create \
-  --repo moonlane-lang/moonlane \
+  --repo metel-lang/metel \
   --title "RFC-NNNN: <title>" \
   --label "type:rfc,rfc:draft" \
   --body "Tracking issue for RFC-NNNN.\n\nDoc: \`docs/internal/rfcs/<slug>.md\`"

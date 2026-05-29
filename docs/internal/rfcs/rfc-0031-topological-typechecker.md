@@ -136,8 +136,8 @@ pub struct TypedModuleGraph {
     pub modules: Vec<TypedModule>,  // topological order
 }
 
-pub fn check_graph(graph: ModuleGraph) -> Result<TypedModuleGraph, MoonlaneError>
-pub fn evaluate_graph(graph: TypedModuleGraph) -> Result<(), MoonlaneError>
+pub fn check_graph(graph: ModuleGraph) -> Result<TypedModuleGraph, MetelError>
+pub fn evaluate_graph(graph: TypedModuleGraph) -> Result<(), MetelError>
 ```
 
 The old `check(Program)` and `evaluate(TypedProgram)` are kept as compatibility wrappers (single-module synthetic graph) until all callers are migrated, then deleted alongside the flat-merge hack.
@@ -150,7 +150,7 @@ Before `check_graph` runs, a dedicated normalization pass rewrites qualified pat
 load_root → normalize → check_graph → evaluate_graph
 ```
 
-`normalize(ModuleGraph) -> Result<ModuleGraph, MoonlaneError>` (in `src/path_normalizer.rs`) walks every `Expr::Path` node and rewrites it using the module's `ResolvedNames`.
+`normalize(ModuleGraph) -> Result<ModuleGraph, MetelError>` (in `src/path_normalizer.rs`) walks every `Expr::Path` node and rewrites it using the module's `ResolvedNames`.
 
 ```rust
 Expr::ResolvedPath {

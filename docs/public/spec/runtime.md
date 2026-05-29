@@ -47,7 +47,7 @@ The following aspects are pre-implemented for built-in types:
 
 ### Display
 
-```moonlane
+```metel
 aspect Display {
     fun to_string(self) -> String;
 }
@@ -57,7 +57,7 @@ aspect Display {
 
 ### Iterable\<T\>
 
-```moonlane
+```metel
 aspect Iterable<T> {
     fun next(mut self) -> Perhaps<T>;
 }
@@ -67,7 +67,7 @@ aspect Iterable<T> {
 
 ### From\<S\>
 
-```moonlane
+```metel
 aspect From<S> {
     fun from(value: S) -> Self;
 }

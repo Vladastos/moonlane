@@ -130,7 +130,7 @@ This is a consequence of the flat evaluator (tracked in #189 for v0.7.0) but it 
 
 Two actions:
 
-1. Document this as a known limitation in `moonlane-interpreter/docs/evaluator.md` — "In v0.6.0, two modules declaring the same top-level name produce undefined behaviour at runtime if both are reachable. The typechecker does not detect this; it will be resolved when per-module runtime environments are introduced (#189)."
+1. Document this as a known limitation in `metel-interpreter/docs/evaluator.md` — "In v0.6.0, two modules declaring the same top-level name produce undefined behaviour at runtime if both are reachable. The typechecker does not detect this; it will be resolved when per-module runtime environments are introduced (#189)."
 2. Add a best-effort detection pass in `evaluate_graph`: before building the flat environment, scan for duplicate declaration names across modules and emit a runtime warning (not a hard error, since the typechecker approved the program). Hard error requires per-module runtime scope (#189).
 
 **Tracking:** Issue #192

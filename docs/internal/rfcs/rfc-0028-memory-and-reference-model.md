@@ -11,7 +11,7 @@ supersedes:
 
 ## Summary
 
-Define Moonlane's unified memory and reference model. The model has three interlocking parts:
+Define Metel's unified memory and reference model. The model has three interlocking parts:
 
 - **Linear types** — opt-in, statically checked exactly-once ownership for resources that require deterministic release
 - **Read references** (`@T`) — expression-scoped, non-storable views of a linear value that do not consume it
@@ -25,7 +25,7 @@ This RFC supersedes RFC-0001 (Pointer Syntax and Semantics) and RFC-0024 (Linear
 
 ## Motivation
 
-Moonlane's default memory model is runtime-managed reference counting. This is ergonomic for most code but insufficient for systems-level use cases:
+Metel's default memory model is runtime-managed reference counting. This is ergonomic for most code but insufficient for systems-level use cases:
 
 - Resources that must be explicitly released (file handles, sockets, buffers)
 - Allocation and deallocation that must be deterministic and zero-overhead
@@ -45,7 +45,7 @@ Linear types address the first group; pointers address the second. Unique pointe
 
 The `linear` keyword annotates a `struct` or `enum` declaration:
 
-```moonlane
+```metel
 linear struct Buffer {
     ptr: Int,
     len: Int,
@@ -59,7 +59,7 @@ linear enum Connection {
 
 A struct or enum that contains a `linear` field is itself treated as linear automatically. The `linear` keyword need not be repeated on the outer type — linearity propagates transitively:
 
-```moonlane
+```metel
 struct Request {
     body: Buffer,    // Buffer is linear → Request is implicitly linear
     url: String,
@@ -85,7 +85,7 @@ A linear value is **consumed** by any of:
 
 Consuming an already-consumed linear binding is a compile error. A linear binding that reaches the end of its scope without being consumed is a compile error.
 
-```moonlane
+```metel
 let f = FileHandle::open("data.txt");
 f.close();   // consumed — ok
 
@@ -101,7 +101,7 @@ f3.close();  // ERROR: f3 already consumed
 
 There are no mutable references for linear types. Mutation is expressed by consuming the value and returning a new one. Methods on linear types take `self` and return `Self`:
 
-```moonlane
+```metel
 fun write(buf: <linear Buffer>, data: Bytes) -> <linear Buffer> { ... }
 
 let buf = write(buf, data);   // buf consumed; new buf bound
@@ -109,7 +109,7 @@ let buf = write(buf, data);   // buf consumed; new buf bound
 
 Method chaining is the idiomatic form for sequential operations:
 
-```moonlane
+```metel
 buf.write(header).write(body).flush().free();
 ```
 
@@ -117,7 +117,7 @@ buf.write(header).write(body).flush().free();
 
 Every branch of an `if` or `match` must leave all in-scope linear bindings in the same consumption state at the merge point:
 
-```moonlane
+```metel
 // Correct:
 if condition {
     buf.write(data);
@@ -133,7 +133,7 @@ A linear value created outside a loop body may not be consumed inside it — the
 
 #### 1.7 `drop` — explicit discard
 
-```moonlane
+```metel
 drop(buf);   // consumed; satisfies the linearity checker
 ```
 
@@ -155,7 +155,7 @@ Destructuring a linear value consumes the outer binding and introduces each fiel
 
 `@T` is formed with the `@` prefix operator:
 
-```moonlane
+```metel
 linear struct Buffer { ptr: Int, len: Int }
 
 fun buf_len(b: @Buffer) -> Int { b.len }
@@ -196,7 +196,7 @@ Because `@T` cannot be stored, it cannot outlive the expression it appears in. N
 
 A new type-expression variant: `*T` — a pointer to a value of type `T`. RC-backed, cloneable, storable. For non-linear types only.
 
-```moonlane
+```metel
 mut x: Int = 42;
 let p: *Int = &x;
 let q: *mut Int = &mut x;
@@ -234,7 +234,7 @@ Valid for both linear and non-linear `T`:
 
 Recursive linear data structures become possible:
 
-```moonlane
+```metel
 linear struct Node {
     value: Int,
     next: Perhaps<unique *Node>,
@@ -335,7 +335,7 @@ Can a generic parameter be constrained to linear: `fun<T: Linear>(val: T)`? Requ
 ## References
 
 - Language spec: `docs/public/spec.md`, `docs/public/spec/types.md`
-- Typechecker notes: `moonlane-interpreter/docs/typechecker.md`
+- Typechecker notes: `metel-interpreter/docs/typechecker.md`
 - Superseded: RFC-0001 (`rfc-0001-pointer-syntax.md`), RFC-0024 (`rfc-0024-linear-types.md`)
 - Cluster report: `docs/internal/rfc-cluster-memory-model.md`
 - RFC-0006: closure capture — `move fun` syntax depends on this RFC (linear capture semantics)

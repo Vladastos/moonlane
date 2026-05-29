@@ -1,6 +1,6 @@
-# Moonlane Error Code Reference
+# Metel Error Code Reference
 
-All Moonlane errors carry a code. Codes are prefixed by phase:
+All Metel errors carry a code. Codes are prefixed by phase:
 
 | Prefix | Phase |
 |---|---|
@@ -15,7 +15,7 @@ All Moonlane errors carry a code. Codes are prefixed by phase:
 
 ### P0001 — Syntax error
 
-The source text does not match the Moonlane grammar.
+The source text does not match the Metel grammar.
 
 ```
 [P0001] parse error in main.mln at 12..18 (`let x = ;`): expected expression
@@ -257,7 +257,7 @@ The interpreter reached an impossible state. This is a bug in the interpreter �
 [I0001] internal error: binop: unsupported operand types (typechecker should have caught this)
 ```
 
-**What to do:** please file a bug report at <https://github.com/Vladastos/moonlane/issues> with the source program that triggered this error.
+**What to do:** please file a bug report at <https://github.com/Vladastos/metel/issues> with the source program that triggered this error.
 
 ### I0002 — Not implemented
 

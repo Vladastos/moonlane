@@ -26,8 +26,8 @@ The spec ([Static Dispatch Only](../../public/spec/declarations.md#static-dispat
 ## Open Questions
 
 - **Syntax**: `dyn Aspect` (Rust-style), just `Aspect` as a type (Go-style), or something else?
-- **Sizing**: aspect objects are unsized. Does Moonlane need a `Box<dyn Aspect>` / heap-allocated wrapper, or does the runtime's RC model absorb this?
-- **Object safety**: which aspects can be used as aspect objects? Methods with `Self` in position other than receiver break object safety in Rust. Does Moonlane adopt the same rule?
+- **Sizing**: aspect objects are unsized. Does Metel need a `Box<dyn Aspect>` / heap-allocated wrapper, or does the runtime's RC model absorb this?
+- **Object safety**: which aspects can be used as aspect objects? Methods with `Self` in position other than receiver break object safety in Rust. Does Metel adopt the same rule?
 - **Interaction with generics**: can a generic function accept `dyn Aspect` as a type argument?
 
 ---

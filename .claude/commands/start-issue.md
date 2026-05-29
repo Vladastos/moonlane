@@ -14,7 +14,7 @@ If the current branch is not `sprint/<N>`, warn the user and do not proceed. All
 
 2. **Read the issue:**
 ```bash
-gh issue view <N> --repo moonlane-lang/moonlane
+gh issue view <N> --repo metel-lang/metel
 ```
 Display the title, description, acceptance criteria, labels, and milestone to the user.
 
@@ -22,7 +22,7 @@ Display the title, description, acceptance criteria, labels, and milestone to th
 
 4. **Mark as in-progress:**
 ```bash
-gh issue edit <N> --repo moonlane-lang/moonlane \
+gh issue edit <N> --repo metel-lang/metel \
   --remove-label "status:backlog" \
   --add-label "status:in-progress"
 ```
@@ -32,12 +32,12 @@ gh issue edit <N> --repo moonlane-lang/moonlane \
    - Set the Status field to the "In Progress" option
 
 6. **Read relevant source and doc files** mentioned in the issue or inferable from its labels:
-   - `evaluator` → `tree-walk-interpreter/src/evaluator/` + `tree-walk-interpreter/docs/evaluator.md`
-   - `typechecker` → `tree-walk-interpreter/src/typechecker/` + `tree-walk-interpreter/docs/typechecker.md`
-   - `type-inference` → `tree-walk-interpreter/src/typeinference/` + `tree-walk-interpreter/docs/typechecker.md`
-   - `generics` / `traits` → `tree-walk-interpreter/src/types/`
-   - `architecture` → `tree-walk-interpreter/docs/architecture.md`
-   - Any label → check `tree-walk-interpreter/docs/decisions/` for ADRs governing the area
+   - `evaluator` → `metel-interpreter/src/evaluator/` + `metel-interpreter/docs/evaluator.md`
+   - `typechecker` → `metel-interpreter/src/typechecker/` + `metel-interpreter/docs/typechecker.md`
+   - `type-inference` → `metel-interpreter/src/typeinference/` + `metel-interpreter/docs/typechecker.md`
+   - `generics` / `traits` → `metel-interpreter/src/types/`
+   - `architecture` → `metel-interpreter/docs/architecture.md`
+   - Any label → check `metel-interpreter/docs/decisions/` for ADRs governing the area
 
 7. **Summarise** what needs to be done in 2–3 bullet points based on the acceptance criteria, so work can begin immediately.
 

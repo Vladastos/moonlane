@@ -9,7 +9,7 @@
 
 ## Purpose
 
-This report proposes adding a complete lifetime system to Moonlane's memory model. It defines what "lifetime" means against the backdrop of a language that already has three memory management mechanisms — RC heap, region allocation, and linear types — rather than the single ownership-based model that lifetime systems are typically designed around.
+This report proposes adding a complete lifetime system to Metel's memory model. It defines what "lifetime" means against the backdrop of a language that already has three memory management mechanisms — RC heap, region allocation, and linear types — rather than the single ownership-based model that lifetime systems are typically designed around.
 
 The report is structured in four parts:
 
@@ -26,7 +26,7 @@ This is design material, not a spec change. It extends the analysis from `docs/r
 
 ### 1.1 What lifetimes track
 
-A lifetime names a *live range* — the span of code during which a borrowed reference is guaranteed to remain valid. In a stack-first language, this is straightforward: a reference to a local variable is valid until the variable's frame is popped. In Moonlane the picture is more complex because the language has three memory systems with three different validity models:
+A lifetime names a *live range* — the span of code during which a borrowed reference is guaranteed to remain valid. In a stack-first language, this is straightforward: a reference to a local variable is valid until the variable's frame is popped. In Metel the picture is more complex because the language has three memory systems with three different validity models:
 
 | Memory system | Value validity governed by |
 |---|---|
@@ -58,7 +58,7 @@ The existing `@T` without a lifetime annotation is shorthand for `@'_ T` — an 
 
 Lifetimes can be ordered with outlives constraints: `'a: 'b` means lifetime `'a` lives at least as long as `'b`. The compiler infers most of these; they surface in signatures only when a returned reference's validity depends on two input lifetimes with an ordering relationship.
 
-```moonlane
+```metel
 // 'a: 'b — the container lives at least as long as the key
 fun lookup<'a, 'b, K, V>(map: @'a Map<K, V>, key: @'b K) -> Perhaps<@'a V> where 'a: 'b {
     ...
@@ -67,7 +67,7 @@ fun lookup<'a, 'b, K, V>(map: @'a Map<K, V>, key: @'b K) -> Perhaps<@'a V> where
 
 Lifetime parameters on structs make the struct's validity dependent on the referenced lifetime:
 
-```moonlane
+```metel
 struct Iter<'a, T> {
     data:  @'a T[],
     index: Int,
@@ -85,7 +85,7 @@ struct Iter<'a, T> {
 
 **With lifetimes.** The return type carries the input's lifetime, making the zero-copy view pattern expressible at the function boundary.
 
-```moonlane
+```metel
 // Single-input elision: lifetime is inferred — no annotation required
 fun first_word(input: @String) -> @String {
     match string_find(input, " ") {
@@ -108,7 +108,7 @@ println(word);
 
 The same pattern applies to any borrowed projection: returning a field reference, an element of an array, a slice into a buffer.
 
-```moonlane
+```metel
 fun name_of<'a>(person: @'a Person) -> @'a String { @person.name }
 fun head<'a, T>(arr: @'a T[]) -> Perhaps<@'a T> {
     if array_len(arr) == 0 { nope }
@@ -126,7 +126,7 @@ fun head<'a, T>(arr: @'a T[]) -> Perhaps<@'a T> {
 
 **With lifetimes.** A struct parameterized by a lifetime can hold `@'a T` fields. The lifetime parameter prevents the struct from outliving the referenced value.
 
-```moonlane
+```metel
 struct Parser<'a> {
     source: @'a String,
     pos:    Int,
@@ -167,7 +167,7 @@ The key rule: `Parser<'a>` is not `Send` (it contains `@'a String` which borrows
 
 **With lifetimes.** An iterator struct can hold a `@'a T[]` and yield `@'a T` elements — references into the original array with the same lifetime.
 
-```moonlane
+```metel
 struct ArrayIter<'a, T> {
     data:  @'a T[],
     index: Int,
@@ -211,7 +211,7 @@ The lifetime `'a` on `ArrayIter<'a, T>` ensures the iterator cannot outlive the 
 
 **With lifetimes.** The region scope introduces a named lifetime `'r` for the scope boundary. Region-internal pointers have type `*'r T` — a pointer tied to lifetime `'r`. The scope exit constraint becomes `RegionFree<'r>` — "contains no `*'r T` for the current `'r`" — rather than the broader "contains no `*T` at all."
 
-```moonlane
+```metel
 // After the change: unique *T from the RC heap is allowed to escape
 
 fun alloc_node() -> unique *Node {
@@ -238,7 +238,7 @@ The distinction between `*'r T` and `*T` (untagged, heap-backed) is the mechanis
 
 **With lifetimes.** A closure type can be parameterized by a lifetime, expressing "this closure is valid for `'a` and its captures borrow from `'a`." The compiler infers the lifetime from the captured bindings.
 
-```moonlane
+```metel
 // lookup borrows 'table' for its entire lifetime — no copy, no move
 let table: Map<String, Int> = build_lookup_table();
 let lookup: fun(@String) -> Perhaps<Int> = fun<'a>(key: @'a String) {
@@ -263,9 +263,9 @@ A complete lifetime system closes most of the expressiveness gaps from `memory-m
 
 Rust's `&mut T` is an *exclusive* mutable reference: the borrow checker proves that no other reference (`&T` or `&mut T`) exists to the same value during the mutable borrow. This exclusivity proof is what makes safe in-place mutation possible without data races.
 
-Moonlane's RFC-0028 explicitly defers `@mut T`. Without it, lifetimes alone do not enable in-place mutation through references — they only make read references storable and returnable. Patterns that require `&mut T` in Rust (mutable iterators, in-place sorting, mutation through a borrowed cursor) still require consume-and-return in Moonlane.
+Metel's RFC-0028 explicitly defers `@mut T`. Without it, lifetimes alone do not enable in-place mutation through references — they only make read references storable and returnable. Patterns that require `&mut T` in Rust (mutable iterators, in-place sorting, mutation through a borrowed cursor) still require consume-and-return in Metel.
 
-```moonlane
+```metel
 // Desired: mutate through a borrowed cursor without consuming it
 fun increment<'a>(counter: @'a mut Int) {   // @mut T — NOT YET VALID
     *counter += 1;
@@ -280,7 +280,7 @@ Adding `@mut T` after lifetimes are in place would require an exclusivity checke
 
 ### 3.2 Linear types and lifetimes are two separate ownership mechanisms
 
-Rust has one mechanism for enforcing single ownership: move semantics with lifetime-tracked borrows. Moonlane with lifetimes would have two:
+Rust has one mechanism for enforcing single ownership: move semantics with lifetime-tracked borrows. Metel with lifetimes would have two:
 
 - **Linear types (`!T`):** explicitly opt-in, enforced by the `LinearEnv` pass, ownership tracked by the "consumed / not consumed" invariant
 - **Lifetimes (`@'a T`):** apply to borrowed views, enforced by the lifetime checker, ownership tracked by "valid for `'a` / expired"
@@ -293,7 +293,7 @@ The result is expressive but additive in complexity. A programmer working with a
 
 In Rust, references always borrow from a stack-owned value with a definite scope. The borrowed value has a fixed stack frame that determines when it is freed.
 
-In Moonlane, the default allocation is the RC heap. An RC value has no fixed stack frame — it lives as long as any `*T` handle exists. A lifetime attached to a `@T` borrow from an RC value expresses "this borrow is valid for `'a`", but the *underlying* condition is that the `*T` handle used to produce the borrow is live for `'a`. If a different `*T` clone to the same value drops during `'a`, the RC value is still live — the reference count ensures it. But if the `*T` handle used to produce the borrow is itself dropped, the borrow expires.
+In Metel, the default allocation is the RC heap. An RC value has no fixed stack frame — it lives as long as any `*T` handle exists. A lifetime attached to a `@T` borrow from an RC value expresses "this borrow is valid for `'a`", but the *underlying* condition is that the `*T` handle used to produce the borrow is live for `'a`. If a different `*T` clone to the same value drops during `'a`, the RC value is still live — the reference count ensures it. But if the `*T` handle used to produce the borrow is itself dropped, the borrow expires.
 
 This creates an asymmetry: with RC-heap values, the lifetime of a borrow is bounded by the scope of the specific handle used to produce it, not by any "owner" in the Rust sense. This is sound but weaker than Rust's model — it is harder to express "this reference is valid as long as anyone holds the value" because "anyone" is not a single named scope.
 
@@ -301,11 +301,11 @@ Furthermore, `*mut T` allows aliased mutation. A `@'a T` borrow produced from `*
 
 ### 3.4 Variance rules
 
-Lifetime-parameterized types require variance: whether a `Foo<'long>` can be used where `Foo<'short>` is expected (covariance), or vice versa (contravariance), or neither (invariance). Rust resolves variance automatically from how the lifetime appears in the type definition (return position = covariant, argument position = contravariant, both = invariant). Moonlane would need the same rules, which add compiler complexity and produce error messages that are notoriously difficult for newcomers to interpret.
+Lifetime-parameterized types require variance: whether a `Foo<'long>` can be used where `Foo<'short>` is expected (covariance), or vice versa (contravariance), or neither (invariance). Rust resolves variance automatically from how the lifetime appears in the type definition (return position = covariant, argument position = contravariant, both = invariant). Metel would need the same rules, which add compiler complexity and produce error messages that are notoriously difficult for newcomers to interpret.
 
 ### 3.5 Higher-ranked lifetimes
 
-Some Rust patterns require lifetimes that are universally quantified over all possible lifetimes — `for<'a> Fn(&'a T)`, meaning "a closure that works for any lifetime `'a`." These arise in callbacks, trait objects, and function pointers that accept borrowed arguments. Moonlane's existing function type syntax has no equivalent quantification. This is a gap that would only become visible once lifetime-parameterized function types are in use and callers need to pass callbacks.
+Some Rust patterns require lifetimes that are universally quantified over all possible lifetimes — `for<'a> Fn(&'a T)`, meaning "a closure that works for any lifetime `'a`." These arise in callbacks, trait objects, and function pointers that accept borrowed arguments. Metel's existing function type syntax has no equivalent quantification. This is a gap that would only become visible once lifetime-parameterized function types are in use and callers need to pass callbacks.
 
 ---
 
@@ -317,7 +317,7 @@ Some Rust patterns require lifetimes that are universally quantified over all po
 
 **Proposal.** `Region::scope` introduces an implicit lifetime parameter `'r` bound to the scope boundary. The compiler tags all allocations made inside the scope with `'r`, producing type `*'r T` rather than the unqualified `*T`. Outside the scope, `*'r T` is unconstructible — `'r` has ended.
 
-```moonlane
+```metel
 // Conceptual desugaring of Region::scope
 fun scope<'r, T: RegionFree<'r>>(f: fun<'r>() -> T) -> T
 
@@ -329,7 +329,7 @@ The scope exit constraint changes from `Send` (contains no `*T`) to `RegionFree<
 
 **`RegionFree` as an aspect bound.** `RegionFree<'r>` is a marker aspect auto-derived for all types that do not contain `*'r T` fields. The derivation rules mirror `Send`:
 
-```moonlane
+```metel
 // Auto-derived: T: RegionFree<'r> if all fields are RegionFree<'r>
 // Explicit negative: *'r T is never RegionFree<'r>
 // Explicit positive: Int, String, Bool, *T (heap-backed) are always RegionFree<'r>
@@ -337,7 +337,7 @@ The scope exit constraint changes from `Send` (contains no `*T`) to `RegionFree<
 
 **Named regions.** In simple programs, one region scope is active at a time, so `'r` is unambiguous. For nested scopes, each `Region::scope` call introduces a distinct lifetime:
 
-```moonlane
+```metel
 Region::scope(fun() {                      // introduces 'r1
     let outer: *'r1 Node = region_alloc(...);
     Region::scope(fun() {                  // introduces 'r2
@@ -377,7 +377,7 @@ The transition rules:
 - When lifetime `'a` ends (its scope exits) → all bindings in `Borrowed('a)` transition back to `Unconsumed`
 - Attempting to form a second `@'b x` while `x` is in `Borrowed('a)` with `'b: 'a` → allowed (nested borrows are fine if `'b` does not outlive `'a`); the binding stays in `Borrowed` state
 
-```moonlane
+```metel
 let conn: !Connection = Connection::new(fd);
 
 // Borrow for inspection — conn transitions to Borrowed('scope)
@@ -394,7 +394,7 @@ conn.close();   // OK — consuming conn here
 
 **Storable borrows of linear values.** With lifetimes, a `@'a T` borrow of a linear value can be stored in a struct or returned from a function, as long as the struct or return type carries `'a` and the borrow does not outlive the linear binding.
 
-```moonlane
+```metel
 struct ConnView<'a> {
     conn: @'a Connection,
 }
@@ -412,7 +412,7 @@ conn.close();  // OK
 
 **Move vs. borrow at function calls.** A function that takes `!T` consumes the value (linear move). A function that takes `@'a T` borrows it. The caller decides which to do at the call site:
 
-```moonlane
+```metel
 fun inspect(c: @Connection) -> String { ... }   // borrows
 fun consume(c: !Connection) { c.close(); }       // consumes
 
@@ -427,7 +427,7 @@ consume(conn);               // move — conn transitions to Consumed
 
 ### 4.3 Lifetimes × RC Heap
 
-**The fundamental difference.** In Rust, borrowed references always borrow from a stack-owned value with a definite scope. The "owner" is a named binding, and the borrow expires when the owner's scope ends. In Moonlane, RC-heap values have no single owner — they are valid as long as any `*T` handle exists, which may be many handles across many scopes.
+**The fundamental difference.** In Rust, borrowed references always borrow from a stack-owned value with a definite scope. The "owner" is a named binding, and the borrow expires when the owner's scope ends. In Metel, RC-heap values have no single owner — they are valid as long as any `*T` handle exists, which may be many handles across many scopes.
 
 This makes RC values and lifetimes an awkward combination: there is no "owner scope" to use as the lifetime anchor. The proposal below defines how the two interact in a way that is sound, if more restricted than Rust.
 
@@ -435,7 +435,7 @@ This makes RC values and lifetimes an awkward combination: there is no "owner sc
 
 Dereferencing `ptr: *T` to produce `@'a T` is valid for `'a = lifetime_of(ptr)` — the scope in which `ptr` is live as a binding. This is always sound: the RC value is valid as long as any handle exists, and `ptr` is one such handle. As long as `ptr` is in scope, the refcount is at least 1, so the value is not freed.
 
-```moonlane
+```metel
 let ptr: *Node = get_node_from_somewhere();
 let name: @'scope String = @(*ptr).name;   // valid for 'scope: the scope of ptr
 println(name);
@@ -444,7 +444,7 @@ println(name);
 
 **`@T` from `*mut T` is forbidden.** `*mut T` allows aliased mutation through any clone. A `@'a T` borrow from `*mut T` could be invalidated by a write through another `*mut T` handle during `'a`. Without `@mut T` and an exclusivity checker, this cannot be prevented statically. The rule:
 
-```moonlane
+```metel
 let mptr: *mut Node = &mut node;
 let name = @(*mptr).name;   // TYPE ERROR: cannot form @T from *mut T
                              // downgrade to *T first, or use @mut T (not yet available)
@@ -468,7 +468,7 @@ The warning above points to the residual unsoundness: downgrading `*mut T` to `*
 
 The biggest gap left by a lifetime system without `@mut T` is in-place mutation through references. The patterns that require it — mutable iterators, in-place sorting, mutation through a borrowed struct cursor — all fall back to consume-and-return.
 
-Adding `@mut T` requires an *exclusivity* rule: at most one `@mut T` to a value at a time, and no `@T` during the `@mut T` borrow. This is a borrow-checker-level invariant. The question is not whether it is possible — it is possible, and the lifetime system provides the infrastructure — but whether the complexity cost is acceptable given Moonlane's design goal of being simpler than Rust for most programs.
+Adding `@mut T` requires an *exclusivity* rule: at most one `@mut T` to a value at a time, and no `@T` during the `@mut T` borrow. This is a borrow-checker-level invariant. The question is not whether it is possible — it is possible, and the lifetime system provides the infrastructure — but whether the complexity cost is acceptable given Metel's design goal of being simpler than Rust for most programs.
 
 A possible middle ground: introduce `@mut T` as an `unsafe`-only feature (RFC-0026 unsafe blocks), available when the programmer asserts correctness manually. The safe subset of the language keeps consume-and-return; `unsafe` code can use `@mut T` for performance-critical mutation.
 
@@ -494,7 +494,7 @@ Whether this cost is acceptable depends on whether lifetime-parameterized code i
 
 ### Q5 — Higher-ranked lifetimes
 
-Callbacks and function types that accept borrowed arguments require universally quantified lifetimes: "this function works for any lifetime `'a`." Without HRTBs, passing a `fun(@T) -> Bool` as a predicate to a higher-order function over a borrowed collection is not expressible in the general case. The scope of this problem depends on how common higher-order functions over borrowed data turn out to be in Moonlane idioms. It can be deferred until the base lifetime system is in use and concrete demand emerges.
+Callbacks and function types that accept borrowed arguments require universally quantified lifetimes: "this function works for any lifetime `'a`." Without HRTBs, passing a `fun(@T) -> Bool` as a predicate to a higher-order function over a borrowed collection is not expressible in the general case. The scope of this problem depends on how common higher-order functions over borrowed data turn out to be in Metel idioms. It can be deferred until the base lifetime system is in use and concrete demand emerges.
 
 ---
 

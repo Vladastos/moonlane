@@ -8,7 +8,7 @@
 
 ## Purpose
 
-This report explores what Moonlane programs look like once RFC-0028 (linear types, `@T` read references, `*T`/`*mut T`/`unique *T` pointers), RFC-0025 (region allocation), and RFC-0003 (fibers and channels) are implemented. It is design material, not a spec change. The goal is to surface idioms, validate that the RFC decisions compose well, and identify gaps.
+This report explores what Metel programs look like once RFC-0028 (linear types, `@T` read references, `*T`/`*mut T`/`unique *T` pointers), RFC-0025 (region allocation), and RFC-0003 (fibers and channels) are implemented. It is design material, not a spec change. The goal is to surface idioms, validate that the RFC decisions compose well, and identify gaps.
 
 **Notation used throughout:**
 - `!T` — use-site linearity sigil (OQ-1, syntax unresolved; candidates: `!T`, `|T`, `linear T`)
@@ -25,7 +25,7 @@ Where open questions affect an example, this is noted inline.
 
 The natural design for `Region::scope` is **implicit allocation**: all heap allocations inside the scope callback go to the region's bump allocator automatically, with no explicit `r.create()` call. The scope itself is unsized and grows as needed.
 
-```moonlane
+```metel
 let ast: Ast = Region::scope(fun() {
     let tokens = tokenise(source);   // allocated in the region
     let ast    = parse(tokens);      // allocated in the region
@@ -44,14 +44,14 @@ This is cleaner than RFC-0025's current `r.create(value)` proposal. The `r` para
 
 Channel send (`ch <- value`) is a natural consumption point for a linear value. After a send, the binding is dead — the linearity checker sees it as consumed. This means ownership transfer through channels falls out of two orthogonal features composing naturally, with no extra annotation.
 
-```moonlane
+```metel
 let conn = Connection::new(fd);
 ch <- conn;   // conn consumed — cannot be used again
 ```
 
 For the loop constraint (a linear value created before a loop cannot be consumed inside it), **recursion is the idiomatic solution**. Each recursive call shadows the binding with the new handle returned by the consume-and-return method:
 
-```moonlane
+```metel
 // Correct: each call consumes 'file' and shadows it with the returned handle
 fun stream(file: !FileHandle, out: Chan<!Frame>) {
     let (data, file) = file.read_line();
@@ -65,7 +65,7 @@ fun stream(file: !FileHandle, out: Chan<!Frame>) {
 
 The `Send` constraint on `*T` and `*mut T` means pointer-based data structures cannot cross fiber boundaries. Code that builds graphs, trees with parent pointers, or doubly-linked lists using RC pointers must stay on a single fiber. Results are communicated to other fibers via channels using `Send` types (plain values, not pointers).
 
-```moonlane
+```metel
 // spawn { bfs(graph_ptr, out) }  ← TYPE ERROR: *GraphNode is not Send
 bfs(graph_ptr, out);   // BFS must stay on this fiber; String results flow via channel
 ```
@@ -80,7 +80,7 @@ This is a hard constraint, not a limitation to work around — it is the mechani
 
 Three fibers: reader produces linear `Frame` values from a connection, processor filters and counts them using `@T` read references, writer sinks them to another connection.
 
-```moonlane
+```metel
 // !T = use-site linearity sigil (OQ-1, syntax TBD)
 
 linear struct Frame { data: String, seq: Int }
@@ -148,7 +148,7 @@ fun main() {
 
 An adjacency-list graph built with mutable RC pointers. BFS on a single fiber; results collected via a channel.
 
-```moonlane
+```metel
 // *T and *mut T are not Send — the graph lives on one fiber only.
 
 struct Node { id: Int, label: String, edges: (*mut Node)[] }
@@ -213,7 +213,7 @@ fun main() {
 
 A pending-job stack as a linear linked list using `unique *T`. A dispatcher fiber uses `select` to prefer high-priority input.
 
-```moonlane
+```metel
 // Box::alloc / Box::take = unique pointer allocation (OQ-2, syntax TBD)
 
 linear struct Job  { id: Int, data: String }
@@ -312,7 +312,7 @@ fun main() {
 
 ### 3.1 Overview
 
-Moonlane has two memory management systems that operate in parallel:
+Metel has two memory management systems that operate in parallel:
 
 | | RC heap | Region scope |
 |---|---|---|
@@ -339,7 +339,7 @@ The `Send` return bound enforces the only rule that matters: nothing pointing in
 
 The RC heap holds the input data and the final result. The region handles the scratch graph structure, including bidirectional edges that would cause RC cycles outside.
 
-```moonlane
+```metel
 // ── RC heap: holds input and output ──────────────────────────────────────────
 
 struct Edge { from: Int, to: Int }
@@ -469,9 +469,9 @@ RFC-0025 Option A uses `Send` as the return constraint, relying on `*T` being no
 
 ## Part 5 — Limitations Relative to Lifetime-Annotated Systems
 
-Moonlane's memory model trades lifetime annotations for a simpler contract: use `@T` for short-lived reads, use regions for scratch work, use `Send` as the safety boundary. This works well for most programs, but there are patterns where Rust-style lifetimes express something precisely that Moonlane either cannot express at all or can only approximate with a copy or a restructure.
+Metel's memory model trades lifetime annotations for a simpler contract: use `@T` for short-lived reads, use regions for scratch work, use `Send` as the safety boundary. This works well for most programs, but there are patterns where Rust-style lifetimes express something precisely that Metel either cannot express at all or can only approximate with a copy or a restructure.
 
-Each subsection below shows the desired pattern, why it fails (or degrades) in Moonlane, and what the workaround costs. §5.1–5.5 cover cases where the model cannot express something lifetimes can; §5.6–5.7 cover cases where the model is overly conservative — it rejects programs that are actually safe.
+Each subsection below shows the desired pattern, why it fails (or degrades) in Metel, and what the workaround costs. §5.1–5.5 cover cases where the model cannot express something lifetimes can; §5.6–5.7 cover cases where the model is overly conservative — it rejects programs that are actually safe.
 
 ### 5.1 Returning a borrowed view into input
 
@@ -487,16 +487,16 @@ fn first_word(input: &str) -> &str {
 }
 ```
 
-**Why it fails in Moonlane.** `@T` cannot be returned from a function. A `@String` parameter is a local read alias; the callee cannot hand it back to the caller. There is no syntax for expressing "this return value borrows from this argument."
+**Why it fails in Metel.** `@T` cannot be returned from a function. A `@String` parameter is a local read alias; the callee cannot hand it back to the caller. There is no syntax for expressing "this return value borrows from this argument."
 
-```moonlane
+```metel
 // TYPE ERROR: @String cannot be returned — read reference cannot escape the call
 fun first_word(input: @String) -> @String { ... }
 ```
 
 **Workaround.** Return an owned copy.
 
-```moonlane
+```metel
 fun first_word(input: @String) -> String {
     match string_find(input, " ") {
         nope                        => string_copy(input),
@@ -522,22 +522,22 @@ impl<'a> Parser<'a> {
 }
 ```
 
-**Why it fails in Moonlane.** `@T` cannot be stored in a struct field. There is no lifetime parameter mechanism.
+**Why it fails in Metel.** `@T` cannot be stored in a struct field. There is no lifetime parameter mechanism.
 
-```moonlane
+```metel
 // NOT VALID: @String cannot appear as a struct field
 struct Parser { input: @String, pos: Int }
 ```
 
 **Workaround A — Clone into the struct.** Give `Parser` an owned `String`. Safe and simple, but copies the entire source on construction.
 
-```moonlane
+```metel
 struct Parser { input: String, pos: Int }
 ```
 
 **Workaround B — Raw pointer inside a region.** Use `*String` as the field inside a `Region::scope`. Zero-copy but the struct cannot escape the scope (it is not `Send`).
 
-```moonlane
+```metel
 // Valid only inside Region::scope; Parser is not Send
 struct Parser { input: *String, pos: Int }
 ```
@@ -559,11 +559,11 @@ fn print_long(v: &Vec<String>, min_len: usize) {
 }
 ```
 
-**Why it fails in Moonlane.** The array iteration construct (`for let x in arr`) yields owned values. There is no `@T`-yielding iterator type because `@T` cannot be stored in an iterator struct (see §5.2). Every element visited is either moved or copied.
+**Why it fails in Metel.** The array iteration construct (`for let x in arr`) yields owned values. There is no `@T`-yielding iterator type because `@T` cannot be stored in an iterator struct (see §5.2). Every element visited is either moved or copied.
 
 **Workaround.** For read-only iteration, copy cost is often negligible for small `Send` values. For large values, pass the array and an index to avoid copying the whole element.
 
-```moonlane
+```metel
 fun process_by_ref(items: String[], i: Int) { ... }
 
 for (mut i = 0; i < array_len(items); i += 1) {
@@ -586,9 +586,9 @@ left[0]  = 1;   // mutates data[0]
 right[0] = 2;   // mutates data[mid]
 ```
 
-**Why it fails in Moonlane.** There is no type-level proof of disjointness. Two `*mut T` pointers into different parts of the same allocation are indistinguishable by type; the system cannot certify they are non-overlapping.
+**Why it fails in Metel.** There is no type-level proof of disjointness. Two `*mut T` pointers into different parts of the same allocation are indistinguishable by type; the system cannot certify they are non-overlapping.
 
-```moonlane
+```metel
 let pa: *mut Node = nodes[0];
 let pb: *mut Node = nodes[1];
 // Nothing in the type system records that pa ≠ pb — aliasing is possible
@@ -611,16 +611,16 @@ let find = |needle: &str| haystack.iter().find(|&&s| s == needle);
 // haystack is borrowed, not moved — still usable after 'find' is dropped
 ```
 
-**Why it fails in Moonlane.** Closures cannot capture by borrow — `@T` cannot be stored, and there is no lifetime parameter to tie the closure's return to a captured binding. Capture is either by copy (for `Send` types) or by linear move (for `!T`).
+**Why it fails in Metel.** Closures cannot capture by borrow — `@T` cannot be stored, and there is no lifetime parameter to tie the closure's return to a captured binding. Capture is either by copy (for `Send` types) or by linear move (for `!T`).
 
-```moonlane
+```metel
 // NOT VALID: cannot capture @String[] in a closure
 let find = fun(needle: String) { array_find(@haystack, needle) };
 ```
 
 **Workaround.** Move the array into the closure (exclusive ownership) or pass it as an explicit argument on each call.
 
-```moonlane
+```metel
 // Owned capture: haystack moved into 'find'
 let find = fun(needle: String) -> Perhaps<String> {
     array_find(haystack, needle)   // haystack is no longer accessible outside
@@ -637,7 +637,7 @@ let find = fun(needle: String) -> Perhaps<String> {
 
 **Where this is too conservative.** A `unique *T` whose pointee was allocated on the RC heap (not in a region) is safe to return from a `Region::scope` — the memory it points to will not be freed when the region exits. But the `Send` constraint on `*T` rejects it anyway because the type system has no way to distinguish "region-internal pointer" from "heap pointer".
 
-```moonlane
+```metel
 fun make_node() -> unique *Node {
     Box::alloc(Node { id: 0, label: "root", edges: [] })
     // This pointer is RC-heap backed — not region-internal
@@ -660,7 +660,7 @@ let result: unique *Node = Region::scope(fun() {
 
 **Where this is too conservative.** A scoped spawn — one where the spawning fiber provably waits for the child to finish before the referenced value is freed — is safe to give a `@T` reference. The child fiber cannot outlive the referent because the parent blocks until join. Rust's `std::thread::scope` exploits exactly this pattern.
 
-```moonlane
+```metel
 // Desired: parent blocks at join; child read is safe for the duration
 let summary = spawn_scoped(fun() { summarise(@large_value) });
 let result = join(summary);
@@ -680,7 +680,7 @@ let result = (<- ch).yolo();
 
 ### 5.8 Summary
 
-| Pattern | Lifetime-annotated system | Moonlane today | Kind of limitation |
+| Pattern | Lifetime-annotated system | Metel today | Kind of limitation |
 |---|---|---|---|
 | Return borrow from input | Zero-copy `&'a T` return | Must return owned copy | Expressiveness gap |
 | Struct holding a borrow | `struct Foo<'a> { r: &'a T }` | Own data, or `*T` inside region | Expressiveness gap |
@@ -710,7 +710,7 @@ This part proposes concrete changes or additions to the model, one per limitatio
 
 **How it would work.** The simplest implementation is to introduce a distinct region pointer type — call it `~T` — for pointers produced by a region's allocator. The `RegionFree` bound is then "contains no `~T`." The programmer-visible `*T` syntax continues to mean RC-heap pointer and is always `RegionFree`. Inside a `Region::scope`, the compiler implicitly produces `~T` instead of `*T` for allocations; outside it, `~T` is not constructible.
 
-```moonlane
+```metel
 // After this change: heap-backed unique *T can escape the scope
 
 fun make_node() -> unique *Node {
@@ -736,7 +736,7 @@ The main cost: if `~T` is user-visible syntax, the programmer must understand tw
 
 **The change.** Add `fiber::scope` (or `spawn_scoped`) as a standard-library primitive. A scoped spawn blocks the spawning fiber until all child fibers in the scope have finished. Because the children cannot outlive the scope, they are allowed to capture `@T` read references from the enclosing binding — the referent is provably live for the entire child lifetime.
 
-```moonlane
+```metel
 // fiber::scope blocks here until both children exit
 let summary = fiber::scope(fun(s: FiberScope) {
     // @large_value is safe to capture: children cannot outlive the scope
@@ -760,7 +760,7 @@ let summary = fiber::scope(fun(s: FiberScope) {
 
 **The change.** Allow a function to return `@T` when the return lifetime is unambiguously derivable from the inputs. Specifically: if a function takes exactly one `@T` parameter and returns `@T`, the return reference is inferred to borrow from that parameter. No annotation is needed in the common case; an explicit annotation resolves ambiguity.
 
-```moonlane
+```metel
 // Elided: one @T input, one @T output — unambiguously borrowing from 'input'
 fun first_word(input: @String) -> @String {
     match string_find(input, " ") {
@@ -791,7 +791,7 @@ It does not address §5.2 (structs holding borrows) or §5.3 (reference-yielding
 
 Region lifetimes are a restricted form of lifetime parameters: they correspond to concrete `Region::scope` boundaries, not abstract lifetime variables. This avoids the full generality — and complexity — of Rust's lifetime system while covering the principal use cases.
 
-```moonlane
+```metel
 // 'r is a region lifetime — bound to the enclosing Region::scope
 struct Parser<'r> {
     input: @'r String,
@@ -823,7 +823,7 @@ let result: Token[] = Region::scope(fun() {
 
 **Reference-yielding iterators.** Once `@'r T` can be stored, an iterator that yields read references is expressible:
 
-```moonlane
+```metel
 struct ArrayIter<'r, T> { arr: @'r T[], pos: Int }
 
 fun next<'r, T>(iter: @mut ArrayIter<'r, T>) -> Perhaps<@'r T> {
@@ -846,7 +846,7 @@ The principal risk is that region lifetimes and the existing `@T` (which has no 
 
 **The change.** Add a `split` primitive that takes a `*mut T[]` and a midpoint and returns two handles with a type-level guarantee that they are non-overlapping. The guarantee is represented by a linear pair: consuming both handles is the only way to get back the original pointer, and neither can be cloned.
 
-```moonlane
+```metel
 // split returns a linear pair — neither half is independently droppable
 fun array_split_at_mut<T>(arr: unique *mut T[], mid: Int)
     -> (unique *mut T[], unique *mut T[])
@@ -862,7 +862,7 @@ The linearity of each half means: the borrow checker (linear type checker) ensur
 
 **Field projection.** For structs, a similar mechanism allows projecting a `*mut Foo` into a `*mut Int` for a specific field:
 
-```moonlane
+```metel
 // Compiler-generated for each field; consumes the struct pointer, returns field pointers
 fun split_foo(p: unique *mut Foo) -> (unique *mut Int, unique *mut String)
 

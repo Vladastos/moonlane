@@ -8,7 +8,7 @@ Work through every checklist item. Report pass/fail for each section. Do not ski
 ## 1. Test suite
 
 ```bash
-cd tree-walk-interpreter && cargo test
+cd metel-interpreter && cargo test
 ```
 
 - [ ] All tests pass — zero failures, zero ignored regressions
@@ -121,7 +121,7 @@ The canonical pattern is `instantiate_scheme_for_call`. Any new site that instan
 
 ## 11. Implementation notes
 
-- [ ] If the change adds or removes a known limitation, update the **Known Limitations** section of `tree-walk-interpreter/docs/typechecker.md`
+- [ ] If the change adds or removes a known limitation, update the **Known Limitations** section of `metel-interpreter/docs/typechecker.md`
 - [ ] If the change introduces a new invariant, pattern, or non-obvious constraint (e.g. a new required ordering, a new fallback strategy), add it to the relevant section of the typechecker doc
 - [ ] If an existing entry now describes something that no longer exists (removed function, resolved limitation), remove or update it
 

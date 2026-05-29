@@ -5,7 +5,7 @@ type: guide
 created_date: '2026-05-21'
 ---
 
-# Moonlane Versioning Model
+# Metel Versioning Model
 
 This document is the authority on version numbering, the RFC lifecycle, and documentation conventions. All other guides defer to it on these topics.
 
@@ -13,7 +13,7 @@ This document is the authority on version numbering, the RFC lifecycle, and docu
 
 ## Version Numbering
 
-All Moonlane releases — language spec and interpreter — share a single three-digit version number: `v<major>.<minor>.<patch>`.
+All Metel releases — language spec and interpreter — share a single three-digit version number: `v<major>.<minor>.<patch>`.
 
 | Segment | When to increment | Examples |
 |---|---|---|

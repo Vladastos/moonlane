@@ -1,6 +1,6 @@
 ---
 name: RFC
-about: Propose a change to the Moonlane language specification
+about: Propose a change to the Metel language specification
 title: 'RFC-NNN: '
 labels: 'type:rfc,rfc:draft'
 assignees: ''

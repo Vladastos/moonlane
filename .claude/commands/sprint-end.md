@@ -12,14 +12,14 @@ Close a sprint: run the mandatory quality gate, then build and publish the sprin
 
 Read the kickoff issue to get the sprint goal, planned issue list, and milestone:
 ```bash
-gh issue list --repo moonlane-lang/moonlane --search "Sprint $ARGUMENTS Kickoff" --state all --json number,title,body,milestone
+gh issue list --repo metel-lang/metel --search "Sprint $ARGUMENTS Kickoff" --state all --json number,title,body,milestone
 ```
 
 Identify the **milestone** (e.g. `v0.3`) from the kickoff issue's milestone field — every issue created during sprint-end must use this same milestone.
 
 Categorise all planned issues as completed (closed) or carried over (still open):
 ```bash
-gh issue list --repo moonlane-lang/moonlane --milestone "<milestone>" --state open --json number,title
+gh issue list --repo metel-lang/metel --milestone "<milestone>" --state open --json number,title
 ```
 
 ---
@@ -31,7 +31,7 @@ Work through every gate in order. **If any gate fails, stop, report what failed,
 ### Gate 1: Test suite
 
 ```bash
-cd moonlane-interpreter && cargo test
+cd metel-interpreter && cargo test
 ```
 
 All tests must pass with zero failures. If any fail, fix them before continuing.
@@ -57,9 +57,9 @@ For every feature or fix introduced in the sprint, verify a test exists:
 
 | Change type | Required test location |
 |---|---|
-| New builtin | `moonlane-interpreter/tests/typechecking/sources/stage*_*.mln` — positive and at least one negative (wrong arg type) |
+| New builtin | `metel-interpreter/tests/typechecking/sources/stage*_*.mln` — positive and at least one negative (wrong arg type) |
 | New grammar construct | Parsing test or typechecking test |
-| New evaluator behaviour | Evaluator test in `moonlane-interpreter/tests/evaluator_tests.rs` or integration `.mln` file |
+| New evaluator behaviour | Evaluator test in `metel-interpreter/tests/evaluator_tests.rs` or integration `.mln` file |
 | Bug fix | A regression test that would have caught the original bug |
 | New error code | A negative typechecking or evaluator test that triggers it |
 
@@ -89,9 +89,9 @@ For every component touched during the sprint, check:
 
 | Component | Doc to verify |
 |---|---|
-| Evaluator (`src/evaluator/`) | `moonlane-interpreter/docs/evaluator.md` — Value variants, signals, builtins, known limitations |
-| Typechecker (`src/typechecker/`) | `moonlane-interpreter/docs/typechecker.md` — passes, constraints, inference rules |
-| Parser / grammar | `moonlane-interpreter/docs/architecture.md` — pipeline diagram still accurate |
+| Evaluator (`src/evaluator/`) | `metel-interpreter/docs/evaluator.md` — Value variants, signals, builtins, known limitations |
+| Typechecker (`src/typechecker/`) | `metel-interpreter/docs/typechecker.md` — passes, constraints, inference rules |
+| Parser / grammar | `metel-interpreter/docs/architecture.md` — pipeline diagram still accurate |
 
 Report any internal doc that is stale or missing.
 
@@ -108,7 +108,7 @@ For each commit, ask: did this change involve a non-obvious architectural decisi
 - A constraint or invariant that future contributors must know to avoid breaking the design
 - A workaround for a language or library limitation that isn't obvious from the code
 
-For each qualifying decision, verify a decision record exists in `moonlane-interpreter/docs/decisions/`. If any are missing, create them now — before the PR is opened.
+For each qualifying decision, verify a decision record exists in `metel-interpreter/docs/decisions/`. If any are missing, create them now — before the PR is opened.
 
 List every qualifying decision found and whether a record exists or was created.
 
@@ -122,7 +122,7 @@ For every ADR written or referenced this sprint, check whether the code it gover
 
 To find candidate sites, grep for the ADR IDs and cross-check that the surrounding code has an explanatory comment:
 ```bash
-grep -rn "ADR-\|adr-" moonlane-interpreter/src/
+grep -rn "ADR-\|adr-" metel-interpreter/src/
 ```
 
 For each ADR written this sprint: read it, identify the specific code it governs, and verify the comment is present and informative (not just `// see ADR-NNNN`). Add comments where missing.
@@ -142,10 +142,10 @@ For every failing gate from Step 2: fix the issue, commit to the sprint branch, 
 **If this sprint ships a language version milestone** (i.e. the milestone is a version tag such as `v0.3`):
 
 Write comprehensive integration tests that exercise the **complete feature set** of that version — not just features added this sprint. These tests must:
-- Live in `moonlane-interpreter/tests/evaluator/sources/` as `int_NN_<name>.mln`
+- Live in `metel-interpreter/tests/evaluator/sources/` as `int_NN_<name>.mln`
 - Be self-asserting (`assert(...)`)
 - Cover all combinations of new features interacting (generics + closures, structs + enums, etc.)
-- Use idiomatic Moonlane: type annotations where expected, explicit braces where required
+- Use idiomatic Metel: type annotations where expected, explicit braces where required
 
 After writing the tests, run them:
 ```bash
@@ -167,14 +167,14 @@ Do not proceed to Step 5 until all integration tests pass.
 
 Read the milestone version from the kickoff issue (e.g. `v0.4.2`). Strip the leading `v` to get the semver string (e.g. `0.4.2`).
 
-Open `moonlane-interpreter/Cargo.toml` and update the `version` field to match:
+Open `metel-interpreter/Cargo.toml` and update the `version` field to match:
 ```toml
 version = "0.4.2"
 ```
 
 Commit the change on the sprint branch:
 ```bash
-git add moonlane-interpreter/Cargo.toml
+git add metel-interpreter/Cargo.toml
 git commit -m "chore(#<kickoff-issue-number>): bump crate version to <version>"
 ```
 
@@ -186,7 +186,7 @@ The crate version must match the milestone before the PR is opened.
 
 For each issue that is still open and was planned for this sprint:
 ```bash
-gh issue edit <N> --repo moonlane-lang/moonlane \
+gh issue edit <N> --repo metel-lang/metel \
   --remove-label "status:in-progress" \
   --add-label "status:backlog"
 ```
@@ -214,7 +214,7 @@ Use the **same milestone** as the kickoff issue:
 
 ```bash
 gh issue create \
-  --repo moonlane-lang/moonlane \
+  --repo metel-lang/metel \
   --title "Sprint $ARGUMENTS Review" \
   --milestone "<milestone>" \
   --label "sprint:review" \
@@ -263,7 +263,7 @@ Note the issue number returned — needed for the PR.
 
 ```bash
 gh pr create \
-  --repo moonlane-lang/moonlane \
+  --repo metel-lang/metel \
   --base main \
   --head sprint/$ARGUMENTS \
   --title "Sprint $ARGUMENTS — <theme>" \

@@ -4,7 +4,7 @@
 
 `match` performs exhaustive pattern matching. All cases must be covered.
 
-```moonlane
+```metel
 match value {
     pattern => expression,
     _       => expression,   // catch-all
@@ -13,7 +13,7 @@ match value {
 
 Each arm body can be a single expression **or** a block:
 
-```moonlane
+```metel
 match value {
     pattern => expression,
     _       => { stmts* expression? },
@@ -22,7 +22,7 @@ match value {
 
 `match` is an expression — all arms must produce the same type:
 
-```moonlane
+```metel
 let label = match x {
     0 => "zero",
     1 => "one",
@@ -32,7 +32,7 @@ let label = match x {
 
 Arms with blocks follow the same rules as function bodies: the block's tail expression (if present) is the arm's value; a block with no tail produces `Unit`.
 
-```moonlane
+```metel
 let desc: String = match shape {
     Shape::Circle { radius } => {
         let area = radius * radius;
@@ -56,7 +56,7 @@ let desc: String = match shape {
 
 ### Examples
 
-```moonlane
+```metel
 // enum destructuring
 match shape {
     Shape::Circle { radius } => println(radius),
@@ -85,7 +85,7 @@ match point {
 
 ### If / Else
 
-```moonlane
+```metel
 if (condition) {
     // ...
 } else if (other) {
@@ -97,13 +97,13 @@ if (condition) {
 
 `if` is also an expression (both branches must produce the same type):
 
-```moonlane
+```metel
 let label = if (x > 0) { "positive" } else { "non-positive" };
 ```
 
 **Braceless bodies.** A single expression may be used as the branch body without braces:
 
-```moonlane
+```metel
 if (debug) print_state();                    // statement position
 let x = if (flag) value_a else value_b;     // expression position
 ```
@@ -112,7 +112,7 @@ The braceless form desugars to a single-expression block. Three restrictions app
 
 1. **Arm style must be consistent.** Both the `then` and `else` arms must use the same style — either both braced or both braceless. Mixing is a parse error.
 2. **Dangling-else is forbidden.** If the outer body is braceless, the body expression must not itself be an `if–else`. Use braces on the outer body to resolve the ambiguity.
-   ```moonlane
+   ```metel
    if (a) if (b) expr;          // ok: inner if has no else
    if (a) if (b) x; else y;    // parse error: wrap outer body in braces
    if (a) { if (b) x; else y; } // ok
@@ -121,7 +121,7 @@ The braceless form desugars to a single-expression block. Three restrictions app
 
 ### While
 
-```moonlane
+```metel
 while (condition) {
     // ...
 }
@@ -129,7 +129,7 @@ while (condition) {
 
 ### For
 
-```moonlane
+```metel
 for (mut i = 0; i < 10; i += 1) {
     // ...
 }
@@ -142,13 +142,13 @@ receives type `T`. `T[]` (array) and `Range` (produced by `..` and `..=`) implem
 `Iterable<T>` by default. User-defined types can be made iterable by implementing
 `Iterable<T>`:
 
-```moonlane
+```metel
 aspect Iterable<T> {
     fun next(mut self) -> Perhaps<T>;
 }
 ```
 
-```moonlane
+```metel
 for (let item in collection) { ... }
 for (let i in 0..10) { ... }    // 0, 1, ..., 9
 for (let i in 0..=10) { ... }   // 0, 1, ..., 10
@@ -161,7 +161,7 @@ for (let i in 0..=10) { ... }   // 0, 1, ..., 10
 
 `loop` creates an infinite loop. It is the only loop form that can produce a value:
 
-```moonlane
+```metel
 loop {
     // runs forever unless break is used
 }
@@ -184,7 +184,7 @@ let result = loop {
 
 ### Return
 
-```moonlane
+```metel
 return;         // from a function returning ()
 return value;   // from a typed function
 ```

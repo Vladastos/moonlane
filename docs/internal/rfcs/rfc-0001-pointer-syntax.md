@@ -12,7 +12,7 @@ superseded_by: rfc-0028
 
 ## Summary
 
-Introduce an optional pointer type `*T` to Moonlane, inspired by Go's pointer model: typed, non-owning, runtime-managed references with explicit address-of (`&x`) and dereference (`*p`) syntax and no pointer arithmetic.
+Introduce an optional pointer type `*T` to Metel, inspired by Go's pointer model: typed, non-owning, runtime-managed references with explicit address-of (`&x`) and dereference (`*p`) syntax and no pointer arithmetic.
 
 ---
 
@@ -24,7 +24,7 @@ The current language has no way to share a single value across multiple bindings
 - Building self-referential types (linked lists, trees)
 - Functions that mutate their caller's variable without returning a new value
 
-Go's pointer model addresses these use cases without ownership semantics, which aligns with Moonlane's design principle: *memory is managed by the runtime — no ownership semantics in the language*.
+Go's pointer model addresses these use cases without ownership semantics, which aligns with Metel's design principle: *memory is managed by the runtime — no ownership semantics in the language*.
 
 ---
 
@@ -34,7 +34,7 @@ Go's pointer model addresses these use cases without ownership semantics, which 
 
 A new `TypeExpr` variant: `*T` — pointer to a value of type `T`.
 
-```moonlane
+```metel
 let p: *Int = &x;
 ```
 
@@ -44,7 +44,7 @@ let p: *Int = &x;
 
 Produces a `*T` from an expression of type `T`. The pointed-to value is heap-allocated (or promoted from the stack — transparent to the programmer, managed by the RC runtime).
 
-```moonlane
+```metel
 mut x: Int = 42;
 let p: *mut Int = &x;
 ```
@@ -55,13 +55,13 @@ Only a `mut` binding may be the target of a `*mut T` pointer (see Mutability bel
 
 Reads the value behind a pointer.
 
-```moonlane
+```metel
 let y: Int = *p;
 ```
 
 `*p` in an lvalue position (left of `=`) writes through the pointer (only valid for `*mut T`).
 
-```moonlane
+```metel
 *p = 100;
 ```
 
@@ -83,7 +83,7 @@ Two pointer types:
 
 Making the mutability intent explicit at the `&` site rather than deriving it from the binding keeps the syntax unambiguous — `&x` always produces a read-only pointer regardless of how `x` was declared. A programmer who wants to share mutable access must write `&mut` and will get a type error immediately if the binding doesn't allow it:
 
-```moonlane
+```metel
 let x = 4;
 let p = &x;       // *Int  — ok
 let q = &mut x;   // type error: cannot take mutable reference to immutable binding `x`
@@ -99,9 +99,9 @@ let s = &mut y;   // *mut Int — ok
 
 ### No auto-deref
 
-Go silently dereferences struct pointers for field access (`p.field` where `p: *Struct`). Moonlane's design principle of *no implicit conversions* rules this out. Field access through a pointer requires explicit deref:
+Go silently dereferences struct pointers for field access (`p.field` where `p: *Struct`). Metel's design principle of *no implicit conversions* rules this out. Field access through a pointer requires explicit deref:
 
-```moonlane
+```metel
 let s = Point { x: 1, y: 2 };
 let p: *Point = &s;
 let x = (*p).x;    // explicit deref required
@@ -115,7 +115,7 @@ Consistent with Go and the runtime-managed memory model. `*Int + 1` is a type er
 
 Null pointers are not a primitive concept. If a pointer may be absent, wrap it in `Perhaps<*T>`. There is no implicit null; the type system enforces explicit handling via `match`.
 
-```moonlane
+```metel
 let maybe_p: Perhaps<*Int> = Perhaps::Some { value: &x };
 ```
 
@@ -123,7 +123,7 @@ let maybe_p: Perhaps<*Int> = Perhaps::Some { value: &x };
 
 Pointers enable recursive struct types:
 
-```moonlane
+```metel
 struct Node {
     value: Int,
     next: Perhaps<*Node>,
@@ -252,7 +252,7 @@ Because `Rc<RefCell<Value>>` is already the evaluator's internal representation 
    Middle ground: a deref-and-access operator `p->field` (C-style) or implicit deref only at field/method boundaries (Go-style).
 
 3. **Address-of non-variable expressions?**  
-   Can you write `&(x + 1)`? In Go, no — only addressable values (variables, struct fields, array elements). Moonlane should likely adopt the same rule: only named bindings and indexed locations are addressable.
+   Can you write `&(x + 1)`? In Go, no — only addressable values (variables, struct fields, array elements). Metel should likely adopt the same rule: only named bindings and indexed locations are addressable.
 
 4. **Pointer equality**  
    Should `p == q` compare addresses (identity) or values (`*p == *q`)? Go compares addresses. A separate `ptr_eq` function vs operator overload vs no equality at all are the options.
@@ -301,8 +301,8 @@ Complete the PoC evaluator. Resolve the RFC after the PoC ships. Grammar/AST/typ
 ## References
 
 - Language Spec: [`spec/types.md`](../../public/spec/types.md) (type system), [`spec/declarations.md`](../../public/spec/declarations.md) (variables, structs, enums)
-- ADR-0001: `moonlane-interpreter/docs/decisions/adr-0001-typeregistry-structure-and-location.md` (TypeRegistry — will need Pointer handling for v0.3)
-- Typechecker impl-notes: `moonlane-interpreter/docs/typechecker.md`
+- ADR-0001: `metel-interpreter/docs/decisions/adr-0001-typeregistry-structure-and-location.md` (TypeRegistry — will need Pointer handling for v0.3)
+- Typechecker impl-notes: `metel-interpreter/docs/typechecker.md`
 - RFC-0024: `docs/internal/rfcs/rfc-0024-linear-types.md` — `&x` on linear values is a type error (see Conflict 2 in cluster report). The `&T` read reference conflict is resolved: RFC-0024 uses `@T` / `@x`; `&x` unambiguously means address-of throughout the language (cluster D1, resolved)
 - RFC-0025: `docs/internal/rfcs/rfc-0025-region-allocation.md` — pointer-into-region lifetime problem; scope/callback solution avoids need for lifetime annotations
 - RFC-0026: `docs/internal/rfcs/rfc-0026-unsafe-blocks.md` — pointer arithmetic and `*T` to linear values unlocked inside `unsafe`; `unsafe fun` form needed for FFI pointer signatures

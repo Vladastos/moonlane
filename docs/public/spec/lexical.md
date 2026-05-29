@@ -2,7 +2,7 @@
 
 ## Comments
 
-```moonlane
+```metel
 // Single-line comment
 
 /* Multi-line
@@ -42,13 +42,13 @@ mod   use
 ## Literals
 
 **Integers** — decimal, with optional `_` separators:
-```moonlane
+```metel
 42
 1_000_000
 ```
 
 **Floats:**
-```moonlane
+```metel
 3.14
 2.0
 ```

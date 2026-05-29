@@ -1,5 +1,5 @@
 ---
-title: "Moonlane Language Changelog"
+title: "Metel Language Changelog"
 ---
 
 # Changelog

@@ -7,13 +7,13 @@ status: incorporated
 
 ## Summary
 
-Rename a set of language keywords and builtin identifiers to align with the Moonlane wind theme. This is a **breaking change** targeting v0.2 — no edition gating. Three changes are accepted: `nope` → `None`, `aspect` → `aspect`, and `mod` → `harness` (reserved for the future module system). One item is deferred: the `.yolo()` builtin rename, pending the stdlib migration of `Result` and `Perhaps`.
+Rename a set of language keywords and builtin identifiers to align with the Metel wind theme. This is a **breaking change** targeting v0.2 — no edition gating. Three changes are accepted: `nope` → `None`, `aspect` → `aspect`, and `mod` → `harness` (reserved for the future module system). One item is deferred: the `.yolo()` builtin rename, pending the stdlib migration of `Result` and `Perhaps`.
 
 ---
 
 ## Motivation
 
-The language is named **Moonlane**. The current keyword set is a mix of Rust-influenced names (`aspect`) and prototype-era playful names (`nope`) from an earlier development phase. A coherent naming strategy signals the language's identity and removes misleading familiarity: `aspect` in Moonlane does not carry Rust's semantics (no orphan rules, no lifetime bounds, no `dyn` dispatch by default), so using the same word invites incorrect assumptions.
+The language is named **Metel**. The current keyword set is a mix of Rust-influenced names (`aspect`) and prototype-era playful names (`nope`) from an earlier development phase. A coherent naming strategy signals the language's identity and removes misleading familiarity: `aspect` in Metel does not carry Rust's semantics (no orphan rules, no lifetime bounds, no `dyn` dispatch by default), so using the same word invites incorrect assumptions.
 
 ---
 
@@ -23,7 +23,7 @@ The language is named **Moonlane**. The current keyword set is a mix of Rust-inf
 
 The `Perhaps` type's empty variant is renamed from `nope` (or `Perhaps::Nope`) to `None`.
 
-```moonlane
+```metel
 // Before
 let x: Perhaps<Int> = nope;
 
@@ -39,7 +39,7 @@ let x: Perhaps<Int> = None;
 
 Behaviour contracts are declared with `aspect` instead of `aspect`.
 
-```moonlane
+```metel
 // Before
 aspect Comparable {
     fun compare(other: Self) -> Int;
@@ -65,7 +65,7 @@ impl Comparable for Point { ... }
 
 `harness` is reserved as the module declaration keyword, to be activated when the module system (RFC-0009) is implemented.
 
-```moonlane
+```metel
 // Future syntax (RFC-0009)
 harness math {
     pub fun sqrt(x: Float) -> Float { ... }

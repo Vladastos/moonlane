@@ -1,8 +1,8 @@
-# Moonlane — Agent Guide
+# Metel — Agent Guide
 
 ## Project
 
-Moonlane is a statically-typed, expression-oriented language. This repository contains its tree-walk interpreter. Tasks are tracked in GitHub Projects v2; spec docs and decision records live in `docs/`. The versioning model (language versions, RFC lifecycle, doc conventions) is defined in [`docs/internal/versioning.md`](docs/internal/versioning.md).
+Metel is a statically-typed, expression-oriented language. This repository contains its tree-walk interpreter. Tasks are tracked in GitHub Projects v2; spec docs and decision records live in `docs/`. The versioning model (language versions, RFC lifecycle, doc conventions) is defined in [`docs/internal/versioning.md`](docs/internal/versioning.md).
 
 ---
 
@@ -15,11 +15,11 @@ Moonlane is a statically-typed, expression-oriented language. This repository co
 | `docs/public/changelog.md` | **Changelog** — per-version feature list |
 | `docs/internal/rfcs/` | **RFCs** — language change proposals; see versioning model for lifecycle |
 | `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
-| `tree-walk-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `tree-walk-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
-| `tree-walk-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
-| `tree-walk-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
-| GitHub Projects v2 | **Task board** — canonical status view (https://github.com/orgs/moonlane-lang/projects/1) |
+| `metel-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `metel-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
+| `metel-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
+| `metel-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
+| GitHub Projects v2 | **Task board** — canonical status view (https://github.com/orgs/metel-lang/projects/1) |
 | GitHub Issues | **Tasks** — unit of work; use `gh issue list` for CLI access |
 | GitHub Milestones | **Version milestones** (`v0.2`, `v0.3`, …) and **Epic milestones** (implementation groupings) |
 
@@ -85,11 +85,11 @@ Run `/sprint-end` to execute the full checklist. It will not produce a PR until 
    - The changelog (`docs/public/changelog.md`) has an entry for the sprint's version milestone.
 
 6. **Internal doc accuracy** — for every component touched:
-   - `tree-walk-interpreter/docs/architecture.md` still accurately describes the pipeline.
-   - `tree-walk-interpreter/docs/evaluator.md` reflects any new Value variants, signal types, or builtin behaviour.
-   - `tree-walk-interpreter/docs/typechecker.md` reflects any new passes, constraints, or inference rules.
+   - `metel-interpreter/docs/architecture.md` still accurately describes the pipeline.
+   - `metel-interpreter/docs/evaluator.md` reflects any new Value variants, signal types, or builtin behaviour.
+   - `metel-interpreter/docs/typechecker.md` reflects any new passes, constraints, or inference rules.
 
-7. **Architectural decision records** — review every commit on the sprint branch. For each non-obvious architectural decision (a choice between plausible designs, a deliberate deviation from a prior ADR or RFC, a constraint future contributors must know, or a workaround for a limitation not obvious from the code), a decision record must exist in `tree-walk-interpreter/docs/decisions/`. Missing records must be created before the sprint PR is opened.
+7. **Architectural decision records** — review every commit on the sprint branch. For each non-obvious architectural decision (a choice between plausible designs, a deliberate deviation from a prior ADR or RFC, a constraint future contributors must know, or a workaround for a limitation not obvious from the code), a decision record must exist in `metel-interpreter/docs/decisions/`. Missing records must be created before the sprint PR is opened.
 
 If **any gate fails**, the sprint cannot close. Fix the issue, commit the fix to the sprint branch, and re-run the gate.
 
@@ -100,7 +100,7 @@ If **any gate fails**, the sprint cannot close. Fix the issue, commit the fix to
 3. **Open a PR** from `sprint/N` → `main`:
    ```bash
    gh pr create \
-     --repo moonlane-lang/moonlane \
+     --repo metel-lang/metel \
      --base main \
      --head sprint/N \
      --title "Sprint N — <theme>" \
@@ -129,7 +129,7 @@ If **any gate fails**, the sprint cannot close. Fix the issue, commit the fix to
 1. **Read the full issue** including all acceptance criteria: `gh issue view <number>`
 2. **Check the spec** — read every spec section the task touches. Identify anything ambiguous or missing.
    - If a spec gap exists: **STOP**. Fix the spec first (`docs/public/spec.md`). If the fix requires a non-obvious decision, write a decision record first.
-3. **Check existing decisions** — `grep` or `ls` in `tree-walk-interpreter/docs/decisions/` for any ADR that governs the area being changed. Read it before writing any code.
+3. **Check existing decisions** — `grep` or `ls` in `metel-interpreter/docs/decisions/` for any ADR that governs the area being changed. Read it before writing any code.
 4. **Check dependencies** — verify every linked issue is closed and its implementation matches what this task expects.
 5. **If no clear path forward exists** — STOP. Ask for guidance before beginning implementation. Do not make a significant architectural decision unilaterally.
 6. **Mark in-progress**: `gh issue edit <number> --add-label "status:in-progress"` and set the project Status field to **In Progress**
@@ -219,7 +219,7 @@ When you stop, explain clearly: what you found, what the options are, and what y
 
 ## Decision Records
 
-Create a decision record (a new `.md` file in `tree-walk-interpreter/docs/decisions/`, following the naming and format of existing records) when:
+Create a decision record (a new `.md` file in `metel-interpreter/docs/decisions/`, following the naming and format of existing records) when:
 
 - Multiple reasonable implementation options existed and the choice was non-trivial.
 - The rationale will matter when revisiting this area later.
@@ -283,7 +283,7 @@ Do not infer types in Pass 2. Do not build TypedAST nodes in Pass 1. If you find
 
 ### Before committing changes to these files
 
-1. Run the **full test suite**: `cargo test` from `tree-walk-interpreter/`. Every test must pass — regressions in unrelated tests are a signal that a shared invariant was broken.
+1. Run the **full test suite**: `cargo test` from `metel-interpreter/`. Every test must pass — regressions in unrelated tests are a signal that a shared invariant was broken.
 2. Run `/review-typechecker` and work through the checklist before finalising.
 3. If you added a new `unify` call: verify the argument order is `(expected, actual)` and that substitution composition is in the correct direction.
 4. If you added a new `infer_type_to_type` call: verify the call site has access to a `Span` and that all `InferType::Var` cases are resolved before the call.

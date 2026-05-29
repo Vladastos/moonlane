@@ -56,7 +56,7 @@ Imports use `::` path separators. The root of a path is one of:
 - an imported module handle
 - a bare child module name declared via `mod` in the current file
 
-```moonlane
+```metel
 use std::math;
 use std::collections::{Map, Set};
 use root::parser::Ast;
@@ -79,7 +79,7 @@ Two explicit imports that bind the same local name in the same module are a comp
 
 All declarations are **module-private by default**. A declaration is accessible from outside its module only if annotated with `pub`.
 
-```moonlane
+```metel
 pub struct Token { kind: TokenKind, span: Span }   // exported
 struct InternalState { ... }                        // module-private
 
@@ -97,7 +97,7 @@ Within a module, all names (including private ones) are accessible without quali
 
 A `pub use` statement re-exports a name from the current module's public API, regardless of where it was defined. This allows a module to shape its public interface independently of its internal file structure.
 
-```moonlane
+```metel
 // parser/mod.mln
 mod ast;
 mod lexer;
@@ -119,7 +119,7 @@ This enforces a directed acyclic dependency graph and keeps the module resolutio
 
 The standard library is accessible via the reserved `std` root. It is not a user-defined module and does not appear in `mod` declarations. The compiler resolves `std::*` paths to the bundled standard library regardless of the project structure.
 
-```moonlane
+```metel
 use std::math;
 use std::string;
 use std::io;

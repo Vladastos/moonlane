@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Moonlane is a statically typed, expression-oriented language with a Rust-inspired syntax. It runs in two first-class execution modes: a production-quality interpreter and a native compiler. Both are permanent, supported targets — the interpreter is not a stepping stone to be discarded when the compiler exists.
+Metel is a statically typed, expression-oriented language with a Rust-inspired syntax. It runs in two first-class execution modes: a production-quality interpreter and a native compiler. Both are permanent, supported targets — the interpreter is not a stepping stone to be discarded when the compiler exists.
 
 **This dual-mode commitment is the project's core identity and competitive position.** Design decisions must be consistent with it. See `docs/internal/vision.md` for the full rationale.
 
@@ -19,14 +19,14 @@ Key implications for agents working in this repo:
 ### Building and Running
 ```bash
 # Build the interpreter
-cd tree-walk-interpreter
+cd metel-interpreter
 cargo build --release
 
-# Run a Moonlane program
-cargo run -- path/to/program.mln
+# Run a Metel program
+cargo run -- path/to/program.mtl
 
 # Run in debug mode with output
-cargo run -- --debug path/to/program.mln
+cargo run -- --debug path/to/program.mtl
 ```
 
 ### Testing
@@ -76,10 +76,10 @@ The interpreter follows a multi-stage pipeline:
 
 ### Working Directory
 
-All Rust development happens in the `tree-walk-interpreter/` subdirectory. Always `cd` there first:
+All Rust development happens in the `metel-interpreter/` subdirectory. Always `cd` there first:
 
 ```bash
-cd tree-walk-interpreter
+cd metel-interpreter
 # Then run cargo commands
 ```
 
@@ -128,10 +128,10 @@ Spec documents, decision records, and RFCs live in `docs/`. Read them directly �
 | `docs/public/changelog.md` | **Changelog** — per-version feature list |
 | `docs/internal/rfcs/` | **RFCs** — language change proposals |
 | `docs/internal/versioning.md` | **Versioning model** — version numbering, RFC lifecycle, doc conventions |
-| `tree-walk-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
-| `tree-walk-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
-| `tree-walk-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
-| `tree-walk-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
+| `metel-interpreter/docs/architecture.md` | **Architecture Overview** — pipeline diagram, component boundaries |
+| `metel-interpreter/docs/typechecker.md` | **Typechecker** — HM theory background + implementation notes |
+| `metel-interpreter/docs/evaluator.md` | **Evaluator** — runtime values, signals, environment, known limitations |
+| `metel-interpreter/docs/decisions/` | **Decision records** — why a non-obvious implementation choice was made |
 
 ## Development Principles
 
@@ -212,6 +212,6 @@ Uses miette for rich error reporting with source context. Error types are define
 ## Testing Strategy
 
 - Phase-based test development for type inference (`tests/typeinference_tests.rs`)
-- Stage-based typechecking tests in `tests/typechecking/` with `.mln` source files
+- Stage-based typechecking tests in `tests/typechecking/` with `.mtl` source files
 - Integration tests in `tests/parsing/` for parsing validation
 - Unit tests within component modules
