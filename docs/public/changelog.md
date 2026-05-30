@@ -4,6 +4,23 @@ title: "Metel Language Changelog"
 
 # Changelog
 
+## v0.6.3
+
+Module system — feature complete. Shipped by Sprint 14 (`sprint/14`).
+
+**Bug fixes:**
+- `return` and `break` are now valid as bare match arm bodies without enclosing braces: `arm => return value` (#226)
+- Diamond module dependencies (same physical file reachable via two different logical paths) no longer fail with T0003; the name resolver now dereferences path aliases to their canonical form (#228)
+
+**Internal improvements:**
+- `?` operator desugared in a pre-pass (`path_normalizer::desugar_propagate_error`) rather than carried through inference and construction; `Expr::PropagateError` no longer exists after normalization (ADR-0030, #214)
+- `Type::Perhaps` and `Type::Result` convenience variants removed from the `Type` enum; both types are now represented uniformly as `Type::Named("Perhaps", ...)` and `Type::Named("Result", ...)` (#150)
+- Per-module isolated runtime environments validated with cross-module closure-capture and mutual-recursion tests (#189)
+- All aspect method dispatch key construction routed through `ImplMethodKey::to_env_key()`, eliminating ad-hoc format strings in the evaluator (#209)
+
+**Compatibility:**
+- No language-visible changes except the match arm body fix (#226), which is purely additive.
+
 ## v0.6.2
 
 Evaluator normalization. Shipped by Sprint 13 (`sprint/13`).

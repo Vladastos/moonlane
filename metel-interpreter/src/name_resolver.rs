@@ -62,7 +62,7 @@ pub struct ResolvedNames {
 
 // ── Path alias dereferencing ──────────────────────────────────────────────────
 
-/// Resolve a module path to its canonical form by dereferencing any alias.
+/// Resolve a module path to its canonical form by dereferencing any alias. See ADR-0031.
 /// Handles prefix aliases: if `["a", "b"]` → `["x", "y"]`, then
 /// `["a", "b", "c"]` → `["x", "y", "c"]`.
 fn canonical_path(path: &[String], aliases: &HashMap<Vec<String>, Vec<String>>) -> Vec<String> {

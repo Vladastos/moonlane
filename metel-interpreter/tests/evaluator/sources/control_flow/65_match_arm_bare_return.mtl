@@ -1,4 +1,4 @@
-// Bare `return` in match arm bodies (no surrounding braces).
+// Bare `return` and `break` in match arm bodies (no surrounding braces).
 // Previously rejected by the grammar; fixed in #226.
 
 fun classify(n: Int) -> String {
@@ -23,6 +23,18 @@ fun first_err(xs: Int[]) -> Perhaps<Int> {
     Perhaps::Some { value: a }
 }
 
+fun find_nonzero(arr: Int[]) -> Int {
+    mut i = 0;
+    loop {
+        if (i >= array_len(arr)) { break -1; }
+        let found = match arr[i] {
+            0 => { i = i + 1; continue; },
+            n => break n,
+        };
+        found
+    }
+}
+
 fun main() {
     assert(classify(0) == "zero");
     assert(classify(5) == "nonzero");
@@ -43,4 +55,9 @@ fun main() {
         Perhaps::Some { value } => assert(false),
         None => assert(true),
     };
+
+    // break in a match arm body
+    assert(find_nonzero([0, 0, 7]) == 7);
+    assert(find_nonzero([5, 0, 0]) == 5);
+    assert(find_nonzero([0, 0, 0]) == -1);
 }

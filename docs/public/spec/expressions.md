@@ -11,11 +11,13 @@ match value {
 }
 ```
 
-Each arm body can be a single expression **or** a block:
+Each arm body can be an expression, a `return`/`break` statement, or a block:
 
 ```metel
 match value {
     pattern => expression,
+    _       => return expression,   // return from the enclosing function
+    _       => break expression,    // break from an enclosing loop
     _       => { stmts* expression? },
 }
 ```

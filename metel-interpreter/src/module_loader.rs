@@ -84,7 +84,7 @@ impl Loader {
 
         if self.visited.contains(&file_path) {
             // Same physical file reachable via a different logical path (diamond dependency).
-            // Record the alias so the name resolver can dereference it.
+            // Record the alias so the name resolver can dereference it. See ADR-0031.
             if let Some(canonical) = self.file_to_path.get(&file_path) {
                 if *canonical != module_path {
                     self.path_aliases.insert(module_path, canonical.clone());
