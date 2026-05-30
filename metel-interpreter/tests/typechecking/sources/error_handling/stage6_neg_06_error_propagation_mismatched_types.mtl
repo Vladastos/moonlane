@@ -1,0 +1,16 @@
+// ? with mismatched error types and no From impl must fail with T0001.
+// After #214 desugaring, the plain Err arm produces a type mismatch.
+// Before desugaring, the inference pass already rejects it here.
+// Either way the result is T0001. This test locks in that behaviour.
+// From coercion for arbitrary type pairs is deferred to #13.
+
+fun inner() -> Result<Int, String> {
+    Result::Ok { value: 42 }
+}
+
+fun outer() -> Result<Int, Int> {
+    let x = inner()?; // ERROR[T0001]
+    Result::Ok { value: x }
+}
+
+fun main() {}
