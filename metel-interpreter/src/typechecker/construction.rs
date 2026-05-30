@@ -123,9 +123,6 @@ impl<'a> ConstructCtx<'a> {
     fn pop_return_type(&mut self, prev: Option<Type>) {
         self.current_return_ty = prev;
     }
-    fn current_return_type(&self) -> Option<&Type> {
-        self.current_return_ty.as_ref()
-    }
     fn push_break_type(&mut self, ty: Option<Type>) -> Option<Type> {
         std::mem::replace(&mut self.current_break_ty, ty)
     }
@@ -704,42 +701,10 @@ fn construct_expr(
                 span: span.clone(),
             })
         }
-        Expr::PropagateError { expr, span } => {
-            let typed_expr = construct_expr(expr, None, ctx)?;
-            let (ok_ty, e1) = match typed_expr.ty() {
-                Type::Result(ok, err) => (*ok.clone(), *err.clone()),
-                Type::Named(name, args) if name == "Result" && args.len() == 2 =>
-                    (args[0].clone(), args[1].clone()),
-                _ => return Err(MetelError::internal("? on non-Result value")),
-            };
-            // Determine if a From coercion is needed (E1 != E2).
-            let coercion = if let Some(ret_ty) = ctx.current_return_type() {
-                let e2 = match ret_ty {
-                    Type::Result(_, err) => Some(*err.clone()),
-                    Type::Named(name, args) if name == "Result" && args.len() == 2 => Some(args[1].clone()),
-                    _ => None,
-                };
-                if let Some(e2) = e2 {
-                    if e1 != e2 {
-                        let tgt = match &e2 {
-                            Type::Named(n, _) => Some(n.as_str()),
-                            _ => None,
-                        };
-                        // Emit "Target::From<Source>::from" — matches the key that
-                        // impl_method_key() uses when registering From<T> impls.
-                        match (tgt, &e1) {
-                            (Some(t), Type::Named(src, _)) => Some(format!("{t}::From<{src}>::from")),
-                            (Some(t), _) => Some(format!("{t}::from")),
-                            _ => None,
-                        }
-                    } else { None }
-                } else { None }
-            } else { None };
-            Ok(TypedExpr::PropagateError {
-                expr: Box::new(typed_expr), coercion, ty: ok_ty, span: span.clone(),
-            })
-        }
         Expr::Match(m) => construct_match(m, expected_ty, ctx),
+        Expr::PropagateError { .. } => {
+            unreachable!("PropagateError must be desugared before construction")
+        }
         Expr::Ascribe { expr, ann, span } => {
             let ty = resolved_to_type(&type_expr_to_infer(ann), ctx.subst, span)?;
             construct_expr(expr, Some(&ty), ctx)

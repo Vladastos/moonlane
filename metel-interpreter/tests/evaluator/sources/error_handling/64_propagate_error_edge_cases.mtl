@@ -1,9 +1,9 @@
-// Edge cases for the ? operator and From-based error coercion
+// Edge cases for the ? operator and From-based error coercion.
+//
+// Cross-type ? is deferred to #13; those cases use explicit match + `as` cast instead.
 //
 //   same-type ? (no From needed),
-//   multi-level error chain: A → B → C,
-//   ? in a while loop body (early exit),
-//   ? in a for-in loop body (early exit on first Err),
+//   cross-type match + as-cast: A → B (replaces cross-type ? until #13),
 //   ? on the first statement in a function,
 //   ? on the last statement in a function,
 //   multiple ? in one function (each can short-circuit),
@@ -62,31 +62,52 @@ fun parse_checked(s: String) -> Result<Int, ParseError> {
     Result::Ok { value: n }
 }
 
-// multi-step: IoError coerced to AppError on first ?, ParseError on second
+// multi-step: cross-type match + as-cast (? deferred to #13)
 fun load_and_parse(path: String) -> Result<Int, AppError> {
-    let contents = read_file(path)?;
-    let n = parse_int(contents)?;
+    let contents = match read_file(path) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
+    let n = match parse_int(contents) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
     Result::Ok { value: n }
 }
 
-// ? on first statement
+// match + as-cast on first statement
 fun first_stmt(path: String) -> Result<Int, AppError> {
-    let contents = read_file(path)?;
+    let contents = match read_file(path) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
     Result::Ok { value: 1 }
 }
 
-// ? on last statement (value returned directly)
+// match + as-cast on last statement (value returned directly)
 fun last_stmt(s: String) -> Result<Int, AppError> {
     let doubled = 2;
-    let n = parse_int(s)?;
+    let n = match parse_int(s) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
     Result::Ok { value: n * doubled }
 }
 
-// multiple ? in one function
+// multiple cross-type conversions in one function
 fun multi_q(path: String) -> Result<Int, AppError> {
-    let a = read_file(path)?;
-    let b = parse_int(a)?;
-    let c = parse_int("42")?;
+    let a = match read_file(path) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
+    let b = match parse_int(a) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
+    let c = match parse_int("42") {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
     Result::Ok { value: b + c }
 }
 

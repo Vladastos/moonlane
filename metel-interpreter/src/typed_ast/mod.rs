@@ -304,13 +304,6 @@ pub enum TypedExpr {
         ty: Type,
         span: Span,
     },
-    PropagateError {
-        expr:      Box<TypedExpr>,
-        /// When E1 != E2, holds the env key for the coercion function (e.g. "AppError::from").
-        coercion:  Option<String>,
-        ty:        Type,
-        span:      Span,
-    },
 }
 
 impl TypedExpr {
@@ -335,8 +328,7 @@ impl TypedExpr {
             | TypedExpr::Loop { ty, .. }
             | TypedExpr::Closure { ty, .. }
             | TypedExpr::GenericClosure { ty, .. }
-            | TypedExpr::StructLiteral { ty, .. }
-            | TypedExpr::PropagateError { ty, .. } => ty,
+            | TypedExpr::StructLiteral { ty, .. } => ty,
             TypedExpr::Match(m) => &m.expr_type,
         }
     }
@@ -362,8 +354,7 @@ impl TypedExpr {
             | TypedExpr::Loop { span, .. }
             | TypedExpr::Closure { span, .. }
             | TypedExpr::GenericClosure { span, .. }
-            | TypedExpr::StructLiteral { span, .. }
-            | TypedExpr::PropagateError { span, .. } => span,
+            | TypedExpr::StructLiteral { span, .. } => span,
             TypedExpr::Match(m) => &m.span,
         }
     }
