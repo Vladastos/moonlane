@@ -94,9 +94,12 @@ fun require_config(key: String) -> Result<String, ConfigError> {
     Result::Ok { value: v }
 }
 
-// ? with From: ConfigError → RunError
+// cross-type match + as-cast (? cross-type deferred to #13)
 fun run_with_config(key: String) -> Result<String, RunError> {
-    let v = load_config(key)?;
+    let v = match load_config(key) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as RunError }; },
+    };
     Result::Ok { value: string_concat("ran:", v) }
 }
 

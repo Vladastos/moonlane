@@ -108,7 +108,6 @@ pub enum Signal {
     Return(Value),
     Break(Value),       // carries value for `loop { break expr; }`
     Continue,
-    PropagateErr(Value), // the ? operator
 }
 
 impl Signal {
@@ -476,13 +475,12 @@ pub fn eval_stmt(stmt: &TypedStmt, env: &mut Environment) -> Result<Signal, Mete
                     Signal::Value(_) => return Err(MetelError::internal(
                         "while: expected Bool condition (typechecker should have caught this)",
                     )),
-                    other => return Ok(other), // Return / PropagateErr from condition
+                    other => return Ok(other), // propagate Return from condition
                 }
                 match eval_block(&w.body, env)? {
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)       => break,
                     Signal::Return(v)      => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v)=> return Ok(Signal::PropagateErr(v)),
                 }
             }
             Ok(Signal::Value(Value::Unit))
@@ -517,7 +515,6 @@ pub fn eval_stmt(stmt: &TypedStmt, env: &mut Environment) -> Result<Signal, Mete
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)        => break Ok(Signal::Value(Value::Unit)),
                     Signal::Return(v)       => break Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => break Ok(Signal::PropagateErr(v)),
                 }
                 if let Some(step) = &f.step {
                     eval_expr(step, env)?;
@@ -567,7 +564,6 @@ fn eval_for_in(
                 Signal::Value(_) | Signal::Continue => {}
                 Signal::Break(_)        => break,
                 Signal::Return(v)       => return Ok(Signal::Return(v)),
-                Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
             }
         }
         return Ok(Signal::Value(Value::Unit));
@@ -607,7 +603,6 @@ fn eval_for_in(
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)        => break,
                     Signal::Return(v)       => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
                 }
             }
         }
@@ -719,7 +714,6 @@ fn eval_untyped_stmt(stmt: &Stmt, env: &mut Environment) -> Result<Signal, Metel
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)        => break,
                     Signal::Return(v)       => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
                 }
             }
             Ok(Signal::Value(Value::Unit))
@@ -749,7 +743,6 @@ fn eval_untyped_stmt(stmt: &Stmt, env: &mut Environment) -> Result<Signal, Metel
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)        => break Ok(Signal::Value(Value::Unit)),
                     Signal::Return(v)       => break Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => break Ok(Signal::PropagateErr(v)),
                 }
                 if let Some(step) = &f.step {
                     eval_untyped_expr(step, env)?;
@@ -784,7 +777,6 @@ fn eval_untyped_stmt(stmt: &Stmt, env: &mut Environment) -> Result<Signal, Metel
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(_)        => break,
                     Signal::Return(v)       => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
                 }
             }
             Ok(Signal::Value(Value::Unit))
@@ -947,7 +939,6 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Metel
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(val)      => return Ok(Signal::Value(val)),
                     Signal::Return(v)       => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
                 }
             }
         }
@@ -1113,18 +1104,8 @@ fn eval_untyped_expr(expr: &Expr, env: &mut Environment) -> Result<Signal, Metel
             }))))
         }
 
-        Expr::PropagateError { expr, span } => {
-            let val = eval_untyped_expr(expr, env)?.into_value();
-            match val {
-                Value::Enum { name, variant, mut fields } if name == "Result" => {
-                    if variant == "Ok" {
-                        Ok(Signal::Value(fields.remove("value").unwrap_or(Value::Unit)))
-                    } else {
-                        Ok(Signal::PropagateErr(fields.remove("error").unwrap_or(Value::Unit)))
-                    }
-                }
-                _ => Err(MetelError::panic(RuntimeErrorCode::R0012, "?: expected a Result value", span)),
-            }
+        Expr::PropagateError { .. } => {
+            unreachable!("PropagateError must be desugared before evaluation")
         }
     }
 }
@@ -1304,7 +1285,7 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Mete
                     None         => Ok(Signal::Value(Value::Unit)),
                 },
                 Signal::Value(_) => Err(MetelError::internal("if: expected Bool condition (typechecker should have caught this)")),
-                other => Ok(other), // propagate Return / PropagateErr from condition
+                other => Ok(other), // propagate Return from condition
             }
         }
 
@@ -1314,7 +1295,6 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Mete
                     Signal::Value(_) | Signal::Continue => {}
                     Signal::Break(val)      => return Ok(Signal::Value(val)),
                     Signal::Return(v)       => return Ok(Signal::Return(v)),
-                    Signal::PropagateErr(v) => return Ok(Signal::PropagateErr(v)),
                 }
             }
         }
@@ -1529,26 +1509,6 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Mete
             }))))
         }
 
-        TypedExpr::PropagateError { expr, coercion, span, .. } => {
-            let val = eval_expr(expr, env)?.into_value();
-            match val {
-                Value::Enum { name, variant, mut fields } if name == "Result" => {
-                    if variant == "Ok" {
-                        Ok(Signal::Value(fields.remove("value").unwrap_or(Value::Unit)))
-                    } else {
-                        let e = fields.remove("error").unwrap_or(Value::Unit);
-                        // Apply From coercion if needed.
-                        let coerced = if let Some(key) = coercion {
-                            if let Some(from_fn) = env.get(key) {
-                                call::call_function(from_fn, vec![e], span)?.into_value()
-                            } else { e }
-                        } else { e };
-                        Ok(Signal::PropagateErr(coerced))
-                    }
-                }
-                _ => Err(MetelError::panic(RuntimeErrorCode::R0012, "?: expected a Result value", span)),
-            }
-        }
     }
 }
 

@@ -666,51 +666,10 @@ fn infer_expr(
             ctx.pop_scope();
             Ok(InferType::Fun(param_types, Box::new(ret_ty)))
         }
-        Expr::PropagateError { expr, span } => {
-            let inner_ty = infer_expr(expr, ctx, fun_generalizations)?;
-            let ok_var   = ctx.fresh_var();
-            let err_var  = ctx.fresh_var();
-            ctx.add_constraint(
-                inner_ty,
-                InferType::Named("Result".to_string(), vec![ok_var.clone(), err_var.clone()]),
-                span.clone(),
-            );
-            if let Some(fn_ret) = ctx.current_return_type().cloned() {
-                let fn_ok_var  = ctx.fresh_var();
-                let fn_err_var = ctx.fresh_var();
-                ctx.add_constraint(
-                    fn_ret,
-                    InferType::Named("Result".to_string(), vec![fn_ok_var, fn_err_var.clone()]),
-                    span.clone(),
-                );
-                // Resolve both error vars. If concretely different, check From;
-                // if still unknown, unify them (handles unannotated functions).
-                let partial = ctx.solve()?;
-                let e1 = partial.apply(&err_var);
-                let e2 = partial.apply(&fn_err_var);
-                if e1 == e2 || e1.is_var() || e2.is_var() {
-                    ctx.add_constraint(err_var, fn_err_var, span.clone());
-                } else {
-                    // Concrete different types — require E2: From<E1>.
-                    let src = infer_to_type_for_from(&e1);
-                    let tgt = infer_type_name(&e2);
-                    let ok = match (src.as_ref(), tgt) {
-                        (Some(s), Some(t)) => ctx.has_from_impl(t, s),
-                        _ => false,
-                    };
-                    if !ok {
-                        return Err(MetelError::type_error(
-                            TypeErrorCode::T0001,
-                            format!("cannot use `?` here: `{}` does not implement `From<{}>` for error coercion", e2, e1),
-                            span,
-                        ));
-                    }
-                    // Don't unify — let construction emit the coercion call.
-                }
-            }
-            Ok(ok_var)
-        }
         Expr::Match(m) => infer_match(m, ctx, fun_generalizations),
+        Expr::PropagateError { .. } => {
+            unreachable!("PropagateError must be desugared before type inference")
+        }
     }
 }
 

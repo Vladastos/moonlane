@@ -138,9 +138,12 @@ fun parse_radius(s: String) -> Result<Int, ParseError> {
     }
 }
 
-// ? converts ParseError → ShapeError via From.
+// cross-type match + as-cast (? cross-type deferred to #13).
 fun circle_area_from_str(s: String) -> Result<Float, ShapeError> {
-    let r = parse_radius(s)?;
+    let r = match parse_radius(s) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as ShapeError }; },
+    };
     let c = Circle { radius: r };
     Result::Ok { value: c.area() }
 }

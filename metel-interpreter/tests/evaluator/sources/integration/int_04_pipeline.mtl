@@ -99,10 +99,16 @@ fun parse_number(t: Token) -> Result<Number, ParseError> {
     }
 }
 
-// ? coerces both LexError and ParseError → AppError
+// cross-type match + as-cast (? cross-type deferred to #13)
 fun pipeline_step(s: String) -> Result<Number, AppError> {
-    let tok = lex_token(s)?;
-    let num = parse_number(tok)?;
+    let tok = match lex_token(s) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
+    let num = match parse_number(tok) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+    };
     Result::Ok { value: num }
 }
 

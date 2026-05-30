@@ -89,7 +89,11 @@ fun parse_score(s: String) -> Result<Score, FormatError> {
 }
 
 fun render_score(s: String) -> Result<String, RenderError> {
-    let sc = parse_score(s)?;
+    // cross-type match + as-cast (? cross-type deferred to #13)
+    let sc = match parse_score(s) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as RenderError }; },
+    };
     Result::Ok { value: sc.format() }
 }
 

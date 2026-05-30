@@ -32,8 +32,15 @@ fun double_parsed(s: String) -> Result<Int, ParseError> {
 }
 
 fun add_parsed(a: String, b: String) -> Result<Int, MathError> {
-    let x = parse_positive(a)?;
-    let y = parse_positive(b)?;
+    // cross-type match + as-cast (? cross-type deferred to #13)
+    let x = match parse_positive(a) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as MathError }; },
+    };
+    let y = match parse_positive(b) {
+        Result::Ok { value } => value,
+        Result::Err { error } => { return Result::Err { error: error as MathError }; },
+    };
     Result::Ok { value: x + y }
 }
 
