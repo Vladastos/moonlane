@@ -1,0 +1,46 @@
+// Bare `return` in match arm bodies (no surrounding braces).
+// Previously rejected by the grammar; fixed in #226.
+
+fun classify(n: Int) -> String {
+    match n {
+        0 => return "zero",
+        _ => return "nonzero",
+    }
+}
+
+fun sign(n: Int) -> Int {
+    match n {
+        0 => return 0,
+        _ => if (n > 0) { return 1; } else { return -1; },
+    }
+}
+
+fun first_err(xs: Int[]) -> Perhaps<Int> {
+    let a = match xs[0] {
+        0 => return None,
+        n => n,
+    };
+    Perhaps::Some { value: a }
+}
+
+fun main() {
+    assert(classify(0) == "zero");
+    assert(classify(5) == "nonzero");
+    assert(classify(-3) == "nonzero");
+
+    assert(sign(0) == 0);
+    assert(sign(7) == 1);
+    assert(sign(-2) == -1);
+
+    let vals = [3, 1, 2];
+    match first_err(vals) {
+        Perhaps::Some { value } => assert(value == 3),
+        None => assert(false),
+    };
+
+    let zeros = [0, 1, 2];
+    match first_err(zeros) {
+        Perhaps::Some { value } => assert(false),
+        None => assert(true),
+    };
+}

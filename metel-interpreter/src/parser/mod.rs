@@ -990,6 +990,16 @@ fn parse_match_arm(pair: pest::iterators::Pair<Rule>, filename: &str) -> Result<
             let expr = parse_expr(body_pair.clone(), filename)?;
             Block { stmts: vec![], tail: Some(Box::new(expr)), span: body_span }
         }
+        Rule::return_arm => {
+            let body_span = Span::of(body_pair, filename);
+            let stmt = Decl::Stmt(Box::new(Stmt::Return(parse_return_stmt(body_pair.clone(), filename)?)));
+            Block { stmts: vec![stmt], tail: None, span: body_span }
+        }
+        Rule::break_arm => {
+            let body_span = Span::of(body_pair, filename);
+            let stmt = Decl::Stmt(Box::new(Stmt::Break(parse_break_stmt(body_pair.clone(), filename)?)));
+            Block { stmts: vec![stmt], tail: None, span: body_span }
+        }
         _ => return Err(MetelError::internal("match_arm: unexpected body rule")),
     };
 

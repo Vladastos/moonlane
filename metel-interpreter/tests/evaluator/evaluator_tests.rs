@@ -188,6 +188,9 @@ mod tests {
     fn braceless_if() { check("control_flow/47_braceless_if.mtl"); }
 
     #[test]
+    fn match_arm_bare_return() { check("control_flow/65_match_arm_bare_return.mtl"); }
+
+    #[test]
     fn neg_no_arm() { check("control_flow/neg_06_no_arm.mtl"); }
 
     #[test]

@@ -66,11 +66,11 @@ fun parse_checked(s: String) -> Result<Int, ParseError> {
 fun load_and_parse(path: String) -> Result<Int, AppError> {
     let contents = match read_file(path) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     let n = match parse_int(contents) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     Result::Ok { value: n }
 }
@@ -79,7 +79,7 @@ fun load_and_parse(path: String) -> Result<Int, AppError> {
 fun first_stmt(path: String) -> Result<Int, AppError> {
     let contents = match read_file(path) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     Result::Ok { value: 1 }
 }
@@ -89,7 +89,7 @@ fun last_stmt(s: String) -> Result<Int, AppError> {
     let doubled = 2;
     let n = match parse_int(s) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     Result::Ok { value: n * doubled }
 }
@@ -98,15 +98,15 @@ fun last_stmt(s: String) -> Result<Int, AppError> {
 fun multi_q(path: String) -> Result<Int, AppError> {
     let a = match read_file(path) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     let b = match parse_int(a) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     let c = match parse_int("42") {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     Result::Ok { value: b + c }
 }

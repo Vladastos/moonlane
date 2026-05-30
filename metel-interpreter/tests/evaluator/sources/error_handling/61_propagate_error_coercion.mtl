@@ -30,7 +30,7 @@ fun load(s: String) -> Result<Int, AppError> {
     // Cross-type ? deferred to #13; use explicit match + as-cast.
     let n = match parse_int(s) {
         Result::Ok { value } => value,
-        Result::Err { error } => { return Result::Err { error: error as AppError }; },
+        Result::Err { error } => return Result::Err { error: error as AppError },
     };
     return Result::Ok { value: n * 2 };
 }
