@@ -169,7 +169,9 @@ tuple_or_paren = { "(" ~ expr ~ ("," ~ expr)+ ~ ")" | "(" ~ expr ~ ")" }
 array_lit      = { "[" ~ (expr ~ ("," ~ expr)* ~ ","?)? ~ "]" }
 
 match_expr  = { "match" ~ expr ~ "{" ~ match_arm ~ ("," ~ match_arm)* ~ ","? ~ "}" }
-match_arm   = { pattern ~ ("if" ~ expr)? ~ "=>" ~ (block | expr) }
+match_arm   = { pattern ~ ("if" ~ expr)? ~ "=>" ~ (block | return_arm | break_arm | expr) }
+return_arm  = { "return" ~ expr? }
+break_arm   = { "break" ~ expr? }
 
 if_expr     = { "if" ~ "(" ~ expr ~ ")" ~ (block | expr) ~ ("else" ~ (if_expr | block | expr))? }
 loop_expr   = { "loop" ~ block }
