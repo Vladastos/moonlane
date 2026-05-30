@@ -302,6 +302,9 @@ mod tests {
     #[test]
     fn stage6_neg_error_propagation_non_result() { check("error_handling/stage6_neg_05_error_propagation_non_result.mtl"); }
 
+    #[test]
+    fn stage6_neg_error_propagation_mismatched_types() { check("error_handling/stage6_neg_06_error_propagation_mismatched_types.mtl"); }
+
     // ── Builtins and type ascription ──────────────────────────────────────────
 
     #[test]

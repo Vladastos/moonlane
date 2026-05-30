@@ -13,8 +13,8 @@ TypedModuleGraph  ──►  evaluate_graph() ──►  side effects / RuntimeP
 ```
 
 Entry points:
-- `evaluator::evaluate(program: TypedProgram) -> Result<(), MetelError>` — single-module legacy path
-- `evaluator::evaluate_graph(graph: TypedModuleGraph) -> Result<(), MetelError>` — multi-module path (v0.6.0): flattens the `TypedModuleGraph` into a single `TypedProgram` and delegates to `evaluate`
+- `evaluator::evaluate(program: TypedProgram) -> Result<(), MetelError>` — single-module legacy path; used by the evaluator test harness only, not called from the main pipeline
+- `evaluator::evaluate_graph(graph: TypedModuleGraph) -> Result<(), MetelError>` — multi-module path (v0.6.0): processes each `TypedModule` in topological order in its own isolated `Environment`, seeding imported names from already-evaluated dependency environments
 
 The evaluator operates on the typed AST produced by the typechecker. It does not re-check types — if the evaluator panics on a type mismatch, that is a typechecker bug, not an evaluator limitation.
 
@@ -37,8 +37,6 @@ pub enum Value {
     Enum   { name: String, variant: String, fields: HashMap<String, Value> },
     Closure(Rc<ClosureValue>),
     Builtin(String, fn(Vec<Value>, &Span) -> Result<Value, MetelError>),
-    Perhaps(Option<Box<Value>>),
-    Result(Result<Box<Value>, Box<Value>>),
     Pointer(Rc<RefCell<Value>>),        // RFC-0001 placeholder — never constructed
     MutPointer(Rc<RefCell<Value>>),     // RFC-0001 placeholder — never constructed
 }
@@ -52,7 +50,7 @@ pub enum Value {
 - Passing an array to a function gives the function its own copy; `array_push` inside the function does not mutate the caller's array.
 - `array_push` applied to the binding itself mutates through the `Rc<RefCell>` as expected.
 
-**`Value::Perhaps` and `Value::Result`** are the canonical runtime representations for the built-in `Perhaps<T>` and `Result<T,E>` types. All construction paths route through these variants — `Perhaps::Some { value: v }` struct literals produce `Value::Perhaps(Some(Box::new(v)))`, `None` produces `Value::Perhaps(None)`, `Result::Ok { value: v }` produces `Value::Result(Ok(Box::new(v)))`, and `Result::Err { error: e }` produces `Value::Result(Err(Box::new(e)))`. Pattern matching and the `?` operator match against these dedicated variants, not `Value::Enum`.
+**`Perhaps` and `Result`** are represented as `Value::Enum` — the same general enum representation used for all user-defined enum types. `Perhaps::Some { value: v }` produces `Value::Enum { name: "Perhaps", variant: "Some", fields: { "value": v } }`, `None` produces `Value::Enum { name: "Perhaps", variant: "None", fields: {} }`, and so on. Pattern matching and the `?` operator use the general enum path, not dedicated variants. (Dedicated `Value::Perhaps` and `Value::Result` variants were removed in #205.)
 
 ### Range representation
 
@@ -81,7 +79,7 @@ pub enum Signal {
 | `Return(v)` | `call_function` — converts to `Signal::Value(v)` at the function boundary |
 | `Break(v)` | `Expr::Loop` handler — exits the loop, returns `Signal::Value(v)` |
 | `Continue` | `While`, `For`, `ForIn` loop bodies — skips to next iteration |
-| `PropagateErr(e)` | `Expr::PropagateError` handler — or `call_function`, which wraps `e` in `Result::Err { error: e }` |
+| `PropagateErr(e)` | `Expr::PropagateError` handler — or `call_function`, which wraps `e` in `Value::Enum { name: "Result", variant: "Err", fields: { "error": e } }` |
 
 `Signal::into_value()` is a convenience that panics on non-Value signals. It is used at call sites where the typechecker guarantees the expression cannot diverge (e.g., function arguments, struct field expressions). If it panics, that indicates a typechecker bug.
 
@@ -188,7 +186,7 @@ Anonymous closures appear as `<closure>`. The call stack is cleared at the start
 `call_function(func, args, span)` handles three cases:
 
 - `Value::Builtin(_, f)` — calls the function pointer directly.
-- `Value::Closure(rc)` — clones the captured environment, pushes a parameter scope, evaluates the body, and converts `Signal::Return` to `Signal::Value` at the boundary. `Signal::PropagateErr` is also converted: it wraps the error value in `Value::Result(Err(Box::new(e)))` and returns `Signal::Value` — so the `?` error appears as a `Result::Err` value to the caller.
+- `Value::Closure(rc)` — clones the captured environment, pushes a parameter scope, evaluates the body, and converts `Signal::Return` to `Signal::Value` at the boundary. `Signal::PropagateErr` is also converted: it wraps the error value in `Value::Enum { name: "Result", variant: "Err", fields: { "error": e } }` and returns `Signal::Value` — so the `?` error appears as a `Result::Err` value to the caller.
 - `Value::Closure(rc)` where `rc.body` is `ClosureBody::Untyped(block)` — a polymorphic generic function or let-bound closure. The evaluator re-runs the construction pass on the untyped block at the concrete argument types, producing a `TypedBlock` that is evaluated immediately. This is the monomorphization path.
 
 ---
@@ -205,17 +203,13 @@ Generic functions and let-polymorphic closures re-run the construction pass at e
 
 This function goes away when RFC-0001 (memory model with mutable references) is implemented. At that point, `next` can take `&mut self` and mutate in place, and `eval_for_in` can call `call_function` directly.
 
-### Flat module environment — std::core builtins can be shadowed by user names (#189)
+### Cross-module mutual recursion is not supported (#189)
 
-`evaluate_graph` merges all module environments into one. `std::core` builtin names (e.g. `print`, `assert`) are seeded into this flat environment at lowest priority. A user-defined function with the same name in any module will shadow the builtin silently at runtime, even if the typechecker resolved them to different scopes.
+`run_passes` runs all three passes (1a placeholders, 1b closures, 2 bindings) for one module before moving to the next. If function `foo` in module A calls `bar` in module B and `bar` calls `foo`, the circular dependency requires a specific multi-module structure (A and B are peers, both importing a third module C). When A is being evaluated, B's environment doesn't exist yet, so A's closures cannot capture B's functions. The fix requires running Pass 1a for all modules before Pass 1b for any module. No current test program exercises this pattern.
 
-This will be resolved when per-module runtime environments are introduced (tracked in #189).
+### `?` with mismatched error types does not perform From coercion (#13)
 
-### Declaration name collisions across modules produce undefined runtime behaviour
-
-In v0.6.0, two modules may each declare a top-level name (e.g. `fun tokenize()`) without importing each other. The typechecker approves both in isolation, but `evaluate_graph` flattens all modules into a single environment: the second declaration silently overwrites the first.
-
-`evaluate_graph` emits a best-effort warning when this happens, but does not hard-error — the typechecker approved the program. The correct fix is per-module runtime environments, tracked as a future issue.
+The `?` operator propagates the inner `Result::Err` directly: the Err arm is `return Result::Err { error: error }` with no `From::from` call. If the function's return error type `E2` differs from the inner error type `E1`, the typechecker rejects the program with T0001 unless an `impl From<E1> for E2` is registered. The only registered From impls are `From<Float> for Int` and `From<Int> for Float`. Cross-type error coercion via `?` for other type pairs is not implemented and will fail at typecheck time. Full From-based coercion is tracked in #13.
 
 ### Closure/scope mutation semantics unspecified
 
@@ -225,9 +219,9 @@ The PoC's `Rc<RefCell<Value>>` environment gives closures reference semantics fo
 
 ## Extension Points
 
-### v0.4 — Aspects / `?` coercion (shipped)
+### v0.4 — Aspects / `?` coercion (partially shipped)
 
-`PropagateError` now supports `From<E>` coercion: after matching `Result::Err`, the evaluator looks up the `"Target::From<Source>::from"` key in the impl environment and calls it if the error types differ. Identity coercion (same types) skips the lookup.
+`PropagateError` has partial `From<E>` coercion support in the current inference pass: the typechecker detects `E1 != E2` via a mid-inference partial solve and checks for a registered `impl From<E1> for E2`. Only `From<Float> for Int` and `From<Int> for Float` are registered. Cross-type `?` for other pairs is rejected at T0001. Full From-based coercion is tracked in #13. After issue #214 (`?` desugaring), the Err arm emits plain `error` with no `From::from` call; From coercion will slot into the desugared form when #13 is implemented.
 
 ### Rewrite
 
