@@ -575,7 +575,7 @@ fn eval_for_in(
         _ => return Err(MetelError::panic(RuntimeErrorCode::R0011,
             "for-in: expected Array, Range, or Iterable value", span)),
     };
-    let next_key = format!("{type_name}::next");
+    let next_key = ImplMethodKey::Regular { type_name: &type_name, method_name: "next" }.to_env_key();
     let next_fn = env.get(&next_key).ok_or_else(|| {
         MetelError::panic(RuntimeErrorCode::R0011,
             format!("for-in: `{type_name}` does not implement Iterable (no `next` method)"), span)
@@ -1230,8 +1230,8 @@ pub fn eval_expr(expr: &TypedExpr, env: &mut Environment) -> Result<Signal, Mete
                     _ => None,
                 };
                 let from_fn = src_name
-                    .and_then(|s| env.get(&format!("{target_name}::From<{s}>::from")))
-                    .or_else(|| env.get(&format!("{target_name}::from")));
+                    .and_then(|s| env.get(&ImplMethodKey::FromImpl { target: target_name, source: s }.to_env_key()))
+                    .or_else(|| env.get(&ImplMethodKey::Regular { type_name: target_name, method_name: "from" }.to_env_key()));
                 if let Some(f) = from_fn {
                     return call::call_function(f, vec![v], span);
                 }
