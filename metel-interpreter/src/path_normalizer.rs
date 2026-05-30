@@ -45,7 +45,7 @@ pub fn normalize(
         .collect();
 
     for loaded in &mut graph.modules {
-        desugar_propagate_error(&mut loaded.program.decls);
+        desugar_propagate_error(&mut loaded.program.decls); // ADR-0030: must run before inference
         let scope = names.scopes.get(&loaded.module_path);
         normalize_program_decls(&mut loaded.program.decls, scope, &module_names)?;
     }
